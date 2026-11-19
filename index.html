@@ -1,0 +1,806 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Factory — prototype</title>
+<style>
+:root { --ink:#1d1630; --muted:#6c6485; --paper:#fff8f1; --pink:#ff5d8f; --sun:#ffb830; --mint:#2fd1a4; --sky:#5aa9ff; --violet:#8b5cf6; --line:#eadfd2; --r:22px; }
+* { box-sizing:border-box; }
+html { scroll-behavior:smooth; overflow-x:hidden; }
+body { margin:0; font:15px/1.5 "Nunito", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; color:var(--ink); background:var(--paper); overflow-x:hidden; }
+button, input { font:inherit; }
+
+/* Hero */
+.hero { position:relative; padding:40px 20px 60px; text-align:center; overflow:hidden; }
+.blob { position:absolute; border-radius:50%; filter:blur(10px); opacity:.55; animation:float 9s ease-in-out infinite; pointer-events:none; z-index:0; }
+.b1 { width:340px; height:340px; background:var(--pink); left:-80px; top:-100px; }
+.b2 { width:300px; height:300px; background:var(--sun); right:-60px; top:-40px; animation-delay:-3s; }
+.b3 { width:260px; height:260px; background:var(--mint); left:40%; bottom:-160px; animation-delay:-6s; }
+@keyframes float { 0%,100% { transform:translate(0,0) scale(1); } 50% { transform:translate(18px,-22px) scale(1.06); } }
+.hero > *:not(.blob) { position:relative; }
+.kicker { display:inline-block; background:#fff; border:2px solid var(--ink); border-radius:999px; padding:6px 14px; font-weight:800; font-size:13px; box-shadow:4px 4px 0 var(--ink); }
+h1 { font-size:clamp(40px,7vw,68px); line-height:1.02; margin:18px 0 10px; letter-spacing:-.02em; font-weight:900; }
+h1 span { background:linear-gradient(90deg,var(--pink),var(--violet),var(--sky)); -webkit-background-clip:text; background-clip:text; color:transparent; }
+.lede { font-size:18px; color:var(--muted); max-width:560px; margin:0 auto; }
+.try { margin:26px auto 0; max-width:520px; display:flex; gap:8px; background:#fff; border:2px solid var(--ink); border-radius:999px; padding:6px; box-shadow:6px 6px 0 var(--ink); }
+.try input { flex:1; border:0; outline:none; background:transparent; padding:10px 14px; font-size:16px; font-weight:700; text-transform:uppercase; min-width:0; }
+.btn { border:0; cursor:pointer; background:var(--ink); color:#fff; font-weight:800; border-radius:999px; padding:12px 20px; transition:transform .15s; }
+.btn:hover { transform:translateY(-2px) rotate(-1deg); }
+.btn:active { transform:translateY(1px); }
+.btn.ghost { background:#fff; color:var(--ink); border:2px solid var(--ink); }
+.btn.pink { background:var(--pink); }
+
+/* How it works */
+.steps { max-width:1100px; margin:-20px auto 0; padding:0 20px; display:grid; grid-template-columns:repeat(3,1fr); gap:14px; position:relative; }
+.step { background:#fff; border:2px solid var(--ink); border-radius:var(--r); padding:18px; box-shadow:5px 5px 0 var(--ink); }
+.step .n { width:34px; height:34px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-weight:900; color:#fff; margin-bottom:8px; }
+.step h3 { margin:0 0 4px; font-size:18px; }
+.step p { margin:0; color:var(--muted); font-size:14px; }
+
+/* Modules */
+main { max-width:1100px; margin:0 auto; padding:30px 20px 80px; }
+.head { display:flex; justify-content:space-between; align-items:end; gap:16px; flex-wrap:wrap; margin-bottom:14px; }
+.head h2 { margin:0; font-size:28px; font-weight:900; }
+.filters { display:flex; gap:8px; flex-wrap:wrap; }
+.chip { border:2px solid var(--ink); background:#fff; border-radius:999px; padding:6px 12px; font-weight:800; font-size:13px; cursor:pointer; }
+.chip[aria-pressed="true"] { background:var(--ink); color:#fff; }
+.sec { margin-bottom:34px; }
+.sec h2 { font-size:20px; margin:0 0 12px; font-weight:900; }
+.sec h2 span { font-size:13px; color:var(--muted); font-weight:600; margin-left:6px; }
+.grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(250px,1fr)); gap:18px; }
+.mod { border:2px solid var(--ink); border-radius:var(--r); background:#fff; padding:18px; cursor:pointer; box-shadow:5px 5px 0 var(--ink); transition:transform .18s, box-shadow .18s; display:flex; flex-direction:column; gap:8px; position:relative; overflow:hidden; }
+.mod:hover { transform:translate(-2px,-3px) rotate(-.6deg); box-shadow:8px 9px 0 var(--ink); }
+.mod .emo { width:56px; height:56px; border-radius:18px; display:flex; align-items:center; justify-content:center; font-size:28px; border:2px solid var(--ink); background:var(--c); }
+.mod h3 { margin:6px 0 0; font-size:19px; font-weight:900; }
+.mod p { margin:0; color:var(--muted); font-size:14px; }
+.pill { align-self:flex-start; font-size:12px; font-weight:900; border:2px solid var(--ink); border-radius:999px; padding:2px 10px; }
+.pill.ready { background:var(--mint); }
+.pill.beta { background:var(--sun); }
+.pill.soon { background:#e9e5f5; }
+.mod .go { margin-top:auto; font-weight:900; color:var(--violet); }
+.mod:focus-visible, .btn:focus-visible, .chip:focus-visible { outline:3px solid var(--sky); outline-offset:3px; }
+
+/* Drawer */
+.scrim { position:fixed; inset:0; background:rgba(29,22,48,.45); display:none; z-index:50; pointer-events:none; }
+.scrim.open { display:block; animation:fade .2s; }
+@keyframes fade { from { opacity:0; } }
+.drawer { position:fixed; right:0; top:0; bottom:0; width:min(560px,100%); background:var(--paper); border-left:2px solid var(--ink); transform:translateX(105%); transition:transform .35s cubic-bezier(.2,.9,.3,1.1); z-index:60; display:flex; flex-direction:column; }
+.drawer.open { transform:none; }
+.dhead { padding:22px; background:var(--c); border-bottom:2px solid var(--ink); display:flex; justify-content:space-between; gap:12px; align-items:start; }
+.dhead h2 { margin:0; font-size:26px; font-weight:900; }
+.dhead p { margin:4px 0 0; font-weight:700; }
+.x { border:2px solid var(--ink); background:#fff; border-radius:12px; width:40px; height:40px; cursor:pointer; font-size:18px; font-weight:900; }
+.tabs { display:flex; gap:6px; padding:14px 22px 0; }
+.tab { border:2px solid var(--ink); background:#fff; border-radius:12px 12px 0 0; padding:9px 14px; font-weight:900; cursor:pointer; }
+.tab[aria-selected="true"] { background:var(--ink); color:#fff; }
+.dbody { padding:18px 22px 26px; overflow:auto; flex:1; }
+.panel { display:none; }
+.panel.on { display:block; animation:pop .3s cubic-bezier(.2,.9,.3,1.2); }
+@keyframes pop { from { opacity:0; transform:translateY(8px) scale(.98); } }
+.box { background:#fff; border:2px solid var(--ink); border-radius:16px; padding:14px; margin-top:12px; }
+.row { display:flex; gap:8px; align-items:center; }
+.row input { flex:1; border:2px solid var(--ink); border-radius:12px; padding:10px 12px; font-weight:700; text-transform:uppercase; min-width:0; }
+.result { display:flex; justify-content:space-between; gap:10px; align-items:center; padding:10px 0; border-bottom:1px dashed var(--line); }
+.result:last-child { border-bottom:0; }
+.result b { font-size:15px; }
+.result small { color:var(--muted); display:block; }
+.price { font-weight:900; font-size:18px; background:var(--sun); border:2px solid var(--ink); border-radius:10px; padding:2px 10px; white-space:nowrap; }
+.sample { font-size:12px; color:var(--muted); margin-top:8px; }
+.code { background:var(--ink); color:#f5f0ff; border-radius:14px; padding:14px; font:13px/1.55 ui-monospace, Menlo, monospace; overflow:auto; white-space:pre; margin:0; }
+.cmd { display:flex; gap:8px; align-items:center; margin-top:10px; }
+.cmd code { flex:1; background:#f1ebff; border:2px solid var(--ink); border-radius:12px; padding:9px 12px; font:13px ui-monospace, Menlo, monospace; overflow:auto; white-space:nowrap; }
+.opts { display:grid; gap:10px; }
+.opt { display:flex; align-items:center; gap:12px; border:2px solid var(--ink); border-radius:16px; padding:12px; background:#fff; }
+.opt .i { font-size:24px; }
+.opt b { display:block; }
+.opt small { color:var(--muted); }
+.opt .btn { margin-left:auto; padding:9px 14px; font-size:13px; }
+.toast { position:fixed; left:50%; bottom:24px; transform:translateX(-50%) translateY(120%); background:var(--ink); color:#fff; padding:12px 18px; border-radius:999px; font-weight:800; transition:transform .3s cubic-bezier(.2,.9,.3,1.3); z-index:90; }
+.toast.on { transform:translateX(-50%) translateY(0); }
+.spark { position:fixed; width:10px; height:10px; border-radius:3px; pointer-events:none; z-index:95; animation:burst .9s ease-out forwards; }
+@keyframes burst { to { transform:translate(var(--dx),var(--dy)) rotate(540deg); opacity:0; } }
+
+.pcnote { margin:12px 0 0; color:var(--muted); font-size:14px; }
+footer { text-align:center; color:var(--muted); font-size:13px; padding:0 20px 40px; }
+@media (max-width:700px) { .steps { grid-template-columns:1fr; } .try { flex-direction:column; border-radius:20px; } .try input { text-align:center; } }
+@media (prefers-reduced-motion:reduce) { *, *::before, *::after { animation:none !important; transition:none !important; } }
+
+/* ---- Layout: jump bar + one scrolling row per section ---- */
+.page { max-width:1180px; margin:0 auto; padding:0 20px 60px; }
+.jump { display:flex; gap:8px; flex-wrap:wrap; margin:0 0 18px; }
+.jump a { text-decoration:none; color:var(--ink); font-weight:800; font-size:14px; background:#fff; border:2px solid var(--ink); border-radius:999px; padding:7px 15px; box-shadow:3px 3px 0 var(--ink); }
+.jump a:hover { background:var(--ink); color:#fff; }
+.sec { margin:0 0 30px; scroll-margin-top:20px; }
+.sec h2 { font-size:20px; font-weight:900; margin:0 0 10px; }
+.sec h2 span { font-size:13px; color:var(--muted); font-weight:600; margin-left:6px; }
+.sec .row, .sec .grid { display:flex; gap:16px; overflow-x:auto; padding:8px 6px 18px; scroll-snap-type:x mandatory; }
+.sec .row > .mod, .sec .grid > .mod { flex:0 0 250px; scroll-snap-align:start; }
+.sec .row > .mod:hover, .sec .grid > .mod:hover { transform:translate(-2px,-3px); }
+.secnav { display:inline-flex; gap:4px; background:#fff; border:2px solid var(--ink); border-radius:999px; padding:5px; box-shadow:4px 4px 0 var(--ink); margin:34px 0 26px; flex-wrap:wrap; }
+.secnav button { border:0; background:transparent; font:inherit; font-weight:800; color:var(--ink); padding:9px 18px; border-radius:999px; cursor:pointer; }
+.secnav button[aria-selected="true"] { background:var(--ink); color:#fff; }
+.secnav button:focus-visible { outline:3px solid var(--sky); outline-offset:2px; }
+.sec { margin:0 !important; }
+.sec h2 { margin:0 0 12px !important; }
+.page .head { margin-top:24px !important; }
+.rowline { display:grid !important; grid-template-columns:repeat(auto-fill,minmax(230px,1fr)); gap:18px; overflow:visible; padding:8px 0 18px; }
+.rowline > .mod { flex:initial !important; }
+.teaser { font-size:13px; min-height:20px; margin-top:6px; }
+.tz { display:inline-block; font-weight:800; padding:3px 10px; border-radius:999px; border:2px solid var(--ink); }
+.tz-ok { background:#d8f7ec; }
+.tz-no { background:#f1ecf6; color:#6c6485; }
+.navrow { display:flex; gap:14px; align-items:center; flex-wrap:wrap; margin:34px 0 26px; }
+.navrow .secnav { margin:0 !important; }
+.livetog { display:inline-flex; gap:4px; background:#fff; border:2px solid var(--ink); border-radius:999px; padding:5px; box-shadow:4px 4px 0 var(--ink); }
+.livetog button { border:0; background:transparent; font:inherit; font-weight:800; color:var(--ink); padding:9px 16px; border-radius:999px; cursor:pointer; }
+.livetog button[aria-pressed="true"] { background:var(--accent2, #8b5cf6); color:#fff; }
+.offgrid { display:grid; grid-template-columns:repeat(auto-fill,minmax(210px,1fr)); gap:14px; }
+.offcard { display:flex; flex-direction:column; gap:4px; text-decoration:none; color:var(--ink); background:#fff; border:2px solid var(--ink); border-radius:16px; padding:14px; box-shadow:4px 4px 0 var(--ink); transition:transform .15s; }
+.offcard:hover { transform:translate(-2px,-3px); }
+.offe { font-size:24px; }
+.offcard small { color:var(--muted); }
+.offgo { margin-top:auto; font-weight:900; color:var(--accent2, #8b5cf6); font-size:13px; }
+.areacard { display:grid; grid-template-columns:repeat(auto-fill,minmax(230px,1fr)); gap:14px; }
+.areastat { background:#fff; border:2px solid var(--ink); border-radius:16px; padding:14px; box-shadow:4px 4px 0 var(--ink); display:flex; flex-direction:column; gap:6px; }
+.areastat small { color:var(--muted); }
+.areastat a { color:var(--accent2, #8b5cf6); font-weight:800; text-decoration:none; }
+.sharebtn { margin-left:8px; border:2px solid var(--ink); background:#fff; border-radius:999px; padding:4px 12px; font:inherit; font-weight:800; cursor:pointer; box-shadow:2px 2px 0 var(--ink); }
+.sharebtn:hover { background:var(--ink); color:#fff; }
+.subhead { font-size:13px; font-weight:900; text-transform:uppercase; letter-spacing:.06em; color:var(--muted); margin:14px 0 6px; }
+.subhead:first-child { margin-top:0; }
+.box { background:#fff; border:2px solid var(--ink); border-radius:16px; padding:14px; margin-top:12px; }
+.row { display:flex; gap:8px; align-items:center; }
+.row input { flex:1; border:2px solid var(--ink); border-radius:12px; padding:10px 12px; font-weight:700; min-width:0; }
+.me { display:flex; flex-direction:column; gap:16px; }
+.mehead { display:flex; justify-content:space-between; align-items:center; gap:12px; flex-wrap:wrap; }
+.kicker { font-size:11px; font-weight:900; text-transform:uppercase; letter-spacing:.08em; color:var(--muted); }
+.mephone { font-size:18px; }
+.melayout { display:grid; grid-template-columns:1.6fr 1fr; gap:16px; align-items:start; }
+.mecard { background:#fff; border:2px solid var(--ink); border-radius:18px; padding:18px; box-shadow:5px 5px 0 var(--ink); }
+.mecard h3 { margin:0 0 12px; font-size:17px; font-weight:900; }
+.melist { list-style:none; margin:0; padding:0; }
+.melist li { display:flex; gap:12px; align-items:flex-start; padding:12px 0; border-bottom:1px dashed var(--line); }
+.melist li:last-child { border-bottom:0; }
+.datepill { flex:0 0 auto; min-width:58px; text-align:center; font-size:12px; font-weight:900; background:#ffe9a8; border:2px solid var(--ink); border-radius:10px; padding:4px 6px; }
+.melbody { min-width:0; }
+.melbody b { display:block; font-size:14px; line-height:1.35; }
+.mechips { display:flex; flex-wrap:wrap; gap:6px; margin-top:6px; }
+.chip2 { font-size:11px; font-weight:800; background:#e9e3f5; border:1.5px solid var(--ink); border-radius:999px; padding:2px 9px; }
+.chip2.quiet { background:#fff; color:var(--muted); }
+.spendcard .bignum { font-size:44px; font-weight:900; letter-spacing:-.02em; line-height:1.1; }
+.muted { color:var(--muted); font-size:13px; margin:6px 0 0; }
+.melink { display:inline-block; margin-top:12px; font-weight:900; color:var(--accent2, #8b5cf6); text-decoration:none; font-size:14px; }
+.melink:hover { text-decoration:underline; }
+@media (max-width:760px) { .melayout { grid-template-columns:1fr; } .spendcard .bignum { font-size:36px; } }
+</style>
+</head>
+<body>
+
+<header class="hero">
+  <div class="blob b1"></div><div class="blob b2"></div><div class="blob b3"></div>
+  <span class="kicker">✨ humanagency.co/factory</span>
+  <h1>Small tools,<br><span>built to take apart.</span></h1>
+  <p class="lede">Fuel prices, train times, your councillors, cafés and more. Try one in seconds, take it, or build on the code.</p>
+  <form class="try" id="tryForm">
+    <input id="pc" placeholder="Your postcode, e.g. KT16 0DA" aria-label="Your postcode" maxlength="8">
+    <button class="btn" type="submit">Set postcode ⚡</button>
+  </form>
+  <p class="pcnote">Used by every module · <b id="pcChip"></b> <button class="sharebtn" id="shareArea" type="button">Share this postcode</button></p>
+</header>
+
+<section class="steps" aria-label="How it works">
+  <div class="step"><div class="n" style="background:var(--pink)">1</div><h3>Try</h3><p>Type a postcode and see a real result. No sign-up.</p></div>
+  <div class="step"><div class="n" style="background:var(--sky)">2</div><h3>Take</h3><p>Use it as it is, or share a link with a neighbour.</p></div>
+  <div class="step"><div class="n" style="background:var(--mint)">3</div><h3>Build</h3><p>Copy the code, run the example, and make it yours.</p></div>
+</section>
+
+<main class="page">
+  <div class="navrow"><div class="secnav" id="secnav" role="tablist" aria-label="Sections"></div><div class="livetog" id="livetog" role="group" aria-label="Show"></div></div>
+  
+  <div id="grid"></div>
+  <div id="personalBox"></div>
+</main>
+
+<footer>Live data from public sources. Built by Human Agency. Fuel Finder code is MIT-licensed; other modules are licensed as they are published.</footer>
+
+<div class="scrim" id="scrim"></div>
+<aside class="drawer" id="drawer" role="dialog" aria-modal="true" aria-labelledby="dtitle">
+  <div class="dhead" id="dhead">
+    <div><h2 id="dtitle"></h2><p id="dsub"></p></div>
+    <button class="x" id="dclose" aria-label="Close">✕</button>
+  </div>
+  <div class="tabs" role="tablist">
+    <button class="tab" role="tab" data-p="try" aria-selected="true">Try</button>
+    <button class="tab" role="tab" data-p="take" aria-selected="false">Take</button>
+    <button class="tab" role="tab" data-p="build" aria-selected="false">Build</button>
+  </div>
+  <div class="dbody">
+    <div class="panel on" id="p-try"></div>
+    <div class="panel" id="p-take"></div>
+    <div class="panel" id="p-build"></div>
+  </div>
+</aside>
+<div class="toast" id="toast"></div>
+
+<script>
+// Live data from Miru's public read-only endpoints.
+const MODULES = [
+  { id:"vehicle", type:"topic", emo:"🚗", name:"Vehicle check", desc:"MOT, tax and details from a registration number.", status:"ready", c:"#ffe6d5", pkg:"", repo:"" },
+  { id:"guides", type:"topic", emo:"🧭", name:"AI guides", desc:"Plain-English guides to AI, for anyone.", status:"ready", c:"#dff5e8", pkg:"", repo:"github.com/humanagencyco/ai-humanagency", link:"https://ai.humanagency.co" },
+  { id:"reading", type:"topic", emo:"📚", name:"Reading & talks", desc:"Talks and articles on AI, curated by hand.", status:"ready", c:"#e4e0ff", pkg:"", repo:"github.com/humanagencyco/ai-humanagency", link:"https://ai.humanagency.co/reading.html" },
+  { id:"bins", type:"personal", emo:"🗑️", name:"Bin day", desc:"Your collection day and reminders.", status:"beta", c:"#e1f5d9", pkg:"", repo:"", link:"https://miru.humanagency.co" },
+  { id:"school-msgs", type:"personal", emo:"✉️", name:"School messages", desc:"Your school emails, sorted into one place.", status:"beta", c:"#ffe3ef", pkg:"", repo:"", link:"https://miru.humanagency.co" },
+  { id:"weather", type:"near", emo:"☀️", name:"Weather now", desc:"Current conditions for your postcode.", status:"ready", c:"#fff3b0", pkg:"@humanagency/weather-now", repo:"github.com/humanagencyco/weather-now" },
+  { id:"fuel", type:"near", emo:"⛽", name:"Fuel prices", desc:"Cheapest petrol and diesel near a postcode.", status:"ready", c:"#ffd6e5", pkg:"@humanagency/fuel-finder", repo:"github.com/humanagencyco/fuel-finder" },
+  { id:"mps", type:"near", emo:"🏛️", name:"MPs & councillors", desc:"Your MP and local councillors, with contact links.", status:"ready", c:"#d9ecff", pkg:"@humanagency/councillors", repo:"github.com/humanagencyco/councillors" },
+  { id:"cafes", type:"near", emo:"☕", name:"Cafés & chai", desc:"Independent cafés, with notes from people who've been.", status:"ready", c:"#ffe8c2", pkg:"@humanagency/places-cafes", repo:"github.com/humanagencyco/places-cafes" },
+  { id:"trains", type:"near", emo:"🚆", name:"Train times", desc:"Next departures from your nearest station.", status:"beta", c:"#d6f7ec", pkg:"@humanagency/train-times", repo:"github.com/humanagencyco/train-times" },
+  { id:"pharmacy", type:"near", emo:"💊", name:"Pharmacies open now", desc:"Open pharmacies nearby, with phone numbers.", status:"beta", c:"#efe2ff", pkg:"@humanagency/pharmacy-finder", repo:"github.com/humanagencyco/pharmacy-finder" },
+  { id:"schools", type:"near", emo:"🏫", name:"Nearest schools", desc:"Schools near your postcode, with Ofsted and contact details.", status:"beta", c:"#fff0d6", pkg:"@humanagency/school-digest", repo:"github.com/humanagencyco/school-digest" },
+  { id:"expenses", type:"personal", emo:"💷", name:"Expense tracker", desc:"Receipts sorted by category and month.", status:"beta", c:"#e4f6ff", pkg:"@humanagency/expense-tracker", repo:"github.com/humanagencyco/expense-tracker" },
+  { id:"pubs", type:"near", emo:"🍺", name:"Best pubs", desc:"Pubs ranked by reviews and a clear method.", status:"soon", c:"#f0e9dd", pkg:"@humanagency/best-pubs", repo:"github.com/humanagencyco/best-pubs" },
+];
+const LABEL = { ready:"Ready", beta:"Beta", soon:"Coming soon" };
+
+const PC_KEY = "factory_postcode";
+let postcode = "TW1 1AA";
+try { postcode = localStorage.getItem(PC_KEY) || postcode; } catch (e) {}
+function setPostcode(pc) {
+  const ok = normPC(pc);
+  if (!ok) return false;
+  postcode = ok;
+  try { localStorage.setItem(PC_KEY, postcode); } catch (e) {}
+  const chip = document.getElementById("pcChip"); if (chip) chip.textContent = postcode;
+  const pc2 = document.getElementById("pc"); if (pc2) pc2.value = postcode;
+  if (typeof loadTeasers === "function") loadTeasers();
+  if (typeof loadArea === "function") loadArea();
+  prefetchAll(postcode);
+}
+// UK postcode format check; returns the tidied postcode, or "" if it isn't one
+function normPC(raw) {
+  const t = String(raw || "").toUpperCase().replace(/[^A-Z0-9]/g, "");
+  const m = t.match(/^([A-Z]{1,2}[0-9][A-Z0-9]?)([0-9][A-Z]{2})$/);
+  return m ? m[1] + " " + m[2] : "";
+}
+function badPC() {
+  const out = document.getElementById("tOut");
+  if (out) out.innerHTML = `<div class="result"><div><b>Check the postcode</b><small>Enter a full UK postcode, for example TW1 1AA.</small></div></div>`;
+}
+let filter = "all";
+let activeSection = "near";
+let liveFilter = "all";
+const $ = id => document.getElementById(id);
+const esc = s => String(s).replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+
+function renderFilters() { return; }
+function _unused_renderFilters() {
+  const opts = [["all","All"],["ready","Ready"],["beta","Beta"],["soon","Coming soon"]];
+  $("filters").innerHTML = opts.map(([v,l]) => `<button class="chip" data-f="${v}" aria-pressed="${filter===v}">${l}</button>`).join("");
+  $("filters").querySelectorAll(".chip").forEach(b => b.onclick = () => { filter = b.dataset.f; render(); });
+}
+async function loadTeasers() {
+  const set = (id, html) => { const el = document.querySelector(`[data-teaser="${id}"]`); if (el) el.innerHTML = html; };
+  const pc = postcode;
+  const line = (txt, ok = true) => `<span class="tz ${ok ? "tz-ok" : "tz-no"}">${txt}</span>`;
+  const jobs = {
+    weather: async () => {
+      const place = await getJSON(`https://api.postcodes.io/postcodes/${encodeURIComponent(pc)}`);
+      const w = await getJSON(`https://api.open-meteo.com/v1/forecast?latitude=${place.result.latitude.toFixed(3)}&longitude=${place.result.longitude.toFixed(3)}&current=temperature_2m,weather_code&timezone=auto`);
+      return line(`${Math.round(w.current.temperature_2m)}°C · ${wxText(w.current.weather_code)}`);
+    },
+    fuel: async () => {
+      const d = await getJSON(`${API}/api/factory/fuel-near?postcode=${encodeURIComponent(pc)}`);
+      const best = d.stations[0];
+      return best ? line(`Cheapest ${best.price_p}p · ${esc(best.brand)}`) : line("No stations nearby", false);
+    },
+    mps: async () => {
+      const mp = await getJSON(`${API}/api/mp?postcode=${encodeURIComponent(pc)}`);
+      return line(`${esc(mp.name)} · ${esc(mp.party)}`);
+    },
+    cafes: async () => {
+      const list = await getJSON(`${API}/api/myarea/place-search?q=${encodeURIComponent(pc + " cafe")}`);
+      return list.length ? line(`${list.length} cafés found`) : line("No cafés found", false);
+    },
+    pubs: async () => {
+      const d = await getJSON(`${API}/api/pubs-nearby?postcode=${encodeURIComponent(pc)}`);
+      return d.pubs && d.pubs.length ? line(`${d.pubs.length} pubs nearby`) : line("No pubs found", false);
+    },
+    trains: async () => {
+      const near = await getJSON(`${API}/api/train/nearest-by-postcode?postcode=${encodeURIComponent(pc)}`);
+      return line(`Nearest: ${esc(near.name)}, ${near.distance_km} km`);
+    },
+    schools: async () => {
+      const d = await getJSON(`${API}/api/factory/schools-near?postcode=${encodeURIComponent(pc)}`);
+      return d.schools && d.schools.length ? line(`${d.schools.length} schools nearby`) : line("No schools found", false);
+    },
+    pharmacy: async () => {
+      const list = await getJSON(`${API}/api/myarea/place-search?q=${encodeURIComponent(pc + " pharmacy")}`);
+      return list.length ? line(`${list.length} pharmacies found`) : line("No pharmacies found", false);
+    },
+  };
+  for (const id of Object.keys(jobs)) {
+    set(id, line("Checking…"));
+    jobs[id]().then(html => set(id, html)).catch(e => set(id, line("Couldn't load · " + (e.message || "error"), false)));
+  }
+  MODULES.filter(m => m.type === "near" && !jobs[m.id]).forEach(m => set(m.id, line("Not live for your area yet", false)));
+}
+function renderLiveTog() {
+  const opts = [["all","All"],["live","Live"],["beta","Beta"]];
+  $("livetog").innerHTML = opts.map(([k,l]) => `<button aria-pressed="${liveFilter===k}" data-k="${k}">${l}</button>`).join("");
+  $("livetog").querySelectorAll("button").forEach(b => b.onclick = () => { liveFilter = b.dataset.k; render(); });
+}
+async function loadArea() {
+  const el = document.getElementById("areaCard");
+  if (!el) return;
+  const pc = postcode;
+  try {
+    const place = await getJSON(`https://api.postcodes.io/postcodes/${encodeURIComponent(pc)}`);
+    const { latitude: lat, longitude: lon } = place.result;
+    // Police data lags about two months, so ask for the month two months back
+    const d = new Date(); d.setMonth(d.getMonth() - 2);
+    const month = d.toISOString().slice(0, 7);
+    const [flood, crimes, fms] = await Promise.all([
+      getJSON(`https://environment.data.gov.uk/flood-monitoring/id/floods?lat=${lat}&long=${lon}&dist=5`).catch(() => null),
+      getJSON(`https://data.police.uk/api/crimes-street/all-crime?lat=${lat}&lng=${lon}&date=${month}`).catch(() => null),
+      fetch(`https://www.fixmystreet.com/rss/l/${lat},${lon}`).then(r => r.text()).catch(() => null),
+    ]);
+    const floodCount = flood && flood.items ? flood.items.length : null;
+    let crimeLine = "Street crime data unavailable";
+    if (Array.isArray(crimes)) {
+      const counts = {};
+      crimes.forEach(c => { counts[c.category] = (counts[c.category] || 0) + 1; });
+      const top = Object.entries(counts).sort((a, b) => b[1] - a[1])[0];
+      crimeLine = `${crimes.length} street crimes in ${month}` + (top ? `, most common: ${top[0].replace(/-/g, " ")}` : "");
+    }
+    let potholeLine = "Reports unavailable";
+    if (fms) {
+      const doc = new DOMParser().parseFromString(fms, "text/xml");
+      const n = doc.querySelectorAll("item").length;
+      potholeLine = `${n} recent reports nearby`;
+    }
+    const floodLine = floodCount == null ? "Flood data unavailable" : floodCount === 0 ? "No flood warnings nearby" : `${floodCount} flood warning${floodCount > 1 ? "s" : ""} nearby`;
+    el.innerHTML = `<div class="areastat"><b>${esc(floodLine)}</b><small>Environment Agency</small></div>`
+      + `<div class="areastat"><b>${esc(crimeLine)}</b><small>police.uk</small></div>`
+      + `<div class="areastat"><b>${esc(potholeLine)}</b><small><a href="https://www.fixmystreet.com/around?pc=${encodeURIComponent(pc)}" target="_blank" rel="noopener">See them or report one on FixMyStreet ↗</a></small></div>`;
+  } catch (e) {
+    el.innerHTML = `<div class="areastat"><b>Could not load your area</b><small>${esc(e.message || e)}</small></div>`;
+  }
+}
+const AUTH = { credentials: "include" };
+const JSONH = { "Content-Type": "application/json" };
+async function loadPersonal() {
+  const box = document.getElementById("personalBox");
+  if (!box) return;
+  box.innerHTML = `<div class="sample">Checking sign-in…</div>`;
+  try {
+    const me = await fetch(`${API}/api/auth/me`, AUTH).then(r => r.json());
+    if (!me.signed_in) return renderSignIn(box);
+    const [msgs, spend] = await Promise.all([
+      fetch(`${API}/api/factory/me/messages`, AUTH).then(r => r.json()),
+      fetch(`${API}/api/factory/me/spend`, AUTH).then(r => r.json()),
+    ]);
+    const fmtDay = d => { if (!d) return "—"; const x = new Date(d + "T12:00:00"); return x.toLocaleDateString("en-GB", { day: "numeric", month: "short" }); };
+    const items = (msgs.messages || []).map(x => `
+        <li>
+          <span class="datepill">${esc(fmtDay(x.date))}</span>
+          <div class="melbody">
+            <b>${esc(x.title || "School message")}</b>
+            <div class="mechips">${x.child ? `<span class="chip2">${esc(x.child)}</span>` : ""}${x.school ? `<span class="chip2 quiet">${esc(x.school)}</span>` : ""}</div>
+          </div>
+        </li>`).join("");
+    const period = esc(spend.period || "this month");
+    const total = Number(spend.total || 0);
+    box.innerHTML = `
+      <div class="me">
+        <div class="mehead">
+          <div><div class="kicker">Your space</div><b class="mephone">${esc(me.phone)}</b></div>
+          <button class="btn ghost" id="pSignOut" type="button">Sign out</button>
+        </div>
+        <div class="melayout">
+          <section class="mecard">
+            <h3>📬 School messages</h3>
+            ${items ? `<ul class="melist">${items}</ul>` : `<p class="muted">No school messages in the last two weeks.</p>`}
+            <a class="melink" href="https://miru.humanagency.co/" target="_blank" rel="noopener">See all in Miru ↗</a>
+          </section>
+          <section class="mecard spendcard">
+            <h3>💷 Spend, ${period}</h3>
+            <div class="bignum">£${total.toFixed(2)}</div>
+            <p class="muted">${total === 0 ? "No receipts logged yet this month." : "From your logged receipts."}</p>
+            <a class="melink" href="https://miru.humanagency.co/" target="_blank" rel="noopener">Add receipts in Miru ↗</a>
+          </section>
+        </div>
+      </div>`;
+    document.getElementById("pSignOut").onclick = async () => {
+      await fetch(`${API}/api/auth/logout`, { method: "POST", credentials: "include" });
+      loadPersonal();
+    };
+  } catch (e) {
+    box.innerHTML = `<div class="result"><div><b>Could not load your details</b><small>${esc(e.message || e)}</small></div></div>`;
+  }
+}
+function renderSignIn(box) {
+  box.innerHTML = `<div class="box"><div class="subhead">Sign in with WhatsApp</div>
+    <p class="sample" style="margin:0 0 10px">We'll send a six-digit code to your WhatsApp. Your details stay private.</p>
+    <div class="row"><input id="sPhone" placeholder="07700 900123" maxlength="16"><button class="btn pink" id="sSend" type="button">Send code</button></div>
+    <div class="row" id="sCodeRow" style="display:none;margin-top:10px"><input id="sCode" placeholder="6-digit code" maxlength="6" inputmode="numeric"><button class="btn pink" id="sVerify" type="button">Sign in</button></div>
+    <div id="sMsg" class="sample"></div></div>`;
+  const say = t => { document.getElementById("sMsg").textContent = t; };
+  let phone = "";
+  document.getElementById("sSend").onclick = async () => {
+    phone = document.getElementById("sPhone").value.trim();
+    say("Sending…");
+    const r = await fetch(`${API}/api/auth/request-code`, { method: "POST", credentials: "include", headers: JSONH, body: JSON.stringify({ phone }) });
+    const d = await r.json().catch(() => ({}));
+    if (!r.ok) return say(d.error || "Could not send a code.");
+    document.getElementById("sCodeRow").style.display = "flex";
+    say("Code sent to " + (d.sent_to || "your WhatsApp") + ".");
+  };
+  document.getElementById("sVerify").onclick = async () => {
+    const code = document.getElementById("sCode").value.trim();
+    const r = await fetch(`${API}/api/auth/verify`, { method: "POST", credentials: "include", headers: JSONH, body: JSON.stringify({ phone, code }) });
+    const d = await r.json().catch(() => ({}));
+    if (!r.ok) return say(d.error || "Could not sign you in.");
+    loadPersonal();
+  };
+}
+function renderSecNav() {
+  const tabs = [["near","📍 Near you"],["topic","🌍 Topics"],["personal","🔒 Personal"]];
+  $("secnav").innerHTML = tabs.map(([k,l]) => `<button role="tab" data-s="${k}" aria-selected="${k===activeSection}">${l}</button>`).join("");
+  $("secnav").querySelectorAll("button").forEach(b => b.onclick = () => { activeSection = b.dataset.s; render(); });
+}
+function render() {
+  renderFilters();
+  const list = MODULES.filter(m => liveFilter === "all" || (liveFilter === "live" ? m.status === "ready" : m.status === "beta"));
+  renderLiveTog();
+  const card = m => `
+    <article class="mod" tabindex="0" role="button" data-id="${m.id}" style="--c:${m.c}" aria-label="Open ${esc(m.name)}">
+      <div class="emo">${m.emo}</div>
+      <h3>${esc(m.name)}</h3>
+      <p>${esc(m.desc)}</p>
+      <span class="pill ${m.status==='soon'?'soon':m.status}">${LABEL[m.status]}</span>
+      <div class="teaser" data-teaser="${m.id}">${m.type === "near" ? "Checking your area…" : ""}</div>
+      <span class="go">Open →</span>
+    </article>`;
+  const SECTIONS = [
+    ["near", "📍 Near you", "Uses the postcode you set above."],
+    ["topic", "🌍 Topics", "No postcode needed."],
+    ["personal", "🔒 Personal", "Needs a login. Your data stays private."],
+  ];
+  renderSecNav();
+  if (activeSection === "personal") loadPersonal(); else { const pb = document.getElementById("personalBox"); if (pb) pb.innerHTML = ""; }
+  const pcq = encodeURIComponent(postcode);
+  const official = [
+    ["🗑️", "Bin collection", "Find your council and bin days", "https://www.gov.uk/find-local-council"],
+    ["🕳️", "Report a pothole", "Send it straight to your council", "https://www.fixmystreet.com/"],
+    ["🏫", "School reports", "Ofsted reports for any school", "https://reports.ofsted.gov.uk/"],
+    ["🩺", "GP and dentist", "Find and register with an NHS service", "https://www.nhs.uk/service-search"],
+    ["🔧", "MOT history", "Check any vehicle's MOT record", "https://www.gov.uk/check-mot-history"],
+    ["🧾", "Council tax", "Band and bills for your home", "https://www.gov.uk/council-tax-bands"],
+  ];
+  const areaHtml = `<div class="sec" id="sec-area"><h2>🧭 Your area <span>Flood warnings, street crime and reported potholes near ${esc(postcode)}.</span></h2><div class="areacard" id="areaCard">Checking your area…</div></div>`;
+  const linksHtml = `<div class="sec" id="sec-official"><h2>🔗 Official sources <span>Not on this page yet? Here's where to go for ${esc(postcode)}.</span></h2>
+    <div class="offgrid">${official.map(([e, t, d, u]) => `<a class="offcard" href="${u}" target="_blank" rel="noopener"><span class="offe">${e}</span><b>${t}</b><small>${d}</small><span class="offgo">Open ↗</span></a>`).join("")}</div></div>`;
+  $("grid").innerHTML = SECTIONS.map(([t, title, sub]) => {
+    if (t !== activeSection) return "";
+    const items = list.filter(m => m.type === t);
+    if (!items.length) return "";
+    return `<div class="sec" id="sec-${t}"><h2>${title} <span>${sub}</span></h2><div class="rowline">${items.map(card).join("")}</div></div>`;
+  }).join("") + (activeSection === "near" ? areaHtml + linksHtml : "");
+  if (activeSection === "near") loadArea();
+  loadTeasers();
+  $("grid").querySelectorAll(".mod").forEach(el => {
+    el.onclick = () => openModule(el.dataset.id);
+    el.onkeydown = e => { if (e.key==="Enter"||e.key===" ") { e.preventDefault(); openModule(el.dataset.id); } };
+  });
+}
+
+function openModule(id) {
+  const m = MODULES.find(x => x.id === id);
+  $("dhead").style.setProperty("--c", m.c);
+  $("dhead").style.background = m.c;
+  $("dtitle").textContent = `${m.emo} ${m.name}`;
+  $("dtitle").dataset.id = m.id;
+  $("dsub").textContent = `${LABEL[m.status]} · ${m.desc}`;
+  $("p-try").innerHTML = tryPanel(m);
+  $("p-take").innerHTML = takePanel(m);
+  $("p-build").innerHTML = buildPanel(m);
+  wireTry(m);
+  setTab("try");
+  $("scrim").classList.add("open");
+  $("drawer").classList.add("open");
+  $("dclose").focus();
+}
+function closeDrawer() { $("scrim").classList.remove("open"); $("drawer").classList.remove("open"); }
+function setTab(name) {
+  document.querySelectorAll(".tab").forEach(t => t.setAttribute("aria-selected", String(t.dataset.p===name)));
+  document.querySelectorAll(".panel").forEach(p => p.classList.toggle("on", p.id === "p-"+name));
+}
+document.querySelectorAll(".tab").forEach(t => t.onclick = () => setTab(t.dataset.p));
+$("dclose").onclick = closeDrawer;
+$("scrim").onclick = closeDrawer;
+document.addEventListener("keydown", e => { if (e.key==="Escape") closeDrawer(); });
+
+function tryPanel(m) {
+  if (["pubs","trains","schools"].includes(m.id)) return `<div class="box"><div class="row"><input id="tIn" placeholder="Postcode" maxlength="8" value="${postcode}"><button class="btn pink" id="tGo">Check</button></div><div id="tOut" style="margin-top:10px"></div></div>`;
+  if (m.id === "vehicle") return `<div class="box"><div class="row"><input id="tIn" placeholder="Registration, e.g. AB12 CDE" maxlength="10"><button class="btn pink" id="tGo">Check</button></div><div id="tOut" style="margin-top:10px"></div></div>`;
+  if (m.type === "topic") return `<div class="box"><b>No postcode needed.</b><p style="margin:6px 0 10px;color:var(--muted)">This is for everyone.</p><a class="btn pink" href="${esc(m.link)}" target="_blank" rel="noopener" style="text-decoration:none">Open ${esc(m.name)} ↗</a></div>`;
+  if (m.type === "personal") return `<div class="box"><b>Log in to see this.</b><p style="margin:6px 0 10px;color:var(--muted)">Your messages and data stay private. Sign in on Miru to open it.</p><a class="btn pink" href="${esc(m.link)}" target="_blank" rel="noopener" style="text-decoration:none">Sign in to Miru ↗</a></div>`;
+  if (m.status === "soon") return `<div class="box"><b>Not ready yet.</b><p style="margin:6px 0 0;color:var(--muted)">We're still choosing a fair way to rank pubs. Tell us what matters to you and we'll use it.</p></div>`;
+  if (m.id === "weather") return `<div class="box"><div class="row"><input id="tIn" placeholder="Postcode" maxlength="8" value="${postcode}"><button class="btn pink" id="tGo">Check</button></div><div id="tOut" style="margin-top:10px"></div></div>`;
+  if (m.id === "fuel") return `<div class="box"><div class="row"><input id="tIn" placeholder="Postcode" maxlength="8" value="${postcode}"><button class="btn pink" id="tGo">Check</button></div><div id="tOut" style="margin-top:10px"></div></div>`;
+  if (m.id === "mps") return `<div class="box"><div class="row"><input id="tIn" placeholder="Postcode" maxlength="8" value="${postcode}"><button class="btn pink" id="tGo">Find</button></div><div id="tOut" style="margin-top:10px"></div></div>`;
+  if (m.id === "cafes") return `<div class="box"><div class="row"><input id="tIn" placeholder="Postcode" maxlength="8" value="${postcode}"><button class="btn pink" id="tGo">Search</button></div><div id="tOut" style="margin-top:10px"></div></div>`;
+if (m.id === "pharmacy") return `<div class="box"><div class="row"><input id="tIn" placeholder="Postcode" maxlength="8" value="${postcode}"><button class="btn pink" id="tGo">Search</button></div><div id="tOut" style="margin-top:10px"></div></div>`;
+  return `<div class="box"><b>Try it soon.</b><p style="margin:6px 0 0;color:var(--muted)">This module is in beta. The Take and Build tabs already work.</p></div>`;
+}
+const API = "https://miru.humanagency.co";
+function wxText(code) {
+  if (code === 0) return "Clear sky";
+  if (code <= 3) return "Partly cloudy";
+  if (code <= 48) return "Fog";
+  if (code <= 57) return "Drizzle";
+  if (code <= 67) return "Rain";
+  if (code <= 77) return "Snow";
+  if (code <= 82) return "Rain showers";
+  if (code <= 86) return "Snow showers";
+  return "Thunderstorm";
+}
+const JCACHE = new Map();
+const JTTL = 10 * 60 * 1000;
+function getJSON(url) {
+  const hit = JCACHE.get(url);
+  if (hit && Date.now() - hit.t < JTTL) return hit.p;
+  const p = (async () => {
+    const r = await fetch(url);
+    const body = await r.json().catch(() => ({}));
+    if (!r.ok) throw new Error(body.error || ("Request failed (" + r.status + ")"));
+    return body;
+  })();
+  JCACHE.set(url, { t: Date.now(), p });
+  p.catch(() => JCACHE.delete(url));
+  return p;
+}
+// Load every module's data for a postcode in the background, so clicking is instant
+async function prefetchAll(pc) {
+  if (!pc) return;
+  const q = encodeURIComponent(pc);
+  const urls = [
+    `${API}/api/mp?postcode=${q}`,
+    `${API}/api/councillor?postcode=${q}`,
+    `${API}/api/factory/fuel-near?postcode=${q}`,
+    `${API}/api/pubs-nearby?postcode=${q}`,
+    `${API}/api/factory/schools-near?postcode=${q}`,
+    `${API}/api/myarea/place-search?q=${encodeURIComponent(pc + " cafe")}`,
+    `${API}/api/myarea/place-search?q=${encodeURIComponent(pc + " pharmacy")}`,
+    `${API}/api/train/nearest-by-postcode?postcode=${q}`,
+    `https://api.postcodes.io/postcodes/${q}`,
+  ];
+  urls.forEach(u => getJSON(u).catch(() => {}));
+  // Trains and weather depend on earlier results, so they follow once those arrive
+  try {
+    const near = await getJSON(`${API}/api/train/nearest-by-postcode?postcode=${q}`);
+    getJSON(`${API}/api/train/departures?crs=${encodeURIComponent(near.crs)}`).catch(() => {});
+  } catch (e) {}
+  try {
+    const place = await getJSON(`https://api.postcodes.io/postcodes/${q}`);
+    const { latitude, longitude } = place.result;
+    getJSON(`https://api.open-meteo.com/v1/forecast?latitude=${latitude.toFixed(3)}&longitude=${longitude.toFixed(3)}&current=temperature_2m,apparent_temperature,weather_code,wind_speed_10m&timezone=auto`).catch(() => {});
+  } catch (e) {}
+}
+async function wireLive(m) {
+  const go = $("tGo"), out = $("tOut");
+  const show = html => { out.innerHTML = html; };
+  const fail = e => show(`<div class="result"><div><b>Could not load live data</b><small>${esc(e.message || e)}</small></div></div>`);
+  const run = async () => {
+    const pc = normPC($("tIn").value); if (!pc) return badPC();
+    setPostcode(pc || postcode);
+    show(`<div class="sample">Loading live data…</div>`);
+    try {
+      if (m.id === "pubs") {
+        const d = await getJSON(`${API}/api/pubs-nearby?postcode=${encodeURIComponent(pc)}`);
+        if (!d.pubs.length) return show(`<div class="sample">No pubs found near ${esc(pc)}.</div>`);
+        show(d.pubs.slice(0, 8).map(p => `<div class="result"><div><b>${esc(p.name)}</b><small>${p.distance_km} km${p.website ? ` · <a href="${esc(p.website)}" target="_blank" rel="noopener">Website</a>` : ""}</small></div><small style="text-align:right">${p.fhrs_rating != null ? "Hygiene " + esc(p.fhrs_rating) : "No hygiene rating"}${p.phone ? "<br>" + esc(p.phone) : ""}</small></div>`).join("")
+          + `<div class="sample">Live from OpenStreetMap and the Food Standards Agency</div>`);
+      }
+      if (m.id === "trains") {
+        const near = await getJSON(`${API}/api/train/nearest-by-postcode?postcode=${encodeURIComponent(pc)}`);
+        // Some nearby stations are Underground only (no National Rail trains), so use
+        // the nearest station that actually has departures
+        let dep = { trains: [] }, depStation = near;
+        const candidates = (near.stations && near.stations.length ? near.stations : [near]).slice(0, 4);
+        for (const st of candidates) {
+          const d = await getJSON(`${API}/api/train/departures?crs=${encodeURIComponent(st.crs)}`);
+          if (d.trains && d.trains.length) { dep = d; depStation = st; break; }
+        }
+        const rows = (dep.trains || []).slice(0, 8);
+        const trainRows = rows.length
+          ? rows.map(t => `<div class="result"><div><b>${esc(t.destination)}</b><small>${esc(t.expected)}${t.cancelled ? " · cancelled" : ""}</small></div><span class="price">${esc(t.scheduled)}</span></div>`).join("")
+          : `<div class="sample">No departures listed right now.</div>`;
+        show(`<div class="subhead">Nearest station</div>`
+          + `<div class="result"><div><b>${esc(near.name)}</b><small>${near.distance_km} km away</small></div></div>`
+          + `<div class="subhead">Next trains${depStation && depStation.name !== near.name ? " from " + esc(depStation.name) : ""}</div>` + trainRows
+          + `<div class="sample">Live from the National Rail feed</div>`);
+      }
+      if (m.id === "schools") {
+        const d = await getJSON(`${API}/api/factory/schools-near?postcode=${encodeURIComponent(pc)}`);
+        if (!d.schools.length) return show(`<div class="sample">No schools found near ${esc(pc)}.</div>`);
+        show(d.schools.map(r => `<div class="result"><div><b>${esc(r.name)}</b><small>${esc(r.postcode)} · ${r.distance_km} km${r.type ? " · " + esc(r.type) : ""}</small></div></div>`).join("")
+          + `<div class="sample">Live from the DfE school register</div>`);
+      }
+    } catch (e) { fail(e); }
+  };
+  go.onclick = run;
+  $("tIn").onkeydown = e => { if (e.key === "Enter") { e.preventDefault(); run(); } };
+  run();
+}
+function wireTry(m) {
+  if (["pubs","trains","schools"].includes(m.id)) return wireLive(m);
+  if (m.id === "vehicle") {
+    const go = $("tGo"), out = $("tOut");
+    const run = async () => {
+      const reg = $("tIn").value.replace(/\s+/g, "").toUpperCase();
+      out.innerHTML = `<div class="sample">Loading live data…</div>`;
+      try {
+        const d = await getJSON(`${API}/api/mot?reg=${encodeURIComponent(reg)}`);
+        out.innerHTML = [
+          [d.make || "Vehicle", [d.colour, d.fuel, d.engine].filter(Boolean).join(" · ")],
+          ["MOT", (d.mot_status || "Unknown") + (d.days_left != null ? " · " + d.days_left + " days left" : "")],
+          ["Road tax", (d.tax_status || "Unknown") + (d.tax_days_left != null ? " · " + d.tax_days_left + " days left" : "")],
+          ["Year", d.year || "Unknown"],
+        ].map(([a, b]) => `<div class="result"><div><b>${esc(a)}</b><small>${esc(b)}</small></div></div>`).join("")
+          + `<div class="sample">Live from DVLA data via Miru</div>`;
+      } catch (e) { out.innerHTML = `<div class="result"><div><b>Could not load live data</b><small>${esc(e.message || e)}</small></div></div>`; }
+    };
+    go.onclick = run;
+    $("tIn").onkeydown = e => { if (e.key === "Enter") { e.preventDefault(); run(); } };
+    return;
+  }
+  if (m.type === "topic" || m.type === "personal") return;
+  const go = $("tGo"); if (!go) return;
+  const out = $("tOut");
+  const show = html => { out.innerHTML = html; };
+  const fail = e => show(`<div class="result"><div><b>Could not load live data</b><small>${esc(e.message || e)}</small></div></div>`);
+  const loading = () => show(`<div class="sample">Loading live data…</div>`);
+  const run = async () => {
+    if (m.id !== "cafes" && $("tIn")) setPostcode($("tIn").value || postcode);
+    loading();
+    try {
+      if (m.id === "weather") {
+        const pc = normPC($("tIn").value); if (!pc) return badPC();
+        const place = await getJSON(`https://api.postcodes.io/postcodes/${encodeURIComponent(pc)}`);
+        if (!place.result) return show(`<div class="sample">Postcode not found.</div>`);
+        const { latitude, longitude } = place.result;
+        const w = await getJSON(`https://api.open-meteo.com/v1/forecast?latitude=${latitude.toFixed(3)}&longitude=${longitude.toFixed(3)}&current=temperature_2m,apparent_temperature,weather_code,wind_speed_10m&timezone=auto`);
+        const c = w.current;
+        show(`<div class="result"><div><b>${esc(place.result.postcode)}</b><small>${esc(place.result.admin_district || "")}</small></div><span class="price">${Math.round(c.temperature_2m)}°C</span></div>`
+          + `<div class="result"><div><b>${esc(wxText(c.weather_code))}</b><small>Feels like ${Math.round(c.apparent_temperature)}°C</small></div><small>Wind ${Math.round(c.wind_speed_10m)} km/h</small></div>`
+          + `<div class="sample">Live from Open-Meteo · ${esc(c.time)}</div>`);
+      }
+      if (m.id === "fuel") {
+        const pc = normPC($("tIn").value); if (!pc) return badPC();
+        const d = await getJSON(`${API}/api/factory/fuel-near?postcode=${encodeURIComponent(pc)}`);
+        if (!d.stations.length) return show(`<div class="sample">No stations found near ${esc(d.postcode)}.</div>`);
+        show(d.stations.map(r => {
+          const q = encodeURIComponent(`${r.brand} ${r.address} ${r.postcode}`);
+          return `<div class="result"><div><b>${esc(r.brand)}</b><small>${esc(r.address)} · ${r.distance_mi} mi</small>`
+            + `<small style="margin-top:4px"><a href="https://www.waze.com/ul?q=${q}&navigate=yes" target="_blank" rel="noopener">Waze</a> · <a href="https://www.google.com/maps/search/?api=1&query=${q}" target="_blank" rel="noopener">Google Maps</a></small></div>`
+            + `<span class="price">${r.price_p}p</span></div>`;
+        }).join("")
+          + `<div class="sample">Live from Fuel Finder · ${d.station_count} stations within 8 km</div>`);
+      }
+      if (m.id === "mps") {
+        const pc = normPC($("tIn").value); if (!pc) return badPC();
+        const [mp, cl] = await Promise.all([
+          getJSON(`${API}/api/mp?postcode=${encodeURIComponent(pc)}`),
+          getJSON(`${API}/api/councillor?postcode=${encodeURIComponent(pc)}`).catch(e => ({ error: e.message })),
+        ]);
+        let html = `<div class="subhead">Your MP</div><div class="result"><div><b>${esc(mp.name)}</b><small>MP for ${esc(mp.constituency)} · ${esc(mp.party)}</small></div><small style="text-align:right">${esc(mp.phone || "")}<br>${mp.email ? `<a href="mailto:${esc(mp.email)}">Email</a>` : ""}${mp.parliament_url ? ` · <a href="${esc(mp.parliament_url)}" target="_blank" rel="noopener">Contact page</a>` : ""}${mp.website ? ` · <a href="${esc(mp.website)}" target="_blank" rel="noopener">Website</a>` : ""}</small></div>`;
+        html += `<div class="subhead">Your councillors</div>`;
+        if (cl.councillors && cl.councillors.length) {
+          html += cl.councillors.map(c => `<div class="result"><div><b>${esc(c.name)}</b><small>${esc(c.party || "")} · ${esc(cl.ward || "")}</small></div><small>${esc(cl.council || "")}</small></div>`).join("");
+        } else {
+          html += `<div class="sample">We don't have councillor names for ${esc(cl.ward || "this ward")} yet. Find your councillors on <a href="https://www.gov.uk/find-local-council" target="_blank" rel="noopener">gov.uk</a> or your council's website.</div>`;
+        }
+        html += `<div class="sample">Councillor data: <a href="https://democracyclub.org.uk/" target="_blank" rel="noopener">Democracy Club</a>, May 2026 election results (<a href="https://creativecommons.org/licenses/by-sa/4.0/" target="_blank" rel="noopener">CC BY-SA 4.0</a>).</div>`;
+        show(html);
+      }
+      if (m.id === "cafes" || m.id === "pharmacy") {
+        const pc = normPC($("tIn").value); if (!pc) return badPC();
+        const list = await getJSON(`${API}/api/myarea/place-search?q=${encodeURIComponent(pc + (m.id === "pharmacy" ? " pharmacy" : " cafe"))}`);
+        if (!list.length) return show(`<div class="sample">No ${m.id === "pharmacy" ? "pharmacies" : "cafés"} found near ${esc(pc)}.</div>`);
+        show(list.map(r => `<div class="result"><div><b>${esc(r.name)}</b><small>${esc(r.address)}</small></div><small>${esc(r.phone || "")}</small></div>`).join("")
+          + `<div class="sample">Live from Google Places and OpenStreetMap</div>`);
+      }
+    } catch (e) { fail(e); }
+  };
+  go.onclick = run;
+  $("tIn").onkeydown = e => { if (e.key === "Enter") { e.preventDefault(); run(); } };
+  run();
+}
+
+function takePanel(m) {
+  return `<div class="opts">
+    <div class="opt"><span class="i">🔗</span><div><b>Share a link</b><small>Send this module to someone with your postcode filled in.</small></div><button class="btn" data-copy="__SHARE__" data-mod="${m.id}">Copy</button></div>
+    <div class="opt"><span class="i">📱</span><div><b>Add to your home screen</b><small>Open it like an app. Works on iPhone and Android.</small></div><button class="btn ghost" data-toast="On iPhone: Share → Add to Home Screen">How</button></div>
+    <div class="opt"><span class="i">🧩</span><div><b>Use it inside your own site</b><small>Paste a small embed code into any page.</small></div><button class="btn ghost" data-toast="Embed code is coming in the next release">Embed</button></div>
+  </div>`;
+}
+function buildPanel(m) {
+  if (!m.pkg) return `<div class="box"><b>Source</b><p style="margin:6px 0 10px;color:var(--muted)">${m.type === "personal" ? "This runs on Miru and needs a login, so there's no public code to copy." : "The content is open for anyone to read and reuse."}</p>${m.repo ? `<a class="btn pink" href="https://${esc(m.repo)}" target="_blank" rel="noopener" style="text-decoration:none">Open repo ↗</a>` : ""}</div>`;
+  const example = m.id === "fuel"
+    ? `import { fetchFuelPrices } from "${m.pkg}";\n\nconst data = await fetchFuelPrices({ postcode: "TW1 1AA" });\nfor (const s of data.stations.slice(0, 3)) {\n  console.log(s.brand, s.petrol);\n}`
+    : `import { find } from "${m.pkg}";\n\nconst results = await find({ postcode: "TW1 1AA" });\nconsole.log(results);`;
+  return `<p style="margin:0 0 6px"><b>Install</b></p>
+  <div class="cmd"><code>npm install ${esc(m.pkg)}</code><button class="btn" data-copy="npm install ${esc(m.pkg)}">Copy</button></div>
+  <p style="margin:16px 0 6px"><b>Try the example</b></p>
+  <pre class="code">${esc(example)}</pre>
+  <div class="opts" style="margin-top:14px">
+    <div class="opt"><span class="i">🛠️</span><div><b>Remix the starter</b><small>A ready project with credentials set up in a .env file.</small></div><a class="btn pink" href="https://${m.repo}" target="_blank" rel="noopener" style="text-decoration:none">Open repo ↗</a></div>
+  </div>`;
+}
+
+document.addEventListener("click", e => {
+  if (e.target.closest("#shareArea")) {
+    const link = `${location.origin}${location.pathname}#pc=${encodeURIComponent(postcode)}`;
+    navigator.clipboard?.writeText(link).catch(() => {});
+    toast("Link copied: everyone who opens it sees " + postcode + " 📍");
+    return;
+  }
+  const c = e.target.closest("[data-copy]");
+  if (c) {
+    const link = c.dataset.copy === "__SHARE__"
+      ? `${location.origin}${location.pathname}#${c.dataset.mod}?pc=${encodeURIComponent(postcode)}`
+      : c.dataset.copy;
+    navigator.clipboard?.writeText(link).catch(() => {});
+    toast("Link copied! 🎉"); burst();
+  }
+  const t = e.target.closest("[data-toast]");
+  if (t) toast(t.dataset.toast);
+});
+function toast(msg) {
+  const t = $("toast"); t.textContent = msg; t.classList.add("on");
+  clearTimeout(toast._t); toast._t = setTimeout(() => t.classList.remove("on"), 2200);
+}
+function burst() {
+  const colors = ["#ff5d8f","#ffb830","#2fd1a4","#5aa9ff","#8b5cf6"];
+  for (let i = 0; i < 18; i++) {
+    const s = document.createElement("span"); s.className = "spark";
+    s.style.background = colors[i % colors.length];
+    s.style.left = (window.innerWidth/2 + (Math.random()-.5)*120) + "px";
+    s.style.top = (window.innerHeight*0.45) + "px";
+    s.style.setProperty("--dx", (Math.random()-.5)*340 + "px");
+    s.style.setProperty("--dy", (Math.random()*-260 - 40) + "px");
+    document.body.appendChild(s);
+    setTimeout(() => s.remove(), 950);
+  }
+}
+$("tryForm").onsubmit = e => {
+  e.preventDefault();
+  const pc = normPC($("pc").value);
+  if (!pc) return toast("That doesn't look like a UK postcode. Try TW1 1AA.");
+  toast("Checking " + pc + "…");
+  fetch(`https://api.postcodes.io/postcodes/${encodeURIComponent(pc)}`)
+    .then(r => { if (!r.ok) throw new Error("not found"); setPostcode(pc); toast("Postcode set to " + postcode + " 📍"); })
+    .catch(() => toast("We couldn't find " + pc + ". Check it and try again."));
+  if (document.getElementById("drawer").classList.contains("open")) {
+    const open = document.getElementById("dtitle").dataset.id;
+    if (open) openModule(open);
+  }
+};
+setPostcode(postcode);
+render();
+// Shared link: #cafes?pc=KT16%200DA opens that module with that postcode
+(function openFromLink() {
+  const pcOnly = location.hash.match(/^#pc=(.*)$/i);
+  if (pcOnly) { const pc = normPC(decodeURIComponent(pcOnly[1])); if (pc) setPostcode(pc); return; }
+  const m = location.hash.match(/^#([a-z-]+)(?:\?pc=(.*))?$/i);
+  if (!m) return;
+  const pc = m[2] ? normPC(decodeURIComponent(m[2])) : "";
+  if (pc) setPostcode(pc);
+  const mod = MODULES.find(x => x.id === m[1]);
+  if (mod) openModule(mod.id);
+})();
+</script>
+</body>
+</html>
