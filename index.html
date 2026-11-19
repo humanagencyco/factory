@@ -173,6 +173,15 @@ footer { text-align:center; color:var(--muted); font-size:13px; padding:0 20px 4
 .melink { display:inline-block; margin-top:12px; font-weight:900; color:var(--accent2, #8b5cf6); text-decoration:none; font-size:14px; }
 .melink:hover { text-decoration:underline; }
 @media (max-width:760px) { .melayout { grid-template-columns:1fr; } .spendcard .bignum { font-size:36px; } }
+.cardhead { display:flex; justify-content:space-between; align-items:baseline; gap:8px; margin-bottom:10px; }
+.cardhead h3 { margin:0; }
+.ktabs { display:flex; flex-wrap:wrap; gap:6px; margin-bottom:6px; }
+.ktab { border:2px solid var(--ink); background:#fff; border-radius:999px; padding:6px 12px; font:inherit; font-weight:800; font-size:13px; cursor:pointer; color:var(--ink); }
+.ktab em { font-style:normal; color:var(--muted); margin-left:4px; font-weight:700; }
+.ktab[aria-pressed="true"] { background:var(--ink); color:#fff; }
+.ktab[aria-pressed="true"] em { color:#fff; opacity:.8; }
+.melist li.hasaction .datepill { background:#ffb3b3; }
+.chip2.due { background:#ffd6d6; }
 </style>
 </head>
 <body>
@@ -381,14 +390,35 @@ async function loadPersonal() {
       fetch(`${API}/api/factory/me/spend`, AUTH).then(r => r.json()),
     ]);
     const fmtDay = d => { if (!d) return "—"; const x = new Date(d + "T12:00:00"); return x.toLocaleDateString("en-GB", { day: "numeric", month: "short" }); };
-    const items = (msgs.messages || []).map(x => `
-        <li>
-          <span class="datepill">${esc(fmtDay(x.date))}</span>
+    const all = msgs.messages || [];
+    const kids = [...new Set(all.map(x => x.child || "Other"))];
+    let kid = "All";
+    const pillFor = d => { const x = new Date((d || "") + "T12:00:00"); return isNaN(x) ? "—" : x.toLocaleDateString("en-GB", { day: "numeric", month: "short" }); };
+    const listHtml = () => {
+      const rows = all.filter(x => kid === "All" || (x.child || "Other") === kid);
+      if (!rows.length) return `<p class="muted">No school messages for ${kid === "All" ? "you" : esc(kid)} in the last two weeks.</p>`;
+      return `<ul class="melist">${rows.map(x => `
+        <li class="${x.action || x.deadline ? "hasaction" : ""}">
+          <span class="datepill">${esc(pillFor(x.date))}</span>
           <div class="melbody">
             <b>${esc(x.title || "School message")}</b>
-            <div class="mechips">${x.child ? `<span class="chip2">${esc(x.child)}</span>` : ""}${x.school ? `<span class="chip2 quiet">${esc(x.school)}</span>` : ""}</div>
+            <div class="mechips">
+              ${kid === "All" && x.child ? `<span class="chip2">${esc(x.child)}</span>` : ""}
+              ${x.school ? `<span class="chip2 quiet">${esc(x.school)}</span>` : ""}
+              ${x.deadline ? `<span class="chip2 due">Due ${esc(pillFor(x.deadline))}</span>` : ""}
+              ${x.action ? `<span class="chip2 due">Action: ${esc(x.action)}</span>` : ""}
+            </div>
           </div>
-        </li>`).join("");
+        </li>`).join("")}</ul>`;
+    };
+    const tabsHtml = () => ["All", ...kids].map(k => `<button class="ktab" type="button" aria-pressed="${k === kid}" data-k="${esc(k)}">${esc(k)}${k === "All" ? ` <em>${all.length}</em>` : ` <em>${all.filter(x => (x.child || "Other") === k).length}</em>`}</button>`).join("");
+    const schoolCard = `
+          <section class="mecard">
+            <div class="cardhead"><h3>📬 School messages</h3><small class="muted">Last two weeks</small></div>
+            <div class="ktabs" id="kTabs">${tabsHtml()}</div>
+            <div id="kList">${listHtml()}</div>
+            <a class="melink" href="https://miru.humanagency.co/" target="_blank" rel="noopener">See all in Miru ↗</a>
+          </section>`;
     const period = esc(spend.period || "this month");
     const total = Number(spend.total || 0);
     box.innerHTML = `
@@ -398,11 +428,7 @@ async function loadPersonal() {
           <button class="btn ghost" id="pSignOut" type="button">Sign out</button>
         </div>
         <div class="melayout">
-          <section class="mecard">
-            <h3>📬 School messages</h3>
-            ${items ? `<ul class="melist">${items}</ul>` : `<p class="muted">No school messages in the last two weeks.</p>`}
-            <a class="melink" href="https://miru.humanagency.co/" target="_blank" rel="noopener">See all in Miru ↗</a>
-          </section>
+          ${schoolCard}
           <section class="mecard spendcard">
             <h3>💷 Spend, ${period}</h3>
             <div class="bignum">£${total.toFixed(2)}</div>
@@ -411,6 +437,11 @@ async function loadPersonal() {
           </section>
         </div>
       </div>`;
+    box.querySelectorAll(".ktab").forEach(b => b.onclick = () => {
+      kid = b.dataset.k;
+      box.querySelectorAll(".ktab").forEach(x => x.setAttribute("aria-pressed", String(x === b)));
+      document.getElementById("kList").innerHTML = listHtml();
+    });
     document.getElementById("pSignOut").onclick = async () => {
       await fetch(`${API}/api/auth/logout`, { method: "POST", credentials: "include" });
       loadPersonal();
