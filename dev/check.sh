@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Run before every release. Stops at the first failure.
 set -e
-cd "$(dirname "$0")"
+cd "$(dirname "$0")/.."
 echo "1. HTML and script syntax"
 python3 - <<'PY'
 import re, subprocess, sys
@@ -17,5 +17,5 @@ if grep -n -i -E "mekala|vikram|riaan|inaaya|arya|stanns|charters|new haw|@gmail
 fi
 echo "   ok"
 echo "3. Page loads its scripts without errors (stand-in browser)"
-node tests/load_test.js
+node dev/tests/load_test.js
 echo "All checks passed."
