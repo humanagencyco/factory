@@ -502,10 +502,10 @@ function render() {
   if (activeSection === "personal") loadPersonal(); else { const pb = document.getElementById("personalBox"); if (pb) pb.innerHTML = ""; }
   const pcq = encodeURIComponent(postcode);
   const official = [
-    ["🗑️", "Bin collection", "Find your council and bin days", "https://www.gov.uk/find-local-council"],
-    ["🕳️", "Report a pothole", "Send it straight to your council", "https://www.fixmystreet.com/"],
+    ["🗑️", "Bin collection", "Find your council and bin days", `https://www.gov.uk/find-local-council?postcode=${pcq}`],
+    ["🕳️", "Report a pothole", "See and report potholes near you", `https://www.fixmystreet.com/around?pc=${pcq}`],
     ["🏫", "School reports", "Ofsted reports for any school", "https://reports.ofsted.gov.uk/"],
-    ["🩺", "GP and dentist", "Find and register with an NHS service", "https://www.nhs.uk/service-search"],
+    ["🩺", "GP and dentist", "Find and register with a GP near you", `https://www.nhs.uk/service-search/find-a-gp/results?postcode=${pcq}`],
     ["🔧", "MOT history", "Check any vehicle's MOT record", "https://www.gov.uk/check-mot-history"],
     ["🧾", "Council tax", "Band and bills for your home", "https://www.gov.uk/council-tax-bands"],
   ];
