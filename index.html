@@ -197,6 +197,8 @@ footer { text-align:center; color:var(--muted); font-size:13px; padding:0 20px 4
 .prepgrid li.wait i { animation:pulse 1.2s ease-in-out infinite; }
 @keyframes pulse { 0%,100% { opacity:.3; } 50% { opacity:1; } }
 @media (prefers-reduced-motion:reduce) { .prepgrid li.wait i { animation:none; } }
+.ofsted { text-align:right; font-size:12px; white-space:nowrap; }
+.ofsted a { color:var(--accent2, #8b5cf6); font-weight:800; text-decoration:none; }
 </style>
 </head>
 <body>
@@ -701,7 +703,7 @@ async function wireLive(m) {
       if (m.id === "schools") {
         const d = await getJSON(`${API}/api/factory/schools-near?postcode=${encodeURIComponent(pc)}`);
         if (!d.schools.length) return show(`<div class="sample">No schools found near ${esc(pc)}.</div>`);
-        show(d.schools.map(r => `<div class="result"><div><b>${esc(r.name)}</b><small>${esc(r.postcode)} · ${r.distance_km} km${r.type ? " · " + esc(r.type) : ""}</small></div></div>`).join("")
+        show(d.schools.map(r => `<div class="result"><div><b>${esc(r.name)}</b><small>${esc(r.postcode)} · ${r.distance_km} km${r.type ? " · " + esc(r.type) : ""}</small></div><div class="ofsted">${r.ofsted_rating ? `<span class="chip2">Ofsted: ${esc(r.ofsted_rating)}</span>` : `<span class="chip2 quiet">Not yet rated</span>`}${r.ofsted_report ? ` <a href="${esc(r.ofsted_report)}" target="_blank" rel="noopener">Report ↗</a>` : ""}</div></div>`).join("")
           + `<div class="sample">Live from the DfE school register</div>`);
       }
     } catch (e) { fail(e); }
