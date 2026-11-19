@@ -182,6 +182,19 @@ footer { text-align:center; color:var(--muted); font-size:13px; padding:0 20px 4
 .ktab[aria-pressed="true"] em { color:#fff; opacity:.8; }
 .melist li.hasaction .datepill { background:#ffb3b3; }
 .chip2.due { background:#ffd6d6; }
+.onboard { background:#fff3b0; border:2px solid var(--ink); border-radius:16px; padding:14px 16px; box-shadow:4px 4px 0 var(--ink); margin:18px 0 0; font-size:15px; }
+.prep { background:#fff; border:2px solid var(--ink); border-radius:18px; padding:16px 18px; box-shadow:5px 5px 0 var(--ink); margin:22px 0 0; transition:opacity .4s; }
+.prep.prepdone { opacity:0; }
+.prephead { display:flex; justify-content:space-between; align-items:baseline; gap:10px; margin-bottom:10px; }
+.prephead span { color:var(--muted); font-weight:700; font-size:13px; }
+.prepgrid { list-style:none; margin:0; padding:0; display:grid; grid-template-columns:repeat(auto-fill,minmax(160px,1fr)); gap:8px 12px; }
+.prepgrid li { display:flex; align-items:center; gap:8px; font-weight:700; font-size:14px; color:var(--muted); }
+.prepgrid li.ok { color:var(--ink); }
+.prepgrid li i { width:20px; height:20px; border:2px solid var(--ink); border-radius:50%; display:inline-flex; align-items:center; justify-content:center; font-style:normal; font-size:12px; font-weight:900; flex:0 0 auto; }
+.prepgrid li.ok i { background:#2fd1a4; }
+.prepgrid li.wait i { animation:pulse 1.2s ease-in-out infinite; }
+@keyframes pulse { 0%,100% { opacity:.3; } 50% { opacity:1; } }
+@media (prefers-reduced-motion:reduce) { .prepgrid li.wait i { animation:none; } }
 </style>
 </head>
 <body>
@@ -205,6 +218,10 @@ footer { text-align:center; color:var(--muted); font-size:13px; padding:0 20px 4
 </section>
 
 <main class="page">
+  <div class="onboard" id="onboard" hidden>
+    <b>New here?</b> Start with your postcode. We'll show your MP, weather, fuel, trains and more near you. No sign-up needed.
+  </div>
+  <div class="prep" id="prep" hidden></div>
   <div class="navrow"><div class="secnav" id="secnav" role="tablist" aria-label="Sections"></div><div class="livetog" id="livetog" role="group" aria-label="Show"></div></div>
   
   <div id="grid"></div>
@@ -255,9 +272,10 @@ const LABEL = { ready:"Ready", beta:"Beta", soon:"Coming soon" };
 const PC_KEY = "factory_postcode";
 let postcode = "TW1 1AA";
 try { postcode = localStorage.getItem(PC_KEY) || postcode; } catch (e) {}
-function setPostcode(pc) {
+function setPostcode(pc, fromUser = false) {
   const ok = normPC(pc);
   if (!ok) return false;
+  if (fromUser) startPrep();
   postcode = ok;
   try { localStorage.setItem(PC_KEY, postcode); } catch (e) {}
   const chip = document.getElementById("pcChip"); if (chip) chip.textContent = postcode;
@@ -265,6 +283,7 @@ function setPostcode(pc) {
   if (typeof loadTeasers === "function") loadTeasers();
   if (typeof loadArea === "function") loadArea();
   prefetchAll(postcode);
+  const ob = document.getElementById("onboard"); if (ob) ob.hidden = true;
 }
 // UK postcode format check; returns the tidied postcode, or "" if it isn't one
 function normPC(raw) {
@@ -369,6 +388,7 @@ async function loadArea() {
       potholeLine = `${n} recent reports nearby`;
     }
     const floodLine = floodCount == null ? "Flood data unavailable" : floodCount === 0 ? "No flood warnings nearby" : `${floodCount} flood warning${floodCount > 1 ? "s" : ""} nearby`;
+    markPrep("area");
     el.innerHTML = `<div class="areastat"><b>${esc(floodLine)}</b><small>Environment Agency</small></div>`
       + `<div class="areastat"><b>${esc(crimeLine)}</b><small>police.uk</small></div>`
       + `<div class="areastat"><b>${esc(potholeLine)}</b><small><a href="https://www.fixmystreet.com/around?pc=${encodeURIComponent(pc)}" target="_blank" rel="noopener">See them or report one on FixMyStreet ↗</a></small></div>`;
@@ -475,6 +495,19 @@ function renderSignIn(box) {
     loadPersonal();
   };
 }
+const PREP_STEPS = [["pc","Postcode"],["mp","MP & councillors"],["wx","Weather"],["fuel","Fuel prices"],["trains","Trains"],["schools","Schools"],["pubs","Pubs & cafés"],["area","Your area"]];
+let prepState = {};
+let prepOn = false;
+function drawPrep(done) {
+  const el = document.getElementById("prep");
+  if (!el) return;
+  el.hidden = false;
+  el.innerHTML = `<div class="prephead"><b>Setting up ${esc(postcode)}</b><span>${PREP_STEPS.filter(([k]) => prepState[k]).length} of ${PREP_STEPS.length} ready</span></div>`
+    + `<ul class="prepgrid">${PREP_STEPS.map(([k, l]) => `<li class="${prepState[k] ? "ok" : "wait"}"><i>${prepState[k] ? "✓" : ""}</i>${esc(l)}</li>`).join("")}</ul>`;
+  if (done) { el.classList.add("prepdone"); setTimeout(() => { el.hidden = true; }, 1600); }
+}
+function markPrep(k) { if (!prepOn) return; prepState[k] = true; drawPrep(PREP_STEPS.every(([x]) => prepState[x])); if (PREP_STEPS.every(([x]) => prepState[x])) prepOn = false; }
+function startPrep() { prepOn = true; prepState = { pc: true }; drawPrep(false); }
 function renderSecNav() {
   const tabs = [["near","📍 Near you"],["topic","🌍 Topics"],["personal","🔒 Personal"]];
   $("secnav").innerHTML = tabs.map(([k,l]) => `<button role="tab" data-s="${k}" aria-selected="${k===activeSection}">${l}</button>`).join("");
@@ -607,7 +640,17 @@ async function prefetchAll(pc) {
     `${API}/api/train/nearest-by-postcode?postcode=${q}`,
     `https://api.postcodes.io/postcodes/${q}`,
   ];
-  urls.forEach(u => getJSON(u).catch(() => {}));
+  const tick = (k) => (x) => { markPrep(k); return x; };
+  getJSON(urls[0]).then(tick("mp")).catch(() => markPrep("mp"));
+  getJSON(urls[1]).catch(() => {});
+  getJSON(urls[2]).then(tick("fuel")).catch(() => markPrep("fuel"));
+  getJSON(urls[3]).then(tick("pubs")).catch(() => markPrep("pubs"));
+  getJSON(urls[4]).then(tick("schools")).catch(() => markPrep("schools"));
+  getJSON(urls[5]).catch(() => {});
+  getJSON(urls[6]).catch(() => {});
+  getJSON(urls[7]).then(tick("trains")).catch(() => markPrep("trains"));
+  getJSON(urls[8]).then(tick("wx")).catch(() => markPrep("wx"));
+  if (prepOn) markPrep("pc");
   // Trains and weather depend on earlier results, so they follow once those arrive
   try {
     const near = await getJSON(`${API}/api/train/nearest-by-postcode?postcode=${q}`);
@@ -812,15 +855,17 @@ $("tryForm").onsubmit = e => {
   if (!pc) return toast("That doesn't look like a UK postcode. Try TW1 1AA.");
   toast("Checking " + pc + "…");
   fetch(`https://api.postcodes.io/postcodes/${encodeURIComponent(pc)}`)
-    .then(r => { if (!r.ok) throw new Error("not found"); setPostcode(pc); toast("Postcode set to " + postcode + " 📍"); })
+    .then(r => { if (!r.ok) throw new Error("not found"); setPostcode(pc, true); toast("Postcode set to " + postcode + " 📍"); })
     .catch(() => toast("We couldn't find " + pc + ". Check it and try again."));
   if (document.getElementById("drawer").classList.contains("open")) {
     const open = document.getElementById("dtitle").dataset.id;
     if (open) openModule(open);
   }
 };
+const __firstVisit = (() => { try { return !localStorage.getItem(PC_KEY); } catch (e) { return true; } })();
 setPostcode(postcode);
 render();
+if (__firstVisit) { const ob = document.getElementById("onboard"); if (ob) ob.hidden = false; }
 // Shared link: #cafes?pc=KT16%200DA opens that module with that postcode
 (function openFromLink() {
   const pcOnly = location.hash.match(/^#pc=(.*)$/i);
