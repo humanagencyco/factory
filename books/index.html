@@ -162,9 +162,12 @@ function renderReaders() {
     + `<button class="rpill" id="addReader">+ Add reader</button>`;
   $("readers").querySelectorAll("[data-reader]").forEach(b => b.onclick = () => pickReader(b.dataset.reader));
   $("addReader").onclick = async () => {
+    if (window._addingReader) return;   // ignore repeated taps while saving
     const n = (prompt("Who's reading? Type a name.") || "").trim(); if (!n) return;
-    try { const r = await api("/api/books/readers", { method: "POST", body: JSON.stringify({ household: household(), name: n }) }); readers.push(r); pickReader(r.id); }
+    window._addingReader = true;
+    try { const r = await api("/api/books/readers", { method: "POST", body: JSON.stringify({ household: household(), name: n }) }); if (!readers.some(x => x.id === r.id)) readers.push(r); pickReader(r.id); }
     catch (e) { alert("Couldn't add that name. Try again."); }
+    finally { window._addingReader = false; }
   };
 }
 async function loadBooks() {
@@ -205,11 +208,12 @@ function showWelcome() {
     <input class="search" id="wname" placeholder="Type your name" aria-label="Your name" style="max-width:320px">
     <div><button class="rpill on" id="wgo">Let's go!</button></div></div>`;
   $("wgo").onclick = async () => {
-    const n = ($("wname").value || "").trim(); if (!n) return;
+    const n = ($("wname").value || "").trim(); if (!n || $("wgo").disabled) return;
+    $("wgo").disabled = true;   // ignore repeated taps while saving
     try {
       const r = await api("/api/books/readers", { method: "POST", body: JSON.stringify({ household: household(), name: n }) });
       readers.push(r); await migrateLocal(r); pickReader(r.id);
-    } catch (e) { alert("Couldn't start. Check the connection and try again."); }
+    } catch (e) { $("wgo").disabled = false; alert("Couldn't start. Check the connection and try again."); }
   };
 }
 // "Because you loved…": more books by an author she rated highly, skipping books she already has
