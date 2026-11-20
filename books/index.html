@@ -217,7 +217,7 @@ async function renderForYou() {
   const box = $("forYou"); if (!box) return;
   const liked = state.books.filter(b => b.shelf === "read" && (b.rating || 0) >= 4)
     .sort((a, b) => (b.rating - a.rating) || ((b.finished || "") > (a.finished || "") ? 1 : -1));
-  if (!liked.length || state.shelf === "wish") { box.innerHTML = ""; return; }
+  if (!liked.length || state.shelf !== "read") { box.innerHTML = ""; return; }   // only on the Read shelf
   // She can pick which favourite the suggestions are based on; the top-rated one is the default
   const top = liked.find(b => b.id === state.fyBase) || liked[0];
   const have = new Set(state.books.map(b => (b.title || "").toLowerCase()));
