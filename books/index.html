@@ -82,7 +82,7 @@ dialog::backdrop{background:rgba(36,24,74,.4);backdrop-filter:blur(3px)}
 <main class="wrap">
   <header>
     <div class="brand"><div class="logo" aria-hidden="true">📚</div><h1>My Books</h1></div>
-    <button class="add" id="addBtn" aria-label="Add a book">+ Add</button>
+    <div style="display:flex;gap:10px"><button class="pill" id="cardBtn" style="font-weight:800" aria-label="My reading card">🎴 My card</button><button class="add" id="addBtn" aria-label="Add a book">+ Add</button></div>
   </header>
 
   <div class="readers" id="readers" aria-label="Who's reading"></div>
@@ -94,6 +94,7 @@ dialog::backdrop{background:rgba(36,24,74,.4);backdrop-filter:blur(3px)}
   </div>
 
   <input class="search" id="find" type="search" placeholder="Search the books already on your shelves" aria-label="Search the books already on your shelves">
+  <div id="forYou"></div>
   <div class="grid" id="list" aria-live="polite"></div>
 
 
@@ -113,6 +114,10 @@ dialog::backdrop{background:rgba(36,24,74,.4);backdrop-filter:blur(3px)}
     <div class="hits" id="hits" aria-live="polite"></div>
     <div class="foot"><span></span><button class="link" id="closeAdd">Close</button></div>
   </div>
+</dialog>
+
+<dialog id="card">
+  <div class="sheet" id="cardBody"></div>
 </dialog>
 
 <dialog id="author">
@@ -207,6 +212,64 @@ function showWelcome() {
     } catch (e) { alert("Couldn't start. Check the connection and try again."); }
   };
 }
+// "Because you loved…": more books by an author she rated highly, skipping books she already has
+async function renderForYou() {
+  const box = $("forYou"); if (!box) return;
+  const liked = state.books.filter(b => b.shelf === "read" && (b.rating || 0) >= 4)
+    .sort((a, b) => (b.rating - a.rating) || ((b.finished || "") > (a.finished || "") ? 1 : -1));
+  if (!liked.length || state.shelf === "wish") { box.innerHTML = ""; return; }
+  const top = liked[0];
+  const have = new Set(state.books.map(b => (b.title || "").toLowerCase()));
+  let hits = [];
+  try {
+    const r = await fetch(`https://${ALGOLIA_APP}-dsn.algolia.net/1/indexes/books/query`, {
+      method: "POST",
+      headers: { "X-Algolia-Application-Id": ALGOLIA_APP, "X-Algolia-API-Key": ALGOLIA_SEARCH_KEY, "Content-Type": "application/json" },
+      body: JSON.stringify({ params: "query=" + encodeURIComponent(top.author || top.title) + "&restrictSearchableAttributes=author&hitsPerPage=12" }),
+    });
+    const d = await r.json(); hits = (d.hits || []).filter(h => !have.has((h.title || "").toLowerCase())).slice(0, 3);
+  } catch (e) {}
+  if (!hits.length) { box.innerHTML = ""; return; }
+  window._fy = hits;
+  box.innerHTML = `<div class="lab" style="margin:0 0 8px">✨ Because you loved <b>${esc(top.title)}</b></div>
+    <div class="grid" style="grid-template-columns:repeat(auto-fill,minmax(130px,1fr));margin-bottom:18px">
+      ${hits.map((h, i) => `<div class="book" style="cursor:default"><div class="cover">${h.cover ? `<img alt="" src="${esc(h.cover)}">` : `<div class="ph">📕</div>`}</div>
+        <div class="bname" style="font-size:15px">${esc(h.title)}</div>
+        <button class="chip" data-fy="${i}" style="font-size:14px;padding:6px 10px">+ Add</button></div>`).join("")}
+    </div>`;
+  box.querySelectorAll("[data-fy]").forEach(btn => btn.onclick = () => {
+    const h = window._fy[+btn.dataset.fy];
+    addBook({ title: h.title, author: h.author || "", year: h.year || "", pages: h.pages || "", isbn: h.isbn || "",
+      genres: h.subjects || [], publisher: "", cover: h.cover || "", workKey: h.objectID || "" });
+  });
+}
+
+// My reading card: a simple picture of what she's read, to show someone
+function openCard() {
+  const read = state.books.filter(b => b.shelf === "read");
+  const month = new Date().toISOString().slice(0, 7);
+  const thisMonth = read.filter(b => (b.finished || "").startsWith(month)).length;
+  const fav = read.slice().sort((a, b) => (b.rating || 0) - (a.rating || 0))[0];
+  const cur = currentReader();
+  const who = cur ? cur.name : "My";
+  $("cardBody").innerHTML = `
+    <div style="text-align:center;padding:10px 0">
+      <div style="font-size:14px;font-weight:800;letter-spacing:1px;color:var(--muted)">${esc(who.toUpperCase())}'S READING CARD</div>
+      <div style="display:flex;justify-content:center;gap:14px;margin:18px 0">
+        <div><div style="font-size:40px;font-weight:800">${read.length}</div><div class="by">books read</div></div>
+        <div><div style="font-size:40px;font-weight:800">${thisMonth}</div><div class="by">this month</div></div>
+      </div>
+      ${fav ? `<div class="lab">Favourite</div><div style="font-size:22px;font-weight:800">${esc(fav.title)}</div>${starsOf(fav.rating)}` : `<p class="sum">Finish a book and it appears here.</p>`}
+      <div class="grid" style="grid-template-columns:repeat(4,1fr);gap:8px;margin-top:18px">
+        ${read.slice(0, 8).map(b => `<div class="cover">${b.cover ? `<img alt="" src="${esc(b.cover)}">` : `<div class="ph">📕</div>`}</div>`).join("")}
+      </div>
+    </div>
+    <div class="foot"><span></span><button class="close" id="closeCard">Close</button></div>`;
+  $("closeCard").onclick = () => $("card").close();
+  $("card").showModal();
+}
+$("cardBtn").onclick = openCard;
+
 // Author page: short bio (Open Library) and their other books (our catalogue)
 async function openAuthor(name) {
   $("authorBody").innerHTML = `<p class="by">Looking up ${esc(name)}…</p><div class="row"><button class="close" id="closeAuthor">Close</button></div>`;
@@ -441,6 +504,7 @@ function render() {
     </button>`).join("")
     : `<div class="empty" style="grid-column:1/-1">${state.books.some(b => b.shelf === state.shelf) ? "Nothing matches your search." : "No books here yet. Tap the big + Add button to add your first one! 🎉"}</div>`;
   $("list").querySelectorAll("[data-open]").forEach(btn => btn.onclick = () => openDetail(btn.dataset.open));
+  renderForYou();
 }
 
 function openDetail(id) {
