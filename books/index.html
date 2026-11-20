@@ -96,8 +96,22 @@ async function summaryFor(workKey) {
   catch (e) { return ""; }
 }
 
-const STOP = new Set(["the","of","a","an","and","in","to","for","on","with"]);
+const STOP = new Set(["the","of","a","an","and","in","to","for","on","with","book"]);
 function keyWords(q) { return q.toLowerCase().replace(/[^a-z0-9 ]/g, " ").split(/\s+/).filter(w => w && !STOP.has(w)); }
+// Small typo allowance: "flies" matches "fleas", "pilky" matches "pilkey" (words of 4+ letters, 2 changes at most)
+function editDistance(a, b) {
+  const m = a.length, n = b.length; if (Math.abs(m - n) > 2) return 99;
+  let prev = Array.from({ length: n + 1 }, (_, j) => j);
+  for (let i = 1; i <= m; i++) {
+    const cur = [i];
+    for (let j = 1; j <= n; j++) cur[j] = Math.min(prev[j] + 1, cur[j - 1] + 1, prev[j - 1] + (a[i - 1] === b[j - 1] ? 0 : 1));
+    prev = cur;
+  }
+  return prev[n];
+}
+function wordMatches(w, titleWords) {
+  return titleWords.some(t => t === w || (w.length >= 4 && editDistance(w, t) <= 2));
+}
 async function findBooks(q) {
   q = q.trim(); if (q.length < 2) return [];
   const isbn = q.replace(/[^0-9Xx]/g, "");
@@ -106,27 +120,28 @@ async function findBooks(q) {
     const d = await (await fetch(`https://openlibrary.org/search.json?isbn=${isbn}&limit=5&fields=${fields}`)).json();
     return toBooks(d.docs || [], isbn);
   }
-  // Two searches (by title and by any words), most-published editions first, then ranked by how well the title matches
+  const words = keyWords(q);
   const enc = encodeURIComponent(q);
-  const [a, b] = await Promise.all([
-    fetch(`https://openlibrary.org/search.json?title=${enc}&sort=editions&limit=20&fields=${fields}`).then(r => r.json()).catch(() => ({})),
-    fetch(`https://openlibrary.org/search.json?q=${enc}&sort=editions&limit=20&fields=${fields}`).then(r => r.json()).catch(() => ({})),
-  ]);
+  const first = encodeURIComponent(words.slice(0, 2).join(" ") || q);
+  // Three searches: the whole phrase, the phrase as a general search, and the first words (to catch series)
+  const urls = [
+    `https://openlibrary.org/search.json?title=${enc}&sort=editions&limit=40&fields=${fields}`,
+    `https://openlibrary.org/search.json?q=${enc}&sort=editions&limit=40&fields=${fields}`,
+    `https://openlibrary.org/search.json?title=${first}&sort=editions&limit=100&fields=${fields}`,
+    `https://openlibrary.org/search.json?q=${encodeURIComponent(words.slice(0, 3).join(" ") || q)}&limit=100&fields=${fields}`,
+  ];
+  const results = await Promise.all(urls.map(u => fetch(u).then(r => r.json()).catch(() => ({ docs: [] }))));
   const seen = new Set(); const docs = [];
-  for (const x of [...(a.docs || []), ...(b.docs || [])]) {
+  for (const r of results) for (const x of (r.docs || [])) {
     const k = (x.title || "").toLowerCase() + "|" + ((x.author_name || [])[0] || "");
     if (!seen.has(k)) { seen.add(k); docs.push(x); }
   }
-  const words = keyWords(q);
-  const score = x => {
-    const t = (x.title || "").toLowerCase();
-    const hit = words.filter(w => t.includes(w)).length;
-    return (words.length && hit === words.length ? 10 : 0) + hit * 2 + Math.min(x.edition_count || 0, 50) / 10;
-  };
-  docs.sort((x, y) => score(y) - score(x));
-  const need = Math.max(1, Math.ceil(words.length / 2));  // the title must match at least half the words
-  const hitsOf = x => words.filter(w => (x.title || "").toLowerCase().includes(w)).length;
-  return toBooks(docs.filter(x => hitsOf(x) >= need).slice(0, 8), "");
+  // Rank by how many of the typed words the title matches (allowing small typos)
+  const hitsOf = x => { const tw = (x.title || "").toLowerCase().replace(/[^a-z0-9 ]/g, " ").split(/\s+/).filter(Boolean); return words.filter(w => wordMatches(w, tw)).length; };
+  const need = Math.max(1, Math.ceil(words.length / 2));
+  const ranked = docs.map(x => ({ x, h: hitsOf(x) })).filter(o => o.h >= need)
+    .sort((a, b) => (b.h - a.h) || ((b.x.edition_count || 0) - (a.x.edition_count || 0)));
+  return toBooks(ranked.slice(0, 8).map(o => o.x), "");
 }
 function toBooks(docs, isbnQuery) {
   return docs.map(x => ({
