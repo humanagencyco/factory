@@ -301,7 +301,7 @@ function visible() {
 function starsOf(n) { return `<div class="stars" aria-label="${n || 0} stars">${[1,2,3,4,5].map(i => `<span class="${i <= (n || 0) ? "on" : ""}">★</span>`).join("")}</div>`; }
 
 function render() {
-  document.querySelectorAll(".shelves button").forEach(b => b.setAttribute("aria-pressed", String(b.dataset.s === state.shelf)));
+  document.querySelectorAll(".pills button").forEach(b => b.setAttribute("aria-pressed", String(b.dataset.s === state.shelf)));
   ["reading","read","tb","wish"].forEach(k => { const el = $("n-" + k); if (el) el.textContent = "(" + state.books.filter(b => b.shelf === k).length + ")"; });
   const list = visible();
   $("list").innerHTML = list.length ? list.map(b => `
@@ -345,7 +345,7 @@ function openDetail(id) {
   $("detail").showModal();
 }
 
-document.querySelectorAll(".shelves button").forEach(b => b.onclick = () => { state.shelf = b.dataset.s; render(); });
+document.querySelectorAll(".pills button").forEach(b => b.onclick = () => { state.shelf = b.dataset.s; render(); });
 $("addBtn").onclick = () => { $("hits").innerHTML = ""; $("add").showModal(); $("q").focus(); };
 $("closeAdd").onclick = () => $("add").close();
 $("go").onclick = async () => {
