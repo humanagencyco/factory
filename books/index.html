@@ -157,18 +157,9 @@ function currentReader() {
 }
 function pickReader(id) { try { localStorage.setItem("hu_reader", id); } catch (e) {} renderReaders(); loadBooks(); }
 function renderReaders() {
+  // One reader per device: just show whose books these are
   const cur = currentReader();
-  $("readers").innerHTML = readers.map(r => `<button class="rpill ${cur && cur.id === r.id ? "on" : ""}" data-reader="${esc(r.id)}">👤 ${esc(r.name)}</button>`).join("")
-    + `<button class="link" id="addReader" style="font-size:15px;align-self:center;padding:6px 8px">Someone else reading on this device?</button>`;
-  $("readers").querySelectorAll("[data-reader]").forEach(b => b.onclick = () => pickReader(b.dataset.reader));
-  $("addReader").onclick = async () => {
-    if (window._addingReader) return;   // ignore repeated taps while saving
-    const n = (prompt("Who's reading? Type a name.") || "").trim(); if (!n) return;
-    window._addingReader = true;
-    try { const r = await api("/api/books/readers", { method: "POST", body: JSON.stringify({ household: household(), name: n }) }); if (!readers.some(x => x.id === r.id)) readers.push(r); pickReader(r.id); }
-    catch (e) { alert("Couldn't add that name. Try again."); }
-    finally { window._addingReader = false; }
-  };
+  $("readers").innerHTML = cur ? `<div class="rpill on" style="cursor:default">👤 ${esc(cur.name)}'s books</div>` : "";
 }
 async function loadBooks() {
   const r = currentReader(); if (!r) { state.books = []; render(); return; }
