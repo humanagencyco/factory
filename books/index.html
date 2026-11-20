@@ -472,7 +472,7 @@ async function addBook(b) {
   const summary = await summaryFor(b.workKey);
   state.books.unshift({ id: String(Date.now()), ...b, summary, shelf: "tb", rating: 0, finished: "", notes: "", added: today() });
   $("add").close(); $("hits").innerHTML = ""; $("q").value = ""; state.shelf = "tb"; render(); syncBook(state.books[0]);
-  celebrate(CHEERS[Math.floor(Math.random() * CHEERS.length)]);
+  celebrate(CHEERS[Math.floor(Math.random() * CHEERS.length)] + " It's on your To borrow shelf.");
 }
 
 // What shows on the grid: the chosen shelf, filtered by search, newest first
@@ -530,7 +530,7 @@ function openDetail(id) {
     <div class="foot" style="margin-top:12px"><span></span><button class="close" id="done">Done</button></div>`;
   const change = fn => { fn(b); syncBook(b); openDetail(id); render(); };
   $("detailBody").querySelectorAll("[data-to]").forEach(btn => btn.onclick = () => change(x => { x.shelf = btn.dataset.to; if (x.shelf === "read" && !x.finished) x.finished = today(); }));
-  $("detailBody").querySelectorAll("[data-rate]").forEach(btn => btn.onclick = () => change(x => { x.rating = +btn.dataset.rate; if (x.shelf !== "read") { x.shelf = "read"; x.finished = x.finished || today(); } }));
+  $("detailBody").querySelectorAll("[data-rate]").forEach(btn => btn.onclick = () => change(x => { x.rating = +btn.dataset.rate; if (x.shelf === "reading" || x.shelf === "tb") { x.shelf = "read"; x.finished = x.finished || today(); } }));
   if ($("fin")) $("fin").onchange = () => change(x => x.finished = $("fin").value);
   $("notes").onchange = () => { b.notes = $("notes").value; syncBook(b); };
   $("del").onclick = () => { if (confirm("Remove this book?")) { $("detail").close(); removeBook(b); } };
