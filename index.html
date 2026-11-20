@@ -235,8 +235,8 @@ footer { text-align:center; color:var(--muted); font-size:13px; padding:0 20px 4
   <div class="navrow"><div class="secnav" id="secnav" role="tablist" aria-label="Sections"></div><div class="livetog" id="livetog" role="group" aria-label="Show"></div></div>
   
   <div id="binSlot"></div>
-  <div id="grid"></div>
   <div id="personalBox"></div>
+  <div id="grid"></div>
 </main>
 
 <footer>Live data from public sources. Built by Human Agency. Fuel Finder code is MIT-licensed; other modules are licensed as they are published.</footer>
@@ -548,7 +548,7 @@ function render() {
     ["personal", "🔒 Personal", "Needs a login. Your data stays private."],
   ];
   renderSecNav();
-  if (activeSection === "personal") loadPersonal(); else { const pb = document.getElementById("personalBox"); if (pb) pb.innerHTML = ""; }
+  loadPersonal();  // sign-in and "your place" sit at the top of every section
   const pcq = encodeURIComponent(postcode);
   const official = [
     ["🚧", "Report a pothole", "See and report potholes near you", `https://www.fixmystreet.com/around?pc=${pcq}`],
