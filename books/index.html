@@ -89,7 +89,7 @@ dialog::backdrop{background:rgba(36,24,74,.4);backdrop-filter:blur(3px)}
     <button class="pill" data-s="wish" aria-pressed="false">⭐ Wish list <span class="n" id="n-wish"></span></button>
   </div>
 
-  <input class="search" id="find" type="search" placeholder="Search my books" aria-label="Search my books">
+  <input class="search" id="find" type="search" placeholder="Search the books already on your shelves" aria-label="Search the books already on your shelves">
   <div class="grid" id="list" aria-live="polite"></div>
 
   <div class="foot2">
@@ -258,10 +258,29 @@ function showHits(list) {
   };
 }
 
+const CHEERS = ["Yay! A brand new adventure! 🚀", "Ooh, what a good pick! 📖✨", "Your shelf just got bigger! 🥳",
+  "Book added! Go on, dive in! 🐉", "Another one for the collection! 🌟", "Brilliant choice! 🎈"];
+function celebrate(msg) {
+  const t = document.createElement("div");
+  t.setAttribute("role", "status");
+  t.style.cssText = "position:fixed;left:50%;bottom:28px;transform:translateX(-50%);background:#24184a;color:#fff;padding:14px 22px;border-radius:999px;font:700 18px 'Baloo 2',system-ui,sans-serif;box-shadow:0 14px 30px rgba(36,24,74,.35);z-index:9;transition:opacity .4s";
+  t.textContent = msg; document.body.appendChild(t);
+  for (let i = 0; i < 14; i++) {
+    const c = document.createElement("span");
+    c.textContent = ["⭐", "🎉", "📚", "✨"][i % 4];
+    c.style.cssText = `position:fixed;left:50%;bottom:90px;font-size:22px;pointer-events:none;transition:transform 1s ease-out,opacity 1s;z-index:8`;
+    document.body.appendChild(c);
+    const dx = (Math.random() - 0.5) * 320, dy = -(120 + Math.random() * 220);
+    requestAnimationFrame(() => requestAnimationFrame(() => { c.style.transform = `translate(${dx}px,${dy}px) rotate(${dx}deg)`; c.style.opacity = "0"; }));
+    setTimeout(() => c.remove(), 1100);
+  }
+  setTimeout(() => { t.style.opacity = "0"; setTimeout(() => t.remove(), 450); }, 2200);
+}
 async function addBook(b) {
   const summary = await summaryFor(b.workKey);
   state.books.unshift({ id: String(Date.now()), ...b, summary, shelf: "tb", rating: 0, finished: "", notes: "", added: today() });
   save(); $("add").close(); $("hits").innerHTML = ""; $("q").value = ""; state.shelf = "tb"; render();
+  celebrate(CHEERS[Math.floor(Math.random() * CHEERS.length)]);
 }
 
 // What shows on the grid: the chosen shelf, filtered by search, newest first
@@ -295,7 +314,7 @@ function render() {
       <div class="bmeta">${esc(b.author)}</div>
       ${starsOf(b.rating)}
     </button>`).join("")
-    : `<div class="empty" style="grid-column:1/-1">${state.books.some(b => b.shelf === state.shelf) ? "Nothing matches your search." : "No books here yet. Tap + Add a book."}</div>`;
+    : `<div class="empty" style="grid-column:1/-1">${state.books.some(b => b.shelf === state.shelf) ? "Nothing matches your search." : "No books here yet. Tap the big + Add button to add your first one! 🎉"}</div>`;
   $("list").querySelectorAll("[data-open]").forEach(btn => btn.onclick = () => openDetail(btn.dataset.open));
 }
 
