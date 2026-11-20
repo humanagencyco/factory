@@ -145,7 +145,13 @@ if ("BarcodeDetector" in window) {
       };
       tick();
       alert("Hold the barcode in view of the camera.");
-    } catch (e) { alert("The camera could not start. You can type the ISBN number instead."); }
+    } catch (e) {
+      const why = e && e.name === "NotAllowedError" ? "Camera access was blocked. Allow the camera for this site in your browser settings, then try again."
+        : e && e.name === "NotFoundError" ? "No camera was found on this device."
+        : e && e.name === "NotReadableError" ? "The camera is being used by another app."
+        : "The camera could not start (" + (e && e.name || "unknown error") + ").";
+      alert(why + " You can also type the ISBN number instead.");
+    }
   };
 }
 
