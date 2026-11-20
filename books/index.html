@@ -60,6 +60,9 @@ dialog::backdrop{background:rgba(36,24,74,.4);backdrop-filter:blur(3px)}
 .sheet .foot{display:flex;justify-content:space-between;align-items:center;margin-top:18px}
 .link{background:none;border:0;font:inherit;font-weight:800;color:var(--muted);cursor:pointer;padding:6px 0}
 .close{border:0;background:var(--ink);color:#fff;font:inherit;font-weight:800;font-size:18px;padding:11px 20px;border-radius:999px;cursor:pointer}
+.sugg{display:flex;flex-direction:column;gap:6px;margin:-8px 0 10px}
+.sugg button{border:0;text-align:left;cursor:pointer;font:inherit;font-size:17px;font-weight:700;color:var(--ink);background:var(--g3);padding:10px 14px;border-radius:14px}
+.sugg button small{display:block;color:var(--muted);font-size:14px;font-weight:600}
 .hits{display:grid;gap:10px;margin:14px 0}
 .hit{display:flex;gap:12px;align-items:center;border-radius:18px;padding:10px;background:var(--g3)}
 .hit img{width:50px;height:74px;object-fit:cover;border-radius:10px;box-shadow:0 4px 10px rgba(36,24,74,.2)}
@@ -98,7 +101,8 @@ dialog::backdrop{background:rgba(36,24,74,.4);backdrop-filter:blur(3px)}
   <div class="sheet">
     <h2>Find a new book</h2>
     <p class="by">Type the name of the book, or the number under the barcode.</p>
-    <input class="search" id="q" type="search" placeholder="Book name or number" aria-label="Book name or number">
+    <input class="search" id="q" type="search" placeholder="Book name or number" aria-label="Book name or number" autocomplete="off">
+    <div class="sugg" id="sugg" aria-live="polite"></div>
     <div class="foot" style="margin-top:0">
       <label class="link" style="cursor:pointer">📷 Scan the barcode<input type="file" id="snap" accept="image/*" capture="environment" hidden></label>
       <button class="close" id="go">Find</button>
@@ -298,7 +302,24 @@ $("go").onclick = async () => {
   $("hits").innerHTML = "<p>Looking…</p>";
   try { showHits(await findBooks($("q").value)); } catch (e) { $("hits").innerHTML = "<p>Search isn't working right now. Try again in a moment.</p>"; }
 };
-$("q").addEventListener("keydown", e => { if (e.key === "Enter") { e.preventDefault(); $("go").click(); } });
+$("q").addEventListener("keydown", e => { if (e.key === "Enter") { e.preventDefault(); $("sugg").innerHTML = ""; $("go").click(); } });
+// Suggestions as she types: quick catalogue lookup after a short pause
+let suggTimer = null;
+$("q").addEventListener("input", () => {
+  clearTimeout(suggTimer);
+  const term = $("q").value.trim();
+  if (term.length < 3 || /^\d+$/.test(term)) { $("sugg").innerHTML = ""; return; }
+  suggTimer = setTimeout(async () => {
+    try {
+      const list = (await catalogueSearch(term)) || [];
+      if ($("q").value.trim() !== term) return;   // she has typed on; ignore stale results
+      $("sugg").innerHTML = list.slice(0, 6).map((b, i) => `<button data-sg="${i}">${esc(b.title)}<small>${esc(b.author)}</small></button>`).join("");
+      $("sugg").querySelectorAll("[data-sg]").forEach(btn => btn.onclick = () => {
+        $("sugg").innerHTML = ""; $("q").value = list[+btn.dataset.sg].title; showHits([list[+btn.dataset.sg]]);
+      });
+    } catch (e) { $("sugg").innerHTML = ""; }
+  }, 250);
+});
 // Scan: take a photo of the barcode; the server reads the number, then we search for it
 const SCAN_API = "https://miru.humanagency.co/api/scan-barcode";
 $("snap").onchange = async e => {
