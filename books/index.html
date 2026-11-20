@@ -157,9 +157,22 @@ function currentReader() {
 }
 function pickReader(id) { try { localStorage.setItem("hu_reader", id); } catch (e) {} renderReaders(); loadBooks(); }
 function renderReaders() {
-  // One reader per device: just show whose books these are
+  // One reader per device: the name, with a quiet rename and start-again option
   const cur = currentReader();
-  $("readers").innerHTML = cur ? `<div class="rpill on" style="cursor:default">👤 ${esc(cur.name)}'s books</div>` : "";
+  $("readers").innerHTML = cur ? `<div class="rpill on" style="cursor:default">👤 ${esc(cur.name)}'s books</div>
+    <button class="link" id="renameReader" style="font-size:15px;padding:6px 8px">Rename</button>
+    <button class="link" id="startAgain" style="font-size:15px;padding:6px 8px">Start again</button>` : "";
+  if (!cur) return;
+  $("renameReader").onclick = async () => {
+    const n = (prompt("New name?", cur.name) || "").trim(); if (!n || n === cur.name) return;
+    try { await api(`/api/books/readers/${cur.id}`, { method: "PATCH", body: JSON.stringify({ household: household(), name: n }) }); cur.name = n; renderReaders(); }
+    catch (e) { alert("Couldn't rename. Try again."); }
+  };
+  $("startAgain").onclick = async () => {
+    if (!confirm(`Start again? This removes ${cur.name}'s books from this device.`)) return;
+    try { await api(`/api/books/readers/${cur.id}?household=${household()}`, { method: "DELETE" }); readers = []; try { localStorage.removeItem("hu_reader"); } catch (e) {} showWelcome(); }
+    catch (e) { alert("Couldn't start again. Try again."); }
+  };
 }
 async function loadBooks() {
   const r = currentReader(); if (!r) { state.books = []; render(); return; }
