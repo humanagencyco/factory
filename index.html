@@ -143,6 +143,7 @@ footer { text-align:center; color:var(--muted); font-size:13px; padding:0 20px 4
 .offe { font-size:24px; }
 .offcard small { color:var(--muted); }
 .offgo { margin-top:auto; font-weight:900; color:var(--accent2, #8b5cf6); font-size:13px; }
+#binSlot { margin:6px 0 18px; }
 .bin-card { display:block; background:#fff; border:2px solid #1d1630; border-radius:16px; padding:16px; }
 .bin-btn { border:2px solid #1d1630; background:#1d1630; color:#fff; font-weight:800; border-radius:999px; padding:10px 18px; cursor:pointer; }
 .bin-note { margin:6px 0; color:#4d4566; }
@@ -233,6 +234,7 @@ footer { text-align:center; color:var(--muted); font-size:13px; padding:0 20px 4
   <div class="prep" id="prep" hidden></div>
   <div class="navrow"><div class="secnav" id="secnav" role="tablist" aria-label="Sections"></div><div class="livetog" id="livetog" role="group" aria-label="Show"></div></div>
   
+  <div id="binSlot"></div>
   <div id="grid"></div>
   <div id="personalBox"></div>
 </main>
@@ -559,7 +561,8 @@ function render() {
   const areaHtml = `<div class="sec" id="sec-area"><h2>🧭 Your area <span>Flood warnings, street crime and reported potholes near ${esc(postcode)}.</span></h2><div class="areacard" id="areaCard">Checking your area…</div></div>`;
   const linksHtml = `<div class="sec" id="sec-official"><h2>🔗 Official sources <span>Not on this page yet? Here's where to go for ${esc(postcode)}.</span></h2>
     <div class="offgrid">${official.map(([e, t, d, u]) => `<a class="offcard" href="${u}" target="_blank" rel="noopener"><span class="offe">${e}</span><b>${t}</b><small>${d}</small><span class="offgo">Open ↗</span></a>`).join("")}</div></div>`;
-  $("grid").innerHTML = (activeSection === "near" ? binHtml : "") + SECTIONS.map(([t, title, sub]) => {
+  $("binSlot").innerHTML = binHtml;
+  $("grid").innerHTML = SECTIONS.map(([t, title, sub]) => {
     if (t !== activeSection) return "";
     const items = list.filter(m => m.type === t);
     if (!items.length) return "";
