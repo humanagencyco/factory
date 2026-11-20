@@ -230,7 +230,8 @@ async function renderForYou() {
     });
     const d = await r.json(); hits = (d.hits || []).filter(h => !have.has((h.title || "").toLowerCase())).slice(0, 3);
   } catch (e) {}
-  if (!hits.length) { box.innerHTML = ""; return; }
+  // She may have switched shelves while this was loading; only show it on the Read shelf
+  if (!hits.length || state.shelf !== "read") { box.innerHTML = ""; return; }
   window._fy = hits;
   const favs = liked.slice(0, 6).map(b => `<button class="chip ${b.id === top.id ? "on" : ""}" data-fb="${esc(b.id)}" style="font-size:15px">${esc(b.title)}</button>`).join("");
   box.innerHTML = `<div class="lab" style="margin:0 0 8px">✨ Because you loved <b>${esc(top.title)}</b></div>
