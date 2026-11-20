@@ -296,10 +296,31 @@ function setPostcode(pc, fromUser = false) {
   const ob = document.getElementById("onboard"); if (ob) ob.hidden = true;
   binReset();
 }
+// Remember the chosen address on this device only (no account needed)
+const BIN_KEY = "fw_bin_place";
+function savedBin() { try { return JSON.parse(localStorage.getItem(BIN_KEY) || "null"); } catch (e) { return null; } }
+function saveBin(v) { try { localStorage.setItem(BIN_KEY, JSON.stringify(v)); } catch (e) {} }
+function forgetBin() { try { localStorage.removeItem(BIN_KEY); } catch (e) {} binFind(); }
+function binSaved() {
+  const s = savedBin();
+  if (!s || s.postcode !== postcode) return binFind();
+  const box = $("binCard"); if (!box) return;
+  box.innerHTML = `<p class="bin-note">Your address: <b>${esc(s.label)}</b></p><div id="binDates"></div>
+    <p class="bin-note"><a href="#" onclick="forgetBin();return false;">Change or forget my address</a></p>`;
+  binDates(s.uprn, s.label);
+}
+
 // Clear any old bin result (address list, dates) so it never shows for a different postcode
 function binReset() {
-  const box = document.getElementById("binCard");
-  if (box) box.innerHTML = `<button class="bin-btn" onclick="binFind()">Find my bin day</button>`;
+  const box = document.getElementById("binCard"); if (!box) return;
+  const s = savedBin();
+  if (s && s.postcode === postcode) {
+    box.innerHTML = `<p class="bin-note">Your address: <b>${esc(s.label)}</b></p>
+      <button class="bin-btn" onclick="binSaved()">Show my bin day</button>
+      <p class="bin-note"><a href="#" onclick="forgetBin();return false;">Change or forget my address</a></p>`;
+  } else {
+    box.innerHTML = `<button class="bin-btn" onclick="binFind()">Find my bin day</button>`;
+  }
 }
 // UK postcode format check; returns the tidied postcode, or "" if it isn't one
 function normPC(raw) {
@@ -640,7 +661,11 @@ async function binFind() {
       box.innerHTML = `<div class="bin-pick"><p class="bin-note">Your council is <b>${esc(d.council)}</b>. Which address is yours?</p>
         <select id="binAddr" class="bin-select" aria-label="Your address"><option value="">Choose your address…</option>${d.addresses.map(a => `<option value="${esc(a.id)}">${esc(a.label)}</option>`).join("")}</select>
         <div id="binDates"></div></div>`;
-      $("binAddr").onchange = e => binDates(e.target.value);
+      $("binAddr").onchange = e => {
+        const label = e.target.selectedOptions[0] ? e.target.selectedOptions[0].text : "";
+        if (e.target.value) saveBin({ postcode: postcode, uprn: e.target.value, label: label });
+        binDates(e.target.value, label);
+      };
     } else {
       box.innerHTML = `<p class="bin-note"><b>${esc(d.council || "Your council")}</b> is your council for ${esc(postcode)}.</p>
         <p class="bin-note">We can't show collection days for this council here yet. Its own bin checker is the official source.</p>
@@ -650,7 +675,7 @@ async function binFind() {
     box.innerHTML = `<p class="bin-note">Bin days are not available right now.</p>`;
   }
 }
-async function binDates(uprn) {
+async function binDates(uprn, label) {
   const out = $("binDates"); if (!out) return;
   if (!uprn) { out.innerHTML = ""; return; }
   out.innerHTML = `<p class="bin-note">Checking the council…</p>`;
