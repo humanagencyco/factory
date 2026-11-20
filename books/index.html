@@ -69,6 +69,7 @@ dialog::backdrop{background:rgba(36,24,74,.4);backdrop-filter:blur(3px)}
 .hit div{flex:1;font-size:17px;line-height:1.2}
 .hit small{color:var(--muted);font-size:14px}
 .hit button{border:0;cursor:pointer;font:inherit;font-weight:800;color:#fff;padding:9px 16px;border-radius:999px;background:var(--mint)}
+.libby{font-weight:800;color:#fff;background:var(--sky);text-decoration:none;padding:11px 18px;border-radius:999px}
 .foot2{margin:30px 0 0;text-align:center}
 .foot2 button{background:none;border:0;font:inherit;font-size:15px;color:var(--muted);cursor:pointer;text-decoration:underline;padding:6px}
 @media (max-width:520px){h1{font-size:32px}.brand .logo{width:46px;height:46px;font-size:24px}.grid{grid-template-columns:repeat(2,1fr);gap:14px}}
@@ -284,7 +285,8 @@ function openDetail(id) {
     ${b.shelf === "read" ? `<div class="lab">Finished on</div><input class="search" type="date" id="fin" value="${esc(b.finished)}" style="max-width:240px">` : ""}
     <div class="lab">What did you think?</div>
     <textarea id="notes" placeholder="Write it here…">${esc(b.notes)}</textarea>
-    <div class="foot"><button class="link" id="del">Remove this book</button><button class="close" id="done">Done</button></div>`;
+    <div class="foot"><a class="libby" href="https://libbyapp.com/search/query-${encodeURIComponent(b.title)}" target="_blank" rel="noopener">📱 Find in Libby ↗</a><button class="link" id="del">Remove this book</button></div>
+    <div class="foot" style="margin-top:12px"><span></span><button class="close" id="done">Done</button></div>`;
   const change = fn => { fn(b); save(); openDetail(id); render(); };
   $("detailBody").querySelectorAll("[data-to]").forEach(btn => btn.onclick = () => change(x => { x.shelf = btn.dataset.to; if (x.shelf === "read" && !x.finished) x.finished = today(); }));
   $("detailBody").querySelectorAll("[data-rate]").forEach(btn => btn.onclick = () => change(x => { x.rating = +btn.dataset.rate; if (x.shelf !== "read") { x.shelf = "read"; x.finished = x.finished || today(); } }));
