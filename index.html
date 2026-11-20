@@ -292,6 +292,12 @@ function setPostcode(pc, fromUser = false) {
   if (typeof loadArea === "function") loadArea();
   prefetchAll(postcode);
   const ob = document.getElementById("onboard"); if (ob) ob.hidden = true;
+  binReset();
+}
+// Clear any old bin result (address list, dates) so it never shows for a different postcode
+function binReset() {
+  const box = document.getElementById("binCard");
+  if (box) box.innerHTML = `<button class="bin-btn" onclick="binFind()">Find my bin day</button>`;
 }
 // UK postcode format check; returns the tidied postcode, or "" if it isn't one
 function normPC(raw) {
@@ -623,7 +629,8 @@ const JTTL = 10 * 60 * 1000;
 // Bin day: any postcode. Miru finds the council, then either lists addresses or links to the council.
 async function binFind() {
   const box = $("binCard"); if (!box) return;
-  box.innerHTML = `<p class="bin-note">Looking up your council…</p>`;
+  binReset();
+  box.innerHTML = `<p class="bin-note">Looking up ${esc(postcode)}…</p>`;
   try {
     const d = await getJSON(`${API}/api/bins/lookup?postcode=${encodeURIComponent(postcode)}`);
     if (d.status === "addresses") {
