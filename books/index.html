@@ -72,6 +72,13 @@ dialog::backdrop{background:rgba(36,24,74,.4);backdrop-filter:blur(3px)}
 .readers{display:flex;gap:10px;flex-wrap:wrap;margin:0 0 12px}
 .rpill{border:2px solid var(--line);background:#fff;color:var(--ink);font:inherit;font-weight:800;font-size:18px;padding:9px 16px;border-radius:999px;cursor:pointer}
 .rpill.on{background:var(--pink);border-color:var(--pink);color:#fff}
+.goalbox{background:#fff;border-radius:22px;padding:14px 18px;box-shadow:0 6px 0 rgba(36,24,74,.08)}
+.bar{height:14px;border-radius:999px;background:var(--line);overflow:hidden;margin:8px 0}
+.bar>span{display:block;height:100%;background:linear-gradient(90deg,var(--mint),var(--sky));border-radius:999px}
+.badges{display:flex;gap:10px;flex-wrap:wrap;margin-top:10px}
+.badge{display:flex;flex-direction:column;align-items:center;width:84px;padding:8px 4px;border-radius:18px;background:var(--g3);font-size:13px;font-weight:800;text-align:center}
+.badge .e{font-size:28px;line-height:1.1}
+.badge.locked{opacity:.35;filter:grayscale(1)}
 .libby{font-weight:800;color:#fff;background:var(--sky);text-decoration:none;padding:11px 18px;border-radius:999px}
 .foot2{margin:30px 0 0;text-align:center}
 .foot2 button{background:none;border:0;font:inherit;font-size:15px;color:var(--muted);cursor:pointer;text-decoration:underline;padding:6px}
@@ -86,6 +93,7 @@ dialog::backdrop{background:rgba(36,24,74,.4);backdrop-filter:blur(3px)}
   </header>
 
   <div class="readers" id="readers" aria-label="Who's reading"></div>
+  <div id="goal" style="margin:0 0 16px"></div>
   <div class="pills" role="group" aria-label="Shelves">
     <button class="pill" data-s="reading" aria-pressed="false">📖 Reading <span class="n" id="n-reading"></span></button>
     <button class="pill" data-s="read" aria-pressed="false">✅ Read <span class="n" id="n-read"></span></button>
@@ -271,6 +279,42 @@ async function renderForYou() {
     addBook({ title: h.title, author: h.author || "", year: h.year || "", pages: h.pages || "", isbn: h.isbn || "",
       genres: h.subjects || [], publisher: "", cover: h.cover || "", workKey: h.objectID || "" });
   });
+}
+
+// Yearly reading goal (kept on this device) and milestone badges (worked out from her books)
+function goalKey() { const r = currentReader(); return "hu_goal_" + (r ? r.id : "none"); }
+function renderGoal() {
+  const box = $("goal"); if (!box) return;
+  const cur = currentReader(); if (!cur) { box.innerHTML = ""; return; }
+  const year = new Date().getFullYear().toString();
+  const read = state.books.filter(b => b.shelf === "read");
+  const thisYear = read.filter(b => (b.finished || "").startsWith(year)).length;
+  let goal = 0; try { goal = +(localStorage.getItem(goalKey()) || 0); } catch (e) {}
+  // Badges
+  const byAuthor = {}; read.forEach(b => { const a = (b.author || "").toLowerCase(); if (a) byAuthor[a] = (byAuthor[a] || 0) + 1; });
+  const byMonth = {}; read.forEach(b => { const m = (b.finished || "").slice(0, 7); if (m) byMonth[m] = (byMonth[m] || 0) + 1; });
+  const badges = [
+    ["📖", "First book", read.length >= 1],
+    ["🔟", "Five books", read.length >= 5],
+    ["🏆", "Ten books", read.length >= 10],
+    ["⭐", "Top rating", state.books.some(b => b.rating === 5)],
+    ["💖", "Favourite author", Object.values(byAuthor).some(n => n >= 2)],
+    ["🗓️", "Busy month", Object.values(byMonth).some(n => n >= 3)],
+  ];
+  const pct = goal ? Math.min(100, Math.round(thisYear / goal * 100)) : 0;
+  box.innerHTML = `<div class="goalbox">
+    ${goal
+      ? `<div style="font-weight:800;font-size:18px">📚 ${thisYear} of ${goal} books in ${year}</div><div class="bar"><span style="width:${pct}%"></span></div>`
+      : `<div style="font-weight:800;font-size:18px">📚 Set a reading goal for ${year}</div>`}
+    <button class="link" id="setGoal" style="padding:4px 0;font-size:15px">${goal ? "Change goal" : "Set goal"}</button>
+    <div class="badges">${badges.map(([e, n, got]) => `<div class="badge ${got ? "" : "locked"}"><span class="e">${e}</span>${esc(n)}</div>`).join("")}</div>
+  </div>`;
+  $("setGoal").onclick = () => {
+    const n = parseInt(prompt("How many books this year?", goal || "20"), 10);
+    if (!n || n < 1 || n > 500) return;
+    try { localStorage.setItem(goalKey(), String(n)); } catch (e) {}
+    renderGoal();
+  };
 }
 
 // My reading card: a simple picture of what she's read, to show someone
@@ -534,6 +578,7 @@ function render() {
     : `<div class="empty" style="grid-column:1/-1">${state.books.some(b => b.shelf === state.shelf) ? "Nothing matches your search." : "No books here yet. Tap the big + Add button to add your first one! 🎉"}</div>`;
   $("list").querySelectorAll("[data-open]").forEach(btn => btn.onclick = () => openDetail(btn.dataset.open));
   renderForYou();
+  renderGoal();
 }
 
 function openDetail(id) {
