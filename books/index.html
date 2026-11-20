@@ -99,7 +99,11 @@ dialog::backdrop{background:rgba(36,24,74,.4);backdrop-filter:blur(3px)}
     <h2>Find a new book</h2>
     <p class="by">Type the name of the book, or the number under the barcode.</p>
     <input class="search" id="q" type="search" placeholder="Book name or number" aria-label="Book name or number">
-    <div class="foot" style="margin-top:0"><span></span><button class="close" id="go">Find</button></div>
+    <div class="foot" style="margin-top:0">
+      <label class="link" style="cursor:pointer">📷 Scan the barcode<input type="file" id="snap" accept="image/*" capture="environment" hidden></label>
+      <button class="close" id="go">Find</button>
+    </div>
+    <p class="by" id="scanMsg" style="margin:6px 0 0"></p>
     <div class="hits" id="hits" aria-live="polite"></div>
     <div class="foot"><span></span><button class="link" id="closeAdd">Close</button></div>
   </div>
@@ -273,6 +277,19 @@ $("go").onclick = async () => {
   try { showHits(await findBooks($("q").value)); } catch (e) { $("hits").innerHTML = "<p>Search isn't working right now. Try again in a moment.</p>"; }
 };
 $("q").addEventListener("keydown", e => { if (e.key === "Enter") { e.preventDefault(); $("go").click(); } });
+// Scan: take a photo of the barcode; the server reads the number, then we search for it
+const SCAN_API = "https://miru.humanagency.co/api/scan-barcode";
+$("snap").onchange = async e => {
+  const f = e.target.files[0]; if (!f) return;
+  $("scanMsg").textContent = "Reading the barcode…";
+  try {
+    const body = new FormData(); body.append("image", f);
+    const d = await (await fetch(SCAN_API, { method: "POST", body })).json();
+    if (d.barcode) { $("scanMsg").textContent = "Found " + d.barcode; $("q").value = d.barcode; $("go").click(); }
+    else { $("scanMsg").textContent = "Couldn't read that barcode. Try a closer, straighter photo, or type the number."; }
+  } catch (err) { $("scanMsg").textContent = "The scanner isn't available right now. Type the number instead."; }
+  e.target.value = "";
+};
 $("find").oninput = e => { state.q = e.target.value; render(); };
 $("export").onclick = () => {
   const blob = new Blob([JSON.stringify(state.books, null, 2)], { type: "application/json" });
