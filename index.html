@@ -632,8 +632,9 @@ async function binFind() {
         <div id="binDates"></div></div>`;
       $("binAddr").onchange = e => binDates(e.target.value);
     } else {
-      box.innerHTML = `<p class="bin-note">${esc(d.message || "Check your council's bin checker.")}</p>
-        <a class="offgo" href="${esc(d.council_page)}" target="_blank" rel="noopener">Open ${esc(d.council || "your council")}'s bin checker ↗</a>`;
+      box.innerHTML = `<p class="bin-note"><b>${esc(d.council || "Your council")}</b> is your council for ${esc(postcode)}.</p>
+        <p class="bin-note">We can't show collection days for this council here yet. Its own bin checker is the official source.</p>
+        <a class="bin-btn" href="${esc(d.council_page)}" target="_blank" rel="noopener">Check bin days on ${esc(d.council || "the council")}'s site ↗</a>`;
     }
   } catch (e) {
     box.innerHTML = `<p class="bin-note">Bin days are not available right now.</p>`;
@@ -647,8 +648,8 @@ async function binDates(uprn) {
     const r = await fetch(`${API}/api/bins/dates?postcode=${encodeURIComponent(postcode)}&uprn=${encodeURIComponent(uprn)}`);
     const d = await r.json().catch(() => ({}));
     if (!r.ok) {
-      out.innerHTML = `<p class="bin-note">${esc(d.error || "Dates are not available for this council yet.")}</p>` +
-        (d.council_page ? `<a class="offgo" href="${esc(d.council_page)}" target="_blank" rel="noopener">Check on the council's site ↗</a>` : "");
+      out.innerHTML = `<p class="bin-note">Collection days for this council aren't available here yet. Please check the council's site for your dates.</p>` +
+        (d.council_page ? `<a class="bin-btn" href="${esc(d.council_page)}" target="_blank" rel="noopener">Check on the council's site ↗</a>` : "");
       return;
     }
     const items = (d.collections || []).map(c => `<li><b>${esc(c.bin)}</b> · ${esc(c.date)}</li>`).join("");
