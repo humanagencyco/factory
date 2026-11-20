@@ -182,9 +182,15 @@ async function algoliaSearch(q, hits) {
 }
 async function findBooks(q) {
   q = q.trim(); if (q.length < 2) return [];
-  try { const a = await algoliaSearch(q); if (a && a.length) return a; } catch (e) {}
-  try { const c = await catalogueSearch(q); if (c && c.length) return c; } catch (e) {}
-  return openLibrarySearch(q);
+  let found = [];
+  try { found = (await algoliaSearch(q)) || []; } catch (e) {}
+  if (found.length >= 3) return found;
+  // Only a few matches: also ask Open Library, and add anything new
+  let more = [];
+  try { more = await openLibrarySearch(q); } catch (e) {}
+  const seen = new Set(found.map(b => (b.title + "|" + b.author).toLowerCase()));
+  for (const b of more) { const k = (b.title + "|" + b.author).toLowerCase(); if (!seen.has(k)) { seen.add(k); found.push(b); } }
+  return found;
 }
 async function openLibrarySearch(q) {
   q = q.trim(); if (q.length < 2) return [];
