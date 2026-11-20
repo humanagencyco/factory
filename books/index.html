@@ -220,45 +220,54 @@ function showWelcome() {
     } catch (e) { $("wgo").disabled = false; alert("Couldn't start. Check the connection and try again."); }
   };
 }
-// "Because you loved…": more books by an author she rated highly, skipping books she already has
+// "Because you loved…": one row for each of her two top favourites (different authors), three books each
 async function renderForYou() {
   const box = $("forYou"); if (!box) return;
   const liked = state.books.filter(b => b.shelf === "read" && (b.rating || 0) >= 4)
     .sort((a, b) => (b.rating - a.rating) || ((b.finished || "") > (a.finished || "") ? 1 : -1));
-  if (!liked.length || state.shelf !== "read") { box.innerHTML = ""; return; }   // only on the Read shelf
-  // She can pick which favourite the suggestions are based on; the top-rated one is the default
-  const top = liked.find(b => b.id === state.fyBase) || liked[0];
+  if (!liked.length || state.shelf !== "read") { box.innerHTML = ""; return; }
+  // Up to two favourites, each by a different author
+  const picks = []; const authors = new Set();
+  for (const b of liked) {
+    const a = (b.author || b.title).toLowerCase();
+    if (authors.has(a)) continue;
+    authors.add(a); picks.push(b);
+    if (picks.length === 2) break;
+  }
   const have = new Set(state.books.map(b => (b.title || "").toLowerCase()));
-  let hits = [];
-  try {
-    const r = await fetch(`https://${ALGOLIA_APP}-dsn.algolia.net/1/indexes/books/query`, {
-      method: "POST",
-      headers: { "X-Algolia-Application-Id": ALGOLIA_APP, "X-Algolia-API-Key": ALGOLIA_SEARCH_KEY, "Content-Type": "application/json" },
-      body: JSON.stringify({ params: "query=" + encodeURIComponent(top.author || top.title) + "&restrictSearchableAttributes=author&hitsPerPage=100" }),
-    });
-    const d = await r.json();
-    // Many editions share one title: show each title once, and skip anything she already has
-    const seenTitles = new Set();
-    hits = (d.hits || []).filter(h => {
-      const t = (h.title || "").toLowerCase();
-      if (!t || have.has(t) || seenTitles.has(t)) return false;
-      seenTitles.add(t); return true;
-    }).slice(0, 3);
-  } catch (e) {}
+  const rows = [];
+  for (const fav of picks) {
+    let hits = [];
+    try {
+      const r = await fetch(`https://${ALGOLIA_APP}-dsn.algolia.net/1/indexes/books/query`, {
+        method: "POST",
+        headers: { "X-Algolia-Application-Id": ALGOLIA_APP, "X-Algolia-API-Key": ALGOLIA_SEARCH_KEY, "Content-Type": "application/json" },
+        body: JSON.stringify({ params: "query=" + encodeURIComponent(fav.author || fav.title) + "&restrictSearchableAttributes=author&hitsPerPage=100" }),
+      });
+      const d = await r.json();
+      // Many editions share one title: show each title once, and skip anything she already has
+      const seenTitles = new Set();
+      hits = (d.hits || []).filter(h => {
+        const t = (h.title || "").toLowerCase();
+        if (!t || have.has(t) || seenTitles.has(t)) return false;
+        seenTitles.add(t); return true;
+      }).slice(0, 3);
+    } catch (e) {}
+    if (hits.length) rows.push({ fav, hits });
+  }
   // She may have switched shelves while this was loading; only show it on the Read shelf
-  if (!hits.length || state.shelf !== "read") { box.innerHTML = ""; return; }
-  window._fy = hits;
-  const favs = liked.slice(0, 6).map(b => `<button class="chip ${b.id === top.id ? "on" : ""}" data-fb="${esc(b.id)}" style="font-size:15px">${esc(b.title)}</button>`).join("");
-  box.innerHTML = `<div class="lab" style="margin:0 0 8px">✨ Because you loved <b>${esc(top.title)}</b></div>
-    <div class="chips" style="margin-bottom:12px">${favs}</div>
+  if (!rows.length || state.shelf !== "read") { box.innerHTML = ""; return; }
+  window._fy = rows.map(r => r.hits);
+  box.innerHTML = rows.map((row, ri) => `
+    <div class="lab" style="margin:0 0 8px">✨ Because you loved <b>${esc(row.fav.title)}</b></div>
     <div class="grid" style="grid-template-columns:repeat(auto-fill,minmax(130px,1fr));margin-bottom:18px">
-      ${hits.map((h, i) => `<div class="book" style="cursor:default"><div class="cover">${h.cover ? `<img alt="" src="${esc(h.cover)}">` : `<div class="ph">📕</div>`}</div>
+      ${row.hits.map((h, i) => `<div class="book" style="cursor:default"><div class="cover">${h.cover ? `<img alt="" src="${esc(h.cover)}">` : `<div class="ph">📕</div>`}</div>
         <div class="bname" style="font-size:15px">${esc(h.title)}</div>
-        <button class="chip" data-fy="${i}" style="font-size:14px;padding:6px 10px">+ Add</button></div>`).join("")}
-    </div>`;
-  box.querySelectorAll("[data-fb]").forEach(btn => btn.onclick = () => { state.fyBase = btn.dataset.fb; renderForYou(); });
+        <button class="chip" data-fy="${ri}-${i}" style="font-size:14px;padding:6px 10px">+ Add</button></div>`).join("")}
+    </div>`).join("");
   box.querySelectorAll("[data-fy]").forEach(btn => btn.onclick = () => {
-    const h = window._fy[+btn.dataset.fy];
+    const [ri, i] = btn.dataset.fy.split("-").map(Number);
+    const h = window._fy[ri][i];
     addBook({ title: h.title, author: h.author || "", year: h.year || "", pages: h.pages || "", isbn: h.isbn || "",
       genres: h.subjects || [], publisher: "", cover: h.cover || "", workKey: h.objectID || "" });
   });
