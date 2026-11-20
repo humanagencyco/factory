@@ -4,75 +4,93 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>My Books</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;700;800&display=swap">
 <style>
-:root{--ink:#2b2250;--paper:#fff7ec;--pink:#ff6fa5;--sun:#ffc23d;--mint:#35d6a8;--sky:#55b4ff;--lilac:#b592ff}
+:root{
+  --ink:#24184a; --muted:#7a6fa0; --card:#ffffff; --line:#eee8fb;
+  --g1:#ffe9f3; --g2:#e9f4ff; --g3:#f3ecff;
+  --pink:#ff5e9c; --sky:#4aa8ff; --mint:#2fd0a0; --lilac:#9b7bff; --sun:#ffbe2e;
+}
 *{box-sizing:border-box}
-body{margin:0;background:var(--paper);color:var(--ink);font:20px/1.4 "Comic Sans MS","Chalkboard SE","Trebuchet MS",system-ui,sans-serif}
-.wrap{max-width:760px;margin:0 auto;padding:18px}
-.top{display:flex;align-items:center;justify-content:space-between;gap:12px}
-h1{font-size:44px;margin:4px 0 14px;letter-spacing:.5px}
-button{font:inherit;font-weight:700;border:0;border-radius:24px;padding:14px 20px;cursor:pointer;color:var(--ink);background:#fff;box-shadow:0 5px 0 rgba(43,34,80,.25)}
-button:active{transform:translateY(3px);box-shadow:0 2px 0 rgba(43,34,80,.25)}
-button:focus-visible,input:focus-visible{outline:4px solid var(--sky);outline-offset:3px}
-.add{background:var(--pink);color:#fff;font-size:26px;border-radius:50px;padding:14px 26px}
-.shelves{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin:6px 0 18px}
-.tile{border-radius:26px;padding:18px 12px;text-align:center;font-size:22px;font-weight:700;color:#fff;box-shadow:0 6px 0 rgba(43,34,80,.22)}
-.tile .e{display:block;font-size:44px;line-height:1.1}
-.tile small{display:block;font-size:16px;opacity:.95;font-weight:700}
-.t-reading{background:var(--sky)}.t-read{background:var(--mint)}.t-tb{background:var(--lilac)}.t-wish{background:var(--sun);color:var(--ink)}
-.tile[aria-pressed="true"]{outline:5px solid var(--ink);outline-offset:3px}
-.search{width:100%;font:inherit;font-size:20px;padding:14px 18px;border:4px solid #e7dcf6;border-radius:24px;background:#fff;margin-bottom:16px}
-.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:16px}
-.card{background:#fff;border-radius:22px;padding:12px;text-align:center;display:flex;flex-direction:column;gap:6px;box-shadow:0 6px 0 rgba(43,34,80,.12);cursor:pointer}
-.card img,.card .noc{width:100%;aspect-ratio:2/3;object-fit:cover;border-radius:14px;background:#f1e7ff}
-.card b{font-size:18px;line-height:1.2}
-.card small{color:#6d6490;font-size:15px}
-.stars{color:#d9d0ea;font-size:22px;letter-spacing:2px}
+html,body{min-height:100%}
+body{margin:0;color:var(--ink);font:500 18px/1.45 "Baloo 2",system-ui,-apple-system,"Segoe UI",sans-serif;
+  background:radial-gradient(900px 500px at 10% -10%,var(--g1),transparent 60%),radial-gradient(800px 500px at 110% 10%,var(--g2),transparent 60%),linear-gradient(180deg,var(--g3),#fbfaff 60%)}
+.wrap{max-width:960px;margin:0 auto;padding:22px 18px 40px}
+header{display:flex;align-items:center;justify-content:space-between;gap:14px;margin-bottom:18px}
+.brand{display:flex;align-items:center;gap:12px}
+.brand .logo{width:54px;height:54px;border-radius:18px;display:grid;place-items:center;font-size:30px;background:linear-gradient(135deg,var(--pink),var(--lilac));box-shadow:0 10px 24px rgba(155,123,255,.35)}
+h1{margin:0;font-size:40px;font-weight:800;letter-spacing:-.5px}
+.add{border:0;cursor:pointer;font:inherit;font-weight:800;font-size:20px;color:#fff;padding:12px 22px;border-radius:999px;background:linear-gradient(135deg,var(--pink),var(--lilac));box-shadow:0 10px 22px rgba(255,94,156,.35)}
+.add:active{transform:translateY(2px)}
+button:focus-visible,input:focus-visible,label:focus-within{outline:3px solid var(--sky);outline-offset:3px}
+.pills{display:flex;gap:10px;flex-wrap:wrap;margin:6px 0 16px}
+.pill{border:2px solid var(--line);background:#fff;color:var(--ink);font:inherit;font-weight:800;font-size:18px;padding:10px 16px;border-radius:999px;cursor:pointer;display:flex;align-items:center;gap:8px}
+.pill .n{background:var(--line);border-radius:999px;padding:1px 9px;font-size:15px}
+.pill[aria-pressed="true"]{background:var(--ink);color:#fff;border-color:var(--ink)}
+.pill[aria-pressed="true"] .n{background:rgba(255,255,255,.2)}
+.search{width:100%;font:inherit;font-size:18px;padding:13px 18px;border-radius:18px;border:2px solid var(--line);background:#fff;color:var(--ink);margin-bottom:18px}
+.search::placeholder{color:#a79fc4}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:18px}
+.book{border:0;background:none;padding:0;cursor:pointer;text-align:left;font:inherit;color:inherit;display:flex;flex-direction:column;gap:8px}
+.cover{position:relative;aspect-ratio:2/3;border-radius:16px;overflow:hidden;background:linear-gradient(160deg,#ffd6e8,#cfe6ff);box-shadow:0 12px 26px rgba(36,24,74,.16);transition:transform .15s}
+.book:hover .cover{transform:translateY(-3px)}
+.cover img{width:100%;height:100%;object-fit:cover;display:block}
+.cover .ph{position:absolute;inset:0;display:grid;place-items:center;font-size:44px}
+.cover .stripe{position:absolute;left:0;right:0;bottom:0;padding:6px 8px;background:linear-gradient(transparent,rgba(36,24,74,.75));color:#fff;font-size:14px;font-weight:700;text-align:left}
+.stars{font-size:18px;color:#d7cfee;letter-spacing:1px}
 .stars .on{color:var(--sun)}
-.empty{grid-column:1/-1;text-align:center;padding:30px;border-radius:26px;background:#fff;font-size:22px}
-dialog{border:0;border-radius:28px;padding:0;max-width:580px;width:calc(100% - 24px);background:#fff;color:var(--ink);box-shadow:0 20px 50px rgba(43,34,80,.3)}
-dialog::backdrop{background:rgba(43,34,80,.45)}
-.sheet{padding:22px}
-.sheet h2{margin:0 0 4px;font-size:28px}
-.sheet .by{color:#6d6490;margin:0 0 12px;font-size:17px}
-.sheet .row{display:flex;gap:10px;flex-wrap:wrap;margin:12px 0}
-.sheet .row button.on{background:var(--mint)}
-.sheet .row button.star{background:none;box-shadow:none;font-size:34px;padding:0 4px;color:#d9d0ea}
-.sheet .row button.star.on{color:var(--sun)}
-.sheet textarea{width:100%;min-height:90px;font:inherit;font-size:20px;border:4px solid #e7dcf6;border-radius:20px;padding:10px}
-.sheet p.sum{font-size:17px;color:#4a4270}
-.sheet .x{background:none;box-shadow:none;text-decoration:underline;color:#6d6490;font-size:17px}
-.hits{display:grid;gap:10px;margin:12px 0}
-.hit{display:flex;gap:12px;align-items:center;border-radius:20px;padding:10px;background:#f6f1ff}
-.hit img{width:52px;height:76px;object-fit:cover;border-radius:8px}
-.hit div{flex:1;font-size:18px}
-.hit small{color:#6d6490}
-.hit button{background:var(--mint)}
-.foot{margin:26px 0 40px;text-align:center}
-.foot button{font-size:16px;background:none;box-shadow:none;color:#6d6490;text-decoration:underline;padding:8px}
-@media (max-width:460px){h1{font-size:36px}.shelves{gap:10px}.tile .e{font-size:36px}}
+.bname{font-weight:800;font-size:17px;line-height:1.15;color:var(--ink)}
+.bmeta{font-size:14px;color:var(--muted);margin-top:-4px}
+.empty{grid-column:1/-1;text-align:center;padding:40px 20px;border-radius:24px;background:#fff;border:2px dashed var(--line);color:var(--muted);font-size:20px}
+dialog{border:0;border-radius:28px;padding:0;width:min(600px,calc(100% - 24px));background:#fff;color:var(--ink);box-shadow:0 30px 60px rgba(36,24,74,.3)}
+dialog::backdrop{background:rgba(36,24,74,.4);backdrop-filter:blur(3px)}
+.sheet{padding:24px}
+.sheet h2{margin:0 0 2px;font-size:30px;font-weight:800}
+.sheet .by{color:var(--muted);margin:0 0 14px;font-size:17px}
+.sheet .lab{font-weight:800;font-size:16px;color:var(--muted);margin:14px 0 6px}
+.chips{display:flex;gap:8px;flex-wrap:wrap}
+.chip{border:2px solid var(--line);background:#fff;font:inherit;font-weight:800;font-size:16px;padding:8px 14px;border-radius:999px;cursor:pointer;color:var(--ink)}
+.chip.on{background:var(--mint);border-color:var(--mint);color:#fff}
+.starpick{display:flex;gap:4px}
+.starpick button{border:0;background:none;font-size:38px;cursor:pointer;color:#d7cfee;padding:0 2px;line-height:1}
+.starpick button.on{color:var(--sun)}
+.sheet textarea{width:100%;min-height:90px;font:inherit;font-size:18px;border:2px solid var(--line);border-radius:18px;padding:10px 14px;color:var(--ink)}
+.sheet .sum{font-size:16px;color:#4b4370;margin:10px 0 0}
+.sheet .foot{display:flex;justify-content:space-between;align-items:center;margin-top:18px}
+.link{background:none;border:0;font:inherit;font-weight:800;color:var(--muted);cursor:pointer;padding:6px 0}
+.close{border:0;background:var(--ink);color:#fff;font:inherit;font-weight:800;font-size:18px;padding:11px 20px;border-radius:999px;cursor:pointer}
+.hits{display:grid;gap:10px;margin:14px 0}
+.hit{display:flex;gap:12px;align-items:center;border-radius:18px;padding:10px;background:var(--g3)}
+.hit img{width:50px;height:74px;object-fit:cover;border-radius:10px;box-shadow:0 4px 10px rgba(36,24,74,.2)}
+.hit div{flex:1;font-size:17px;line-height:1.2}
+.hit small{color:var(--muted);font-size:14px}
+.hit button{border:0;cursor:pointer;font:inherit;font-weight:800;color:#fff;padding:9px 16px;border-radius:999px;background:var(--mint)}
+.foot2{margin:30px 0 0;text-align:center}
+.foot2 button{background:none;border:0;font:inherit;font-size:15px;color:var(--muted);cursor:pointer;text-decoration:underline;padding:6px}
+@media (max-width:520px){h1{font-size:32px}.brand .logo{width:46px;height:46px;font-size:24px}.grid{grid-template-columns:repeat(2,1fr);gap:14px}}
 </style>
 </head>
 <body>
 <main class="wrap">
-  <div class="top">
-    <h1>📚 My Books</h1>
-    <button class="add" id="addBtn" aria-label="Add a book">＋</button>
+  <header>
+    <div class="brand"><div class="logo" aria-hidden="true">📚</div><h1>My Books</h1></div>
+    <button class="add" id="addBtn" aria-label="Add a book">+ Add</button>
+  </header>
+
+  <div class="pills" role="group" aria-label="Shelves">
+    <button class="pill" data-s="reading" aria-pressed="false">📖 Reading <span class="n" id="n-reading"></span></button>
+    <button class="pill" data-s="read" aria-pressed="false">✅ Read <span class="n" id="n-read"></span></button>
+    <button class="pill" data-s="tb" aria-pressed="false">🏫 To borrow <span class="n" id="n-tb"></span></button>
+    <button class="pill" data-s="wish" aria-pressed="false">⭐ Wish list <span class="n" id="n-wish"></span></button>
   </div>
 
-  <div class="shelves" role="group" aria-label="Shelves">
-    <button class="tile t-reading" data-s="reading" aria-pressed="false"><span class="e">📖</span>Reading<small id="n-reading"></small></button>
-    <button class="tile t-read" data-s="read" aria-pressed="false"><span class="e">✅</span>Read<small id="n-read"></small></button>
-    <button class="tile t-tb" data-s="tb" aria-pressed="false"><span class="e">🏫</span>To borrow<small id="n-tb"></small></button>
-    <button class="tile t-wish" data-s="wish" aria-pressed="false"><span class="e">⭐</span>Wish list<small id="n-wish"></small></button>
-  </div>
-
-  <input class="search" id="find" type="search" placeholder="🔍 Find a book" aria-label="Find a book">
+  <input class="search" id="find" type="search" placeholder="Search my books" aria-label="Search my books">
   <div class="grid" id="list" aria-live="polite"></div>
 
-  <div class="foot">
+  <div class="foot2">
     <button id="export">Save a copy</button>
-    <label><button type="button" onclick="document.getElementById('import').click()">Get my copy back</button><input type="file" id="import" accept="application/json" hidden></label>
+    <label><button type="button" onclick="document.getElementById('import').click()">Restore a copy</button><input type="file" id="import" accept="application/json" hidden></label>
   </div>
 </main>
 
@@ -80,10 +98,10 @@ dialog::backdrop{background:rgba(43,34,80,.45)}
   <div class="sheet">
     <h2>Find a new book</h2>
     <p class="by">Type the name of the book, or the number under the barcode.</p>
-    <input class="search" id="q" type="search" placeholder="Type here…" aria-label="Book name or number">
-    <div class="row"><button class="add" id="go" style="font-size:22px">Find it</button></div>
+    <input class="search" id="q" type="search" placeholder="Book name or number" aria-label="Book name or number">
+    <div class="foot" style="margin-top:0"><span></span><button class="close" id="go">Find</button></div>
     <div class="hits" id="hits" aria-live="polite"></div>
-    <div class="row"><button class="x" id="closeAdd">Close</button></div>
+    <div class="foot"><span></span><button class="link" id="closeAdd">Close</button></div>
   </div>
 </dialog>
 
@@ -201,17 +219,20 @@ function visible() {
   if (q) list = list.filter(b => [b.title, b.author, b.notes].join(" ").toLowerCase().includes(q));
   return list.sort((a, b) => ((b.finished || b.added || "") > (a.finished || a.added || "") ? 1 : -1));
 }
-function starsOf(n) { return `<span class="stars">${[1,2,3,4,5].map(i => `<span class="${i <= (n || 0) ? "on" : ""}">★</span>`).join("")}</span>`; }
+function starsOf(n) { return `<div class="stars" aria-label="${n || 0} stars">${[1,2,3,4,5].map(i => `<span class="${i <= (n || 0) ? "on" : ""}">★</span>`).join("")}</div>`; }
 
 function render() {
   document.querySelectorAll(".shelves button").forEach(b => b.setAttribute("aria-pressed", String(b.dataset.s === state.shelf)));
   ["reading","read","tb","wish"].forEach(k => { const el = $("n-" + k); if (el) el.textContent = "(" + state.books.filter(b => b.shelf === k).length + ")"; });
   const list = visible();
   $("list").innerHTML = list.length ? list.map(b => `
-    <button class="card" data-open="${esc(b.id)}" aria-label="${esc(b.title)}">
-      ${b.cover ? `<img alt="" src="${esc(b.cover)}">` : `<div class="noc"></div>`}
-      <b>${esc(b.title)}</b>
-      <small>${esc(b.author)}</small>
+    <button class="book" data-open="${esc(b.id)}" aria-label="${esc(b.title)}">
+      <div class="cover">
+        ${b.cover ? `<img alt="" src="${esc(b.cover)}">` : `<div class="ph">📕</div>`}
+        <div class="stripe">${esc(b.shelf === "read" ? "Read" : LABEL[b.shelf])}</div>
+      </div>
+      <div class="bname">${esc(b.title)}</div>
+      <div class="bmeta">${esc(b.author)}</div>
       ${starsOf(b.rating)}
     </button>`).join("")
     : `<div class="empty" style="grid-column:1/-1">${state.books.some(b => b.shelf === state.shelf) ? "Nothing matches your search." : "No books here yet. Tap + Add a book."}</div>`;
@@ -220,20 +241,20 @@ function render() {
 
 function openDetail(id) {
   const b = state.books.find(x => x.id === id); if (!b) return;
-  const shelfBtns = ["reading","read","tb","wish"].map(k => `<button data-to="${k}" class="${b.shelf === k ? "on" : ""}">${LABEL[k]}</button>`).join("");
-  const rate = [1,2,3,4,5].map(n => `<button class="star ${n <= (b.rating || 0) ? "on" : ""}" data-rate="${n}" aria-label="${n} stars">★</button>`).join("");
+  const shelfBtns = ["reading","read","tb","wish"].map(k => `<button class="chip ${b.shelf === k ? "on" : ""}" data-to="${k}">${LABEL[k]}</button>`).join("");
+  const rate = [1,2,3,4,5].map(n => `<button data-rate="${n}" class="${n <= (b.rating || 0) ? "on" : ""}" aria-label="${n} stars">★</button>`).join("");
   $("detailBody").innerHTML = `
     <h2>${esc(b.title)}</h2>
     <p class="by">${esc(b.author)}${b.year ? " · " + esc(b.year) : ""}${b.pages ? " · " + esc(b.pages) + " pages" : ""}</p>
     ${b.summary ? `<p class="sum">${esc(b.summary.slice(0, 400))}${b.summary.length > 400 ? "…" : ""}</p>` : ""}
-    <p><b>Put it on:</b></p>
-    <div class="row">${shelfBtns}</div>
-    <p><b>My rating:</b></p>
-    <div class="row">${rate}</div>
-    ${b.shelf === "read" ? `<p><b>Finished on:</b> <input type="date" id="fin" value="${esc(b.finished)}"></p>` : ""}
-    <p><b>What did you think?</b></p>
-    <textarea id="notes" placeholder="Tap here to write">${esc(b.notes)}</textarea>
-    <div class="row"><button class="x" id="del">Remove this book</button><button id="done">Close</button></div>`;
+    <div class="lab">Shelf</div>
+    <div class="chips">${shelfBtns}</div>
+    <div class="lab">My rating</div>
+    <div class="starpick">${rate}</div>
+    ${b.shelf === "read" ? `<div class="lab">Finished on</div><input class="search" type="date" id="fin" value="${esc(b.finished)}" style="max-width:240px">` : ""}
+    <div class="lab">What did you think?</div>
+    <textarea id="notes" placeholder="Write it here…">${esc(b.notes)}</textarea>
+    <div class="foot"><button class="link" id="del">Remove this book</button><button class="close" id="done">Done</button></div>`;
   const change = fn => { fn(b); save(); openDetail(id); render(); };
   $("detailBody").querySelectorAll("[data-to]").forEach(btn => btn.onclick = () => change(x => { x.shelf = btn.dataset.to; if (x.shelf === "read" && !x.finished) x.finished = today(); }));
   $("detailBody").querySelectorAll("[data-rate]").forEach(btn => btn.onclick = () => change(x => { x.rating = +btn.dataset.rate; if (x.shelf !== "read") { x.shelf = "read"; x.finished = x.finished || today(); } }));
