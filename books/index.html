@@ -234,9 +234,16 @@ async function renderForYou() {
     const r = await fetch(`https://${ALGOLIA_APP}-dsn.algolia.net/1/indexes/books/query`, {
       method: "POST",
       headers: { "X-Algolia-Application-Id": ALGOLIA_APP, "X-Algolia-API-Key": ALGOLIA_SEARCH_KEY, "Content-Type": "application/json" },
-      body: JSON.stringify({ params: "query=" + encodeURIComponent(top.author || top.title) + "&restrictSearchableAttributes=author&hitsPerPage=12" }),
+      body: JSON.stringify({ params: "query=" + encodeURIComponent(top.author || top.title) + "&restrictSearchableAttributes=author&hitsPerPage=100" }),
     });
-    const d = await r.json(); hits = (d.hits || []).filter(h => !have.has((h.title || "").toLowerCase())).slice(0, 3);
+    const d = await r.json();
+    // Many editions share one title: show each title once, and skip anything she already has
+    const seenTitles = new Set();
+    hits = (d.hits || []).filter(h => {
+      const t = (h.title || "").toLowerCase();
+      if (!t || have.has(t) || seenTitles.has(t)) return false;
+      seenTitles.add(t); return true;
+    }).slice(0, 3);
   } catch (e) {}
   // She may have switched shelves while this was loading; only show it on the Read shelf
   if (!hits.length || state.shelf !== "read") { box.innerHTML = ""; return; }
