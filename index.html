@@ -652,7 +652,8 @@ async function binDates(uprn) {
         (d.council_page ? `<a class="bin-btn" href="${esc(d.council_page)}" target="_blank" rel="noopener">Check on the council's site ↗</a>` : "");
       return;
     }
-    const items = (d.collections || []).map(c => `<li><b>${esc(c.bin)}</b> · ${esc(c.date)}</li>`).join("");
+    const pretty = iso => { const x = new Date(iso + "T12:00:00"); return isNaN(x) ? iso : x.toLocaleDateString("en-GB", { weekday: "long", day: "numeric", month: "long", year: "numeric" }); };
+    const items = (d.collections || []).map(c => `<li><b>${esc(c.bin)}</b> · ${esc(pretty(c.date))}</li>`).join("");
     out.innerHTML = items
       ? `<ul class="facts">${items}</ul><p class="sources">Source: ${esc(d.source || "the council")}. Checked ${esc(d.checked || "today")}.</p>`
       : `<p class="bin-note">No collection dates found for that address.</p>`;
