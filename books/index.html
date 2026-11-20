@@ -144,7 +144,29 @@ function editDistance(a, b) {
 function wordMatches(w, titleWords) {
   return titleWords.some(t => t === w || (w.length >= 4 && editDistance(w, t) <= 2));
 }
+// Fast search: our own catalogue in Supabase (public read-only key). Falls back to Open Library if nothing matches.
+const SB_URL = "https://wagbceigsvctbdthfczf.supabase.co/rest/v1/book_catalogue";
+const SB_KEY = "sb_publishable_vRSr9xwsitkMPWVN1QcxNg_D-DlIvsM";
+async function catalogueSearch(q) {
+  const isbn = q.replace(/[^0-9Xx]/g, "");
+  const params = new URLSearchParams({ select: "id,title,author,year,pages,isbn,subjects,cover,editions", order: "editions.desc", limit: "8" });
+  if (/^(\d{10}|\d{13})$/.test(isbn)) params.append("isbn", "eq." + isbn);
+  else {
+    const w = keyWords(q).slice(0, 4);
+    if (!w.length) return [];
+    w.forEach(x => params.append("search_text", "ilike.*" + x + "*"));
+  }
+  const r = await fetch(SB_URL + "?" + params.toString(), { headers: { apikey: SB_KEY, Authorization: "Bearer " + SB_KEY } });
+  if (!r.ok) return null;
+  return (await r.json()).map(x => ({ title: x.title, author: x.author || "Unknown author", year: x.year || "", pages: x.pages || "",
+    isbn: x.isbn || "", genres: x.subjects || [], publisher: "", cover: x.cover || "", workKey: x.id }));
+}
 async function findBooks(q) {
+  q = q.trim(); if (q.length < 2) return [];
+  try { const c = await catalogueSearch(q); if (c && c.length) return c; } catch (e) {}
+  return openLibrarySearch(q);
+}
+async function openLibrarySearch(q) {
   q = q.trim(); if (q.length < 2) return [];
   const isbn = q.replace(/[^0-9Xx]/g, "");
   const fields = "key,title,author_name,first_publish_year,isbn,number_of_pages_median,subject,cover_i,publisher,edition_count";
