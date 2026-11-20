@@ -268,7 +268,15 @@ async function addBook(b) {
 function visible() {
   const q = state.q.toLowerCase();
   let list = state.books.filter(b => b.shelf === state.shelf);
-  if (q) list = list.filter(b => [b.title, b.author, b.notes].join(" ").toLowerCase().includes(q));
+  if (q) {
+    // Every word typed must match something in the title, author or notes (small typos allowed)
+    const words = q.split(/\s+/).filter(w => w && !STOP.has(w));
+    list = list.filter(b => {
+      const hay = [b.title, b.author, b.notes].join(" ").toLowerCase();
+      const hayWords = hay.replace(/[^a-z0-9 ]/g, " ").split(/\s+/).filter(Boolean);
+      return words.every(w => hay.includes(w) || wordMatches(w, hayWords));
+    });
+  }
   return list.sort((a, b) => ((b.finished || b.added || "") > (a.finished || a.added || "") ? 1 : -1));
 }
 function starsOf(n) { return `<div class="stars" aria-label="${n || 0} stars">${[1,2,3,4,5].map(i => `<span class="${i <= (n || 0) ? "on" : ""}">★</span>`).join("")}</div>`; }
