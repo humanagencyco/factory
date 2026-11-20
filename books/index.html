@@ -69,6 +69,9 @@ dialog::backdrop{background:rgba(36,24,74,.4);backdrop-filter:blur(3px)}
 .hit div{flex:1;font-size:17px;line-height:1.2}
 .hit small{color:var(--muted);font-size:14px}
 .hit button{border:0;cursor:pointer;font:inherit;font-weight:800;color:#fff;padding:9px 16px;border-radius:999px;background:var(--mint)}
+.readers{display:flex;gap:10px;flex-wrap:wrap;margin:0 0 12px}
+.rpill{border:2px solid var(--line);background:#fff;color:var(--ink);font:inherit;font-weight:800;font-size:18px;padding:9px 16px;border-radius:999px;cursor:pointer}
+.rpill.on{background:var(--pink);border-color:var(--pink);color:#fff}
 .libby{font-weight:800;color:#fff;background:var(--sky);text-decoration:none;padding:11px 18px;border-radius:999px}
 .foot2{margin:30px 0 0;text-align:center}
 .foot2 button{background:none;border:0;font:inherit;font-size:15px;color:var(--muted);cursor:pointer;text-decoration:underline;padding:6px}
@@ -82,6 +85,7 @@ dialog::backdrop{background:rgba(36,24,74,.4);backdrop-filter:blur(3px)}
     <button class="add" id="addBtn" aria-label="Add a book">+ Add</button>
   </header>
 
+  <div class="readers" id="readers" aria-label="Who's reading"></div>
   <div class="pills" role="group" aria-label="Shelves">
     <button class="pill" data-s="reading" aria-pressed="false">📖 Reading <span class="n" id="n-reading"></span></button>
     <button class="pill" data-s="read" aria-pressed="false">✅ Read <span class="n" id="n-read"></span></button>
@@ -92,10 +96,7 @@ dialog::backdrop{background:rgba(36,24,74,.4);backdrop-filter:blur(3px)}
   <input class="search" id="find" type="search" placeholder="Search the books already on your shelves" aria-label="Search the books already on your shelves">
   <div class="grid" id="list" aria-live="polite"></div>
 
-  <div class="foot2">
-    <button id="export">Save a copy</button>
-    <label><button type="button" onclick="document.getElementById('import').click()">Restore a copy</button><input type="file" id="import" accept="application/json" hidden></label>
-  </div>
+
 </main>
 
 <dialog id="add">
@@ -124,8 +125,89 @@ const esc = s => String(s == null ? "" : s).replace(/[&<>"']/g, c => ({"&":"&amp
 const today = () => new Date().toISOString().slice(0, 10);
 const LABEL = { reading: "Reading", read: "Read", tb: "To borrow", wish: "Wish list" };
 let state = { shelf: "reading", q: "", sort: "added", books: [] };
-function load() { try { return JSON.parse(localStorage.getItem(KEY) || "[]"); } catch (e) { return []; } }
-function save() { try { localStorage.setItem(KEY, JSON.stringify(state.books)); } catch (e) {} }
+const API = "https://miru.humanagency.co";
+let readers = [];
+function household() {
+  let h = ""; try { h = localStorage.getItem("hu_household") || ""; } catch (e) {}
+  if (!h) {
+    const a = new Uint8Array(16); crypto.getRandomValues(a);
+    h = [...a].map(x => x.toString(16).padStart(2, "0")).join("");
+    try { localStorage.setItem("hu_household", h); } catch (e) {}
+  }
+  return h;
+}
+async function api(path, opts = {}) {
+  const r = await fetch(API + path, { ...opts, headers: { "Content-Type": "application/json" } });
+  const d = await r.json().catch(() => ({}));
+  if (!r.ok) throw new Error(d.error || ("HTTP " + r.status));
+  return d;
+}
+function currentReader() {
+  let id = null; try { id = localStorage.getItem("hu_reader"); } catch (e) {}
+  return readers.find(r => r.id === id) || readers[0];
+}
+function pickReader(id) { try { localStorage.setItem("hu_reader", id); } catch (e) {} renderReaders(); loadBooks(); }
+function renderReaders() {
+  const cur = currentReader();
+  $("readers").innerHTML = readers.map(r => `<button class="rpill ${cur && cur.id === r.id ? "on" : ""}" data-reader="${esc(r.id)}">👤 ${esc(r.name)}</button>`).join("")
+    + `<button class="rpill" id="addReader">+ Add reader</button>`;
+  $("readers").querySelectorAll("[data-reader]").forEach(b => b.onclick = () => pickReader(b.dataset.reader));
+  $("addReader").onclick = async () => {
+    const n = (prompt("Who's reading? Type a name.") || "").trim(); if (!n) return;
+    try { const r = await api("/api/books/readers", { method: "POST", body: JSON.stringify({ household: household(), name: n }) }); readers.push(r); pickReader(r.id); }
+    catch (e) { alert("Couldn't add that name. Try again."); }
+  };
+}
+async function loadBooks() {
+  const r = currentReader(); if (!r) { state.books = []; render(); return; }
+  try {
+    const rows = await api(`/api/books/list?household=${household()}&reader=${r.id}`);
+    state.books = rows.map(x => ({ id: x.id, title: x.title, author: x.author, cover: x.cover, shelf: x.shelf, rating: x.rating,
+      finished: x.finished || "", notes: x.notes || "", added: (x.added || "").slice(0, 10), book_id: x.book_id, summary: "" }));
+  } catch (e) { state.books = []; }
+  render();
+}
+async function syncBook(b) {
+  const r = currentReader(); if (!r) return;
+  const body = { household: household(), reader: r.id, title: b.title, author: b.author || "", cover: b.cover || "", shelf: b.shelf,
+    rating: b.rating || 0, finished: b.finished || null, notes: b.notes || "", book_id: b.book_id || null };
+  const isServerId = /^[0-9a-f-]{36}$/.test(b.id);
+  if (isServerId) body.id = b.id;
+  try {
+    const row = await api("/api/books/list", { method: "POST", body: JSON.stringify(body) });
+    if (!isServerId) { b.id = row.id; render(); }
+  } catch (e) { alert("Couldn't save that. Check the connection and try again."); }
+}
+async function removeBook(b) {
+  try { await api(`/api/books/list/${b.id}?household=${household()}`, { method: "DELETE" }); } catch (e) {}
+  state.books = state.books.filter(x => x.id !== b.id); render();
+}
+async function migrateLocal(r) {
+  let old = []; try { old = JSON.parse(localStorage.getItem(KEY) || "[]"); } catch (e) {}
+  for (const b of old) {
+    await api("/api/books/list", { method: "POST", body: JSON.stringify({ household: household(), reader: r.id, title: b.title,
+      author: b.author || "", cover: b.cover || "", shelf: b.shelf || "tb", rating: b.rating || 0, finished: b.finished || null,
+      notes: b.notes || "", book_id: b.workKey || null }) }).catch(() => {});
+  }
+  try { localStorage.removeItem(KEY); } catch (e) {}
+}
+function showWelcome() {
+  $("list").innerHTML = `<div class="empty" style="grid-column:1/-1"><p style="font-size:26px;font-weight:800;margin:0 0 12px">👋 Who's reading?</p>
+    <input class="search" id="wname" placeholder="Type your name" aria-label="Your name" style="max-width:320px">
+    <div><button class="rpill on" id="wgo">Let's go!</button></div></div>`;
+  $("wgo").onclick = async () => {
+    const n = ($("wname").value || "").trim(); if (!n) return;
+    try {
+      const r = await api("/api/books/readers", { method: "POST", body: JSON.stringify({ household: household(), name: n }) });
+      readers.push(r); await migrateLocal(r); pickReader(r.id);
+    } catch (e) { alert("Couldn't start. Check the connection and try again."); }
+  };
+}
+async function init() {
+  try { readers = await api(`/api/books/readers?household=${household()}`); } catch (e) { readers = []; }
+  if (!readers.length) { showWelcome(); return; }
+  renderReaders(); loadBooks();
+}
 
 async function summaryFor(workKey) {
   if (!workKey) return "";
@@ -279,7 +361,7 @@ function celebrate(msg) {
 async function addBook(b) {
   const summary = await summaryFor(b.workKey);
   state.books.unshift({ id: String(Date.now()), ...b, summary, shelf: "tb", rating: 0, finished: "", notes: "", added: today() });
-  save(); $("add").close(); $("hits").innerHTML = ""; $("q").value = ""; state.shelf = "tb"; render();
+  $("add").close(); $("hits").innerHTML = ""; $("q").value = ""; state.shelf = "tb"; render(); syncBook(state.books[0]);
   celebrate(CHEERS[Math.floor(Math.random() * CHEERS.length)]);
 }
 
@@ -335,13 +417,13 @@ function openDetail(id) {
     <textarea id="notes" placeholder="Write it here…">${esc(b.notes)}</textarea>
     <div class="foot"><a class="libby" href="https://libbyapp.com/search/query-${encodeURIComponent(b.title)}" target="_blank" rel="noopener">📱 Find in Libby ↗</a><button class="link" id="del">Remove this book</button></div>
     <div class="foot" style="margin-top:12px"><span></span><button class="close" id="done">Done</button></div>`;
-  const change = fn => { fn(b); save(); openDetail(id); render(); };
+  const change = fn => { fn(b); syncBook(b); openDetail(id); render(); };
   $("detailBody").querySelectorAll("[data-to]").forEach(btn => btn.onclick = () => change(x => { x.shelf = btn.dataset.to; if (x.shelf === "read" && !x.finished) x.finished = today(); }));
   $("detailBody").querySelectorAll("[data-rate]").forEach(btn => btn.onclick = () => change(x => { x.rating = +btn.dataset.rate; if (x.shelf !== "read") { x.shelf = "read"; x.finished = x.finished || today(); } }));
   if ($("fin")) $("fin").onchange = () => change(x => x.finished = $("fin").value);
-  $("notes").onchange = () => { b.notes = $("notes").value; save(); };
-  $("del").onclick = () => { if (confirm("Remove this book?")) { state.books = state.books.filter(x => x.id !== id); save(); $("detail").close(); render(); } };
-  $("done").onclick = () => { b.notes = $("notes").value; save(); $("detail").close(); render(); };
+  $("notes").onchange = () => { b.notes = $("notes").value; syncBook(b); };
+  $("del").onclick = () => { if (confirm("Remove this book?")) { $("detail").close(); removeBook(b); } };
+  $("done").onclick = () => { b.notes = $("notes").value; syncBook(b); $("detail").close(); render(); };
   $("detail").showModal();
 }
 
@@ -384,18 +466,8 @@ $("snap").onchange = async e => {
   e.target.value = "";
 };
 $("find").oninput = e => { state.q = e.target.value; render(); };
-$("export").onclick = () => {
-  const blob = new Blob([JSON.stringify(state.books, null, 2)], { type: "application/json" });
-  const a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = "my-books-" + today() + ".json"; a.click();
-};
-$("import").onchange = async e => {
-  const f = e.target.files[0]; if (!f) return;
-  try { const list = JSON.parse(await f.text()); if (Array.isArray(list)) { state.books = list; save(); render(); } else alert("That file isn't a books copy."); }
-  catch (err) { alert("That file couldn't be read."); }
-};
 
-state.books = load();
-render();
+init();
 </script>
 </body>
 </html>
