@@ -415,7 +415,7 @@ function openDetail(id) {
     ${b.shelf === "read" ? `<div class="lab">Finished on</div><input class="search" type="date" id="fin" value="${esc(b.finished)}" style="max-width:240px">` : ""}
     <div class="lab">What did you think?</div>
     <textarea id="notes" placeholder="Write it here…">${esc(b.notes)}</textarea>
-    <div class="foot"><a class="libby" href="https://libbyapp.com/search/query-${encodeURIComponent(b.title)}" target="_blank" rel="noopener">📱 Find in Libby ↗</a><button class="link" id="del">Remove this book</button></div>
+    <div class="foot"><button class="link" id="del">Remove this book</button></div>
     <div class="foot" style="margin-top:12px"><span></span><button class="close" id="done">Done</button></div>`;
   const change = fn => { fn(b); syncBook(b); openDetail(id); render(); };
   $("detailBody").querySelectorAll("[data-to]").forEach(btn => btn.onclick = () => change(x => { x.shelf = btn.dataset.to; if (x.shelf === "read" && !x.finished) x.finished = today(); }));
