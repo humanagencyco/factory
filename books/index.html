@@ -5,73 +5,83 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>My Books</title>
 <style>
-:root{--ink:#1d1630;--muted:#6c6485;--paper:#fff8f1;--pink:#ff5d8f;--sun:#ffb830;--mint:#2fd1a4;--sky:#5aa9ff;--violet:#8b5cf6}
+:root{--ink:#2b2250;--paper:#fff7ec;--pink:#ff6fa5;--sun:#ffc23d;--mint:#35d6a8;--sky:#55b4ff;--lilac:#b592ff}
 *{box-sizing:border-box}
-body{margin:0;background:var(--paper);color:var(--ink);font:18px/1.45 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif}
-.wrap{max-width:720px;margin:0 auto;padding:16px}
-h1{font-size:34px;margin:6px 0 12px;font-weight:900}
-button{font:inherit;font-weight:800;border:2px solid var(--ink);background:#fff;color:var(--ink);border-radius:16px;padding:12px 16px;cursor:pointer;min-height:48px}
-button:focus-visible,input:focus-visible{outline:3px solid var(--sky);outline-offset:2px}
-.big{width:100%;font-size:20px;background:var(--ink);color:#fff;padding:16px}
-.shelves{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:14px 0}
-.shelves button{text-align:left;padding:14px;font-size:18px}
-.shelves button[aria-pressed="true"]{background:var(--sun)}
-.shelves small{display:block;font-weight:600;color:var(--muted)}
-.search{width:100%;font:inherit;font-size:18px;padding:12px 14px;border:2px solid var(--ink);border-radius:16px;margin-bottom:12px}
-.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:14px}
-.card{background:#fff;border:2px solid var(--ink);border-radius:16px;padding:10px;text-align:left;display:flex;flex-direction:column;gap:6px;cursor:pointer}
-.card img,.card .noc{width:100%;aspect-ratio:2/3;object-fit:cover;border-radius:10px;background:#efe6dc}
-.card b{font-size:16px;line-height:1.2}
-.card small{color:var(--muted)}
-.stars{color:#c9bfd8;font-size:20px;letter-spacing:2px}
+body{margin:0;background:var(--paper);color:var(--ink);font:20px/1.4 "Comic Sans MS","Chalkboard SE","Trebuchet MS",system-ui,sans-serif}
+.wrap{max-width:760px;margin:0 auto;padding:18px}
+.top{display:flex;align-items:center;justify-content:space-between;gap:12px}
+h1{font-size:44px;margin:4px 0 14px;letter-spacing:.5px}
+button{font:inherit;font-weight:700;border:0;border-radius:24px;padding:14px 20px;cursor:pointer;color:var(--ink);background:#fff;box-shadow:0 5px 0 rgba(43,34,80,.25)}
+button:active{transform:translateY(3px);box-shadow:0 2px 0 rgba(43,34,80,.25)}
+button:focus-visible,input:focus-visible{outline:4px solid var(--sky);outline-offset:3px}
+.add{background:var(--pink);color:#fff;font-size:26px;border-radius:50px;padding:14px 26px}
+.shelves{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin:6px 0 18px}
+.tile{border-radius:26px;padding:18px 12px;text-align:center;font-size:22px;font-weight:700;color:#fff;box-shadow:0 6px 0 rgba(43,34,80,.22)}
+.tile .e{display:block;font-size:44px;line-height:1.1}
+.tile small{display:block;font-size:16px;opacity:.95;font-weight:700}
+.t-reading{background:var(--sky)}.t-read{background:var(--mint)}.t-tb{background:var(--lilac)}.t-wish{background:var(--sun);color:var(--ink)}
+.tile[aria-pressed="true"]{outline:5px solid var(--ink);outline-offset:3px}
+.search{width:100%;font:inherit;font-size:20px;padding:14px 18px;border:4px solid #e7dcf6;border-radius:24px;background:#fff;margin-bottom:16px}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:16px}
+.card{background:#fff;border-radius:22px;padding:12px;text-align:center;display:flex;flex-direction:column;gap:6px;box-shadow:0 6px 0 rgba(43,34,80,.12);cursor:pointer}
+.card img,.card .noc{width:100%;aspect-ratio:2/3;object-fit:cover;border-radius:14px;background:#f1e7ff}
+.card b{font-size:18px;line-height:1.2}
+.card small{color:#6d6490;font-size:15px}
+.stars{color:#d9d0ea;font-size:22px;letter-spacing:2px}
 .stars .on{color:var(--sun)}
-.empty{text-align:center;color:var(--muted);padding:30px 10px;border:2px dashed var(--ink);border-radius:16px;background:#fff}
-dialog{border:2px solid var(--ink);border-radius:20px;padding:0;max-width:560px;width:calc(100% - 24px);background:#fff;color:var(--ink)}
-dialog::backdrop{background:rgba(29,22,48,.45)}
-.sheet{padding:18px}
-.sheet h2{margin:0 0 4px;font-size:24px}
-.sheet .by{color:var(--muted);margin:0 0 12px}
+.empty{grid-column:1/-1;text-align:center;padding:30px;border-radius:26px;background:#fff;font-size:22px}
+dialog{border:0;border-radius:28px;padding:0;max-width:580px;width:calc(100% - 24px);background:#fff;color:var(--ink);box-shadow:0 20px 50px rgba(43,34,80,.3)}
+dialog::backdrop{background:rgba(43,34,80,.45)}
+.sheet{padding:22px}
+.sheet h2{margin:0 0 4px;font-size:28px}
+.sheet .by{color:#6d6490;margin:0 0 12px;font-size:17px}
 .sheet .row{display:flex;gap:10px;flex-wrap:wrap;margin:12px 0}
 .sheet .row button.on{background:var(--mint)}
-.sheet textarea{width:100%;min-height:90px;font:inherit;font-size:18px;border:2px solid var(--ink);border-radius:14px;padding:10px}
-.sheet p.sum{font-size:16px;color:#3c3654}
-.sheet .x{background:none;border:none;text-decoration:underline;color:var(--muted);min-height:0;padding:6px 0}
-.hits{display:grid;gap:8px;margin:10px 0}
-.hit{display:flex;gap:10px;align-items:center;border:2px solid #eadfd2;border-radius:14px;padding:8px;background:#fff}
-.hit img{width:48px;height:70px;object-fit:cover;border-radius:6px}
-.hit div{flex:1}
-.hit small{color:var(--muted)}
-.foot{margin:24px 0 40px;font-size:14px;color:var(--muted)}
-.foot button{font-size:14px;min-height:0;padding:6px 12px}
+.sheet .row button.star{background:none;box-shadow:none;font-size:34px;padding:0 4px;color:#d9d0ea}
+.sheet .row button.star.on{color:var(--sun)}
+.sheet textarea{width:100%;min-height:90px;font:inherit;font-size:20px;border:4px solid #e7dcf6;border-radius:20px;padding:10px}
+.sheet p.sum{font-size:17px;color:#4a4270}
+.sheet .x{background:none;box-shadow:none;text-decoration:underline;color:#6d6490;font-size:17px}
+.hits{display:grid;gap:10px;margin:12px 0}
+.hit{display:flex;gap:12px;align-items:center;border-radius:20px;padding:10px;background:#f6f1ff}
+.hit img{width:52px;height:76px;object-fit:cover;border-radius:8px}
+.hit div{flex:1;font-size:18px}
+.hit small{color:#6d6490}
+.hit button{background:var(--mint)}
+.foot{margin:26px 0 40px;text-align:center}
+.foot button{font-size:16px;background:none;box-shadow:none;color:#6d6490;text-decoration:underline;padding:8px}
+@media (max-width:460px){h1{font-size:36px}.shelves{gap:10px}.tile .e{font-size:36px}}
 </style>
 </head>
 <body>
 <main class="wrap">
-  <h1>📚 My Books</h1>
-  <button class="big" id="addBtn">+ Add a book</button>
-
-  <div class="shelves" role="group" aria-label="Shelves">
-    <button data-s="reading" aria-pressed="false">📖 Reading <small id="n-reading"></small></button>
-    <button data-s="read" aria-pressed="false">✅ Read <small id="n-read"></small></button>
-    <button data-s="tb" aria-pressed="false">🏫 To borrow <small id="n-tb"></small></button>
-    <button data-s="wish" aria-pressed="false">⭐ Wish list <small id="n-wish"></small></button>
+  <div class="top">
+    <h1>📚 My Books</h1>
+    <button class="add" id="addBtn" aria-label="Add a book">＋</button>
   </div>
 
-  <input class="search" id="find" type="search" placeholder="🔍 Search my books" aria-label="Search my books">
+  <div class="shelves" role="group" aria-label="Shelves">
+    <button class="tile t-reading" data-s="reading" aria-pressed="false"><span class="e">📖</span>Reading<small id="n-reading"></small></button>
+    <button class="tile t-read" data-s="read" aria-pressed="false"><span class="e">✅</span>Read<small id="n-read"></small></button>
+    <button class="tile t-tb" data-s="tb" aria-pressed="false"><span class="e">🏫</span>To borrow<small id="n-tb"></small></button>
+    <button class="tile t-wish" data-s="wish" aria-pressed="false"><span class="e">⭐</span>Wish list<small id="n-wish"></small></button>
+  </div>
+
+  <input class="search" id="find" type="search" placeholder="🔍 Find a book" aria-label="Find a book">
   <div class="grid" id="list" aria-live="polite"></div>
 
   <div class="foot">
     <button id="export">Save a copy</button>
-    <label><button type="button" onclick="document.getElementById('import').click()">Restore a copy</button><input type="file" id="import" accept="application/json" hidden></label>
+    <label><button type="button" onclick="document.getElementById('import').click()">Get my copy back</button><input type="file" id="import" accept="application/json" hidden></label>
   </div>
 </main>
 
 <dialog id="add">
   <div class="sheet">
-    <h2>Add a book</h2>
-    <p class="by">Type the title, or the number under the barcode.</p>
-    <input class="search" id="q" type="search" placeholder="Title or ISBN" aria-label="Book title or ISBN">
-    <div class="row"><button class="big" id="go">Find it</button></div>
+    <h2>Find a new book</h2>
+    <p class="by">Type the name of the book, or the number under the barcode.</p>
+    <input class="search" id="q" type="search" placeholder="Type here…" aria-label="Book name or number">
+    <div class="row"><button class="add" id="go" style="font-size:22px">Find it</button></div>
     <div class="hits" id="hits" aria-live="polite"></div>
     <div class="row"><button class="x" id="closeAdd">Close</button></div>
   </div>
@@ -211,7 +221,7 @@ function render() {
 function openDetail(id) {
   const b = state.books.find(x => x.id === id); if (!b) return;
   const shelfBtns = ["reading","read","tb","wish"].map(k => `<button data-to="${k}" class="${b.shelf === k ? "on" : ""}">${LABEL[k]}</button>`).join("");
-  const rate = [1,2,3,4,5].map(n => `<button data-rate="${n}" aria-label="${n} stars">${n <= (b.rating || 0) ? "★" : "☆"}</button>`).join("");
+  const rate = [1,2,3,4,5].map(n => `<button class="star ${n <= (b.rating || 0) ? "on" : ""}" data-rate="${n}" aria-label="${n} stars">★</button>`).join("");
   $("detailBody").innerHTML = `
     <h2>${esc(b.title)}</h2>
     <p class="by">${esc(b.author)}${b.year ? " · " + esc(b.year) : ""}${b.pages ? " · " + esc(b.pages) + " pages" : ""}</p>
