@@ -553,12 +553,12 @@ function render() {
   const areaHtml = `<div class="sec" id="sec-area"><h2>🧭 Your area <span>Flood warnings, street crime and reported potholes near ${esc(postcode)}.</span></h2><div class="areacard" id="areaCard">Checking your area…</div></div>`;
   const linksHtml = `<div class="sec" id="sec-official"><h2>🔗 Official sources <span>Not on this page yet? Here's where to go for ${esc(postcode)}.</span></h2>
     <div class="offgrid">${official.map(([e, t, d, u]) => `<a class="offcard" href="${u}" target="_blank" rel="noopener"><span class="offe">${e}</span><b>${t}</b><small>${d}</small><span class="offgo">Open ↗</span></a>`).join("")}</div></div>`;
-  $("grid").innerHTML = SECTIONS.map(([t, title, sub]) => {
+  $("grid").innerHTML = (activeSection === "near" ? binHtml : "") + SECTIONS.map(([t, title, sub]) => {
     if (t !== activeSection) return "";
     const items = list.filter(m => m.type === t);
     if (!items.length) return "";
     return `<div class="sec" id="sec-${t}"><h2>${title} <span>${sub}</span></h2><div class="rowline">${items.map(card).join("")}</div></div>`;
-  }).join("") + (activeSection === "near" ? binHtml + areaHtml + linksHtml : "");
+  }).join("") + (activeSection === "near" ? areaHtml + linksHtml : "");
   if (activeSection === "near") loadArea();
   loadTeasers();
   $("grid").querySelectorAll(".mod").forEach(el => {
