@@ -159,7 +159,7 @@ function pickReader(id) { try { localStorage.setItem("hu_reader", id); } catch (
 function renderReaders() {
   const cur = currentReader();
   $("readers").innerHTML = readers.map(r => `<button class="rpill ${cur && cur.id === r.id ? "on" : ""}" data-reader="${esc(r.id)}">👤 ${esc(r.name)}</button>`).join("")
-    + `<button class="rpill" id="addReader">+ Add reader</button>`;
+    + `<button class="link" id="addReader" style="font-size:15px;align-self:center;padding:6px 8px">Someone else reading on this device?</button>`;
   $("readers").querySelectorAll("[data-reader]").forEach(b => b.onclick = () => pickReader(b.dataset.reader));
   $("addReader").onclick = async () => {
     if (window._addingReader) return;   // ignore repeated taps while saving
