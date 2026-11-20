@@ -218,7 +218,8 @@ async function renderForYou() {
   const liked = state.books.filter(b => b.shelf === "read" && (b.rating || 0) >= 4)
     .sort((a, b) => (b.rating - a.rating) || ((b.finished || "") > (a.finished || "") ? 1 : -1));
   if (!liked.length || state.shelf === "wish") { box.innerHTML = ""; return; }
-  const top = liked[0];
+  // She can pick which favourite the suggestions are based on; the top-rated one is the default
+  const top = liked.find(b => b.id === state.fyBase) || liked[0];
   const have = new Set(state.books.map(b => (b.title || "").toLowerCase()));
   let hits = [];
   try {
@@ -231,12 +232,15 @@ async function renderForYou() {
   } catch (e) {}
   if (!hits.length) { box.innerHTML = ""; return; }
   window._fy = hits;
+  const favs = liked.slice(0, 6).map(b => `<button class="chip ${b.id === top.id ? "on" : ""}" data-fb="${esc(b.id)}" style="font-size:15px">${esc(b.title)}</button>`).join("");
   box.innerHTML = `<div class="lab" style="margin:0 0 8px">✨ Because you loved <b>${esc(top.title)}</b></div>
+    <div class="chips" style="margin-bottom:12px">${favs}</div>
     <div class="grid" style="grid-template-columns:repeat(auto-fill,minmax(130px,1fr));margin-bottom:18px">
       ${hits.map((h, i) => `<div class="book" style="cursor:default"><div class="cover">${h.cover ? `<img alt="" src="${esc(h.cover)}">` : `<div class="ph">📕</div>`}</div>
         <div class="bname" style="font-size:15px">${esc(h.title)}</div>
         <button class="chip" data-fy="${i}" style="font-size:14px;padding:6px 10px">+ Add</button></div>`).join("")}
     </div>`;
+  box.querySelectorAll("[data-fb]").forEach(btn => btn.onclick = () => { state.fyBase = btn.dataset.fb; renderForYou(); });
   box.querySelectorAll("[data-fy]").forEach(btn => btn.onclick = () => {
     const h = window._fy[+btn.dataset.fy];
     addBook({ title: h.title, author: h.author || "", year: h.year || "", pages: h.pages || "", isbn: h.isbn || "",
