@@ -115,6 +115,10 @@ dialog::backdrop{background:rgba(36,24,74,.4);backdrop-filter:blur(3px)}
   </div>
 </dialog>
 
+<dialog id="author">
+  <div class="sheet" id="authorBody"></div>
+</dialog>
+
 <dialog id="detail">
   <div class="sheet" id="detailBody"></div>
 </dialog>
@@ -202,6 +206,45 @@ function showWelcome() {
       readers.push(r); await migrateLocal(r); pickReader(r.id);
     } catch (e) { alert("Couldn't start. Check the connection and try again."); }
   };
+}
+// Author page: short bio (Open Library) and their other books (our catalogue)
+async function openAuthor(name) {
+  $("authorBody").innerHTML = `<p class="by">Looking up ${esc(name)}…</p><div class="row"><button class="close" id="closeAuthor">Close</button></div>`;
+  $("closeAuthor").onclick = () => $("author").close();
+  $("author").showModal();
+  let bio = "", photo = "", key = "";
+  try {
+    const found = await (await fetch(`https://openlibrary.org/search/authors.json?q=${encodeURIComponent(name)}&limit=1`)).json();
+    const a = (found.docs || [])[0];
+    if (a && a.key) {
+      key = a.key;
+      photo = `https://covers.openlibrary.org/a/olid/${a.key}-M.jpg`;
+      const d = await (await fetch(`https://openlibrary.org/authors/${a.key}.json`)).json();
+      bio = typeof d.bio === "string" ? d.bio : (d.bio && d.bio.value) || "";
+    }
+  } catch (e) {}
+  let books = [];
+  try {
+    const r = await fetch(`https://${ALGOLIA_APP}-dsn.algolia.net/1/indexes/books/query`, {
+      method: "POST",
+      headers: { "X-Algolia-Application-Id": ALGOLIA_APP, "X-Algolia-API-Key": ALGOLIA_SEARCH_KEY, "Content-Type": "application/json" },
+      body: JSON.stringify({ params: "query=" + encodeURIComponent(name) + "&restrictSearchableAttributes=author&hitsPerPage=40" }),
+    });
+    const d = await r.json();
+    const want = name.toLowerCase();
+    books = (d.hits || []).filter(h => (h.author || "").toLowerCase() === want).slice(0, 20);
+  } catch (e) {}
+  const short = bio.length > 600 ? bio.slice(0, 600).trim() + "…" : bio;
+  $("authorBody").innerHTML = `
+    <div class="row" style="align-items:center;margin-top:0">
+      ${photo ? `<img alt="" src="${esc(photo)}" style="width:84px;height:84px;border-radius:50%;object-fit:cover;background:#f1e7ff" onerror="this.style.display='none'">` : `<div style="width:84px;height:84px;border-radius:50%;background:var(--g3);display:grid;place-items:center;font-size:40px">✍️</div>`}
+      <div><h2 style="margin:0">${esc(name)}</h2><p class="by" style="margin:0">${key ? "Author" : "Author"}</p></div>
+    </div>
+    ${short ? `<p class="sum">${esc(short)}</p>` : `<p class="sum">We don't have a bio for this author yet.</p>`}
+    <div class="lab">More books by ${esc(name)}</div>
+    <div class="hits">${books.length ? books.map(h => `<div class="hit">${h.cover ? `<img alt="" src="${esc(h.cover)}">` : ""}<div>${esc(h.title)}<br><small>${esc(h.year || "")}</small></div></div>`).join("") : `<p class="sum">No other books by this author in our list yet.</p>`}</div>
+    <div class="foot"><span></span><button class="close" id="closeAuthor2">Close</button></div>`;
+  $("closeAuthor2").onclick = () => $("author").close();
 }
 async function init() {
   try { readers = await api(`/api/books/readers?household=${household()}`); } catch (e) { readers = []; }
@@ -406,7 +449,7 @@ function openDetail(id) {
   const rate = [1,2,3,4,5].map(n => `<button data-rate="${n}" class="${n <= (b.rating || 0) ? "on" : ""}" aria-label="${n} stars">★</button>`).join("");
   $("detailBody").innerHTML = `
     <h2>${esc(b.title)}</h2>
-    <p class="by">${esc(b.author)}${b.year ? " · " + esc(b.year) : ""}${b.pages ? " · " + esc(b.pages) + " pages" : ""}</p>
+    <p class="by"><button class="link" id="authorLink" style="padding:0;text-decoration:underline">${esc(b.author)}</button>${b.year ? " · " + esc(b.year) : ""}${b.pages ? " · " + esc(b.pages) + " pages" : ""}</p>
     ${b.summary ? `<p class="sum">${esc(b.summary.slice(0, 400))}${b.summary.length > 400 ? "…" : ""}</p>` : ""}
     <div class="lab">Shelf</div>
     <div class="chips">${shelfBtns}</div>
@@ -424,6 +467,7 @@ function openDetail(id) {
   $("notes").onchange = () => { b.notes = $("notes").value; syncBook(b); };
   $("del").onclick = () => { if (confirm("Remove this book?")) { $("detail").close(); removeBook(b); } };
   $("done").onclick = () => { b.notes = $("notes").value; syncBook(b); $("detail").close(); render(); };
+  $("authorLink").onclick = () => { if (b.author && b.author !== "Unknown author") openAuthor(b.author); };
   $("detail").showModal();
 }
 
