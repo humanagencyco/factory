@@ -3,104 +3,136 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>My Books · Human Agency</title>
-<meta name="description" content="Keep track of the books you've read, are reading, want to borrow or wish for. Find any book by title or ISBN.">
+<title>My Books</title>
 <style>
-:root{--ink:#1d1630;--muted:#6c6485;--paper:#fff8f1;--pink:#ff5d8f;--sun:#ffb830;--mint:#2fd1a4;--sky:#5aa9ff;--violet:#8b5cf6;--line:#eadfd2}
+:root{--ink:#1d1630;--muted:#6c6485;--paper:#fff8f1;--pink:#ff5d8f;--sun:#ffb830;--mint:#2fd1a4;--sky:#5aa9ff;--violet:#8b5cf6}
 *{box-sizing:border-box}
-body{margin:0;background:var(--paper);color:var(--ink);font:16px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI",Inter,Roboto,sans-serif}
-.wrap{max-width:920px;margin:0 auto;padding:0 18px}
-header{padding:22px 0 6px;display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap}
-header a{color:var(--ink);font-weight:900;text-decoration:none}
-h1{font-size:clamp(30px,6vw,44px);margin:8px 0 4px;font-weight:900;letter-spacing:-.02em}
-h1 span{background:linear-gradient(90deg,var(--pink),var(--violet),var(--sky));-webkit-background-clip:text;background-clip:text;color:transparent}
-.lede{color:var(--muted);margin:0 0 18px}
-button,.btn{font:inherit;font-weight:800;border:2px solid var(--ink);background:#fff;color:var(--ink);border-radius:999px;padding:9px 16px;cursor:pointer}
-button.primary{background:var(--ink);color:#fff}
-button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible{outline:3px solid var(--sky);outline-offset:2px}
-.tabs{display:flex;gap:8px;flex-wrap:wrap;margin:14px 0}
-.tabs button[aria-selected="true"]{background:var(--ink);color:#fff}
-.bar{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin:8px 0 16px}
-input,select,textarea{font:inherit;border:2px solid var(--ink);border-radius:14px;padding:9px 12px;background:#fff;color:var(--ink)}
-input[type=search]{flex:1;min-width:180px}
-.add{background:#fff;border:2px solid var(--ink);border-radius:20px;padding:16px;box-shadow:6px 6px 0 var(--ink);margin:10px 0 22px}
-.add h2{margin:0 0 8px;font-size:20px}
-.add .row{display:flex;gap:8px;flex-wrap:wrap}
-.add .row input{flex:1;min-width:200px}
-.results{display:grid;gap:8px;margin-top:10px}
-.hit{display:flex;gap:12px;align-items:center;border:2px solid var(--line);border-radius:14px;padding:8px;background:#fff}
-.hit img{width:44px;height:64px;object-fit:cover;border-radius:6px;background:var(--line)}
-.hit b{display:block}
+body{margin:0;background:var(--paper);color:var(--ink);font:18px/1.45 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif}
+.wrap{max-width:720px;margin:0 auto;padding:16px}
+h1{font-size:34px;margin:6px 0 12px;font-weight:900}
+button{font:inherit;font-weight:800;border:2px solid var(--ink);background:#fff;color:var(--ink);border-radius:16px;padding:12px 16px;cursor:pointer;min-height:48px}
+button:focus-visible,input:focus-visible{outline:3px solid var(--sky);outline-offset:2px}
+.big{width:100%;font-size:20px;background:var(--ink);color:#fff;padding:16px}
+.shelves{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:14px 0}
+.shelves button{text-align:left;padding:14px;font-size:18px}
+.shelves button[aria-pressed="true"]{background:var(--sun)}
+.shelves small{display:block;font-weight:600;color:var(--muted)}
+.search{width:100%;font:inherit;font-size:18px;padding:12px 14px;border:2px solid var(--ink);border-radius:16px;margin-bottom:12px}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:14px}
+.card{background:#fff;border:2px solid var(--ink);border-radius:16px;padding:10px;text-align:left;display:flex;flex-direction:column;gap:6px;cursor:pointer}
+.card img,.card .noc{width:100%;aspect-ratio:2/3;object-fit:cover;border-radius:10px;background:#efe6dc}
+.card b{font-size:16px;line-height:1.2}
+.card small{color:var(--muted)}
+.stars{color:#c9bfd8;font-size:20px;letter-spacing:2px}
+.stars .on{color:var(--sun)}
+.empty{text-align:center;color:var(--muted);padding:30px 10px;border:2px dashed var(--ink);border-radius:16px;background:#fff}
+dialog{border:2px solid var(--ink);border-radius:20px;padding:0;max-width:560px;width:calc(100% - 24px);background:#fff;color:var(--ink)}
+dialog::backdrop{background:rgba(29,22,48,.45)}
+.sheet{padding:18px}
+.sheet h2{margin:0 0 4px;font-size:24px}
+.sheet .by{color:var(--muted);margin:0 0 12px}
+.sheet .row{display:flex;gap:10px;flex-wrap:wrap;margin:12px 0}
+.sheet .row button.on{background:var(--mint)}
+.sheet textarea{width:100%;min-height:90px;font:inherit;font-size:18px;border:2px solid var(--ink);border-radius:14px;padding:10px}
+.sheet p.sum{font-size:16px;color:#3c3654}
+.sheet .x{background:none;border:none;text-decoration:underline;color:var(--muted);min-height:0;padding:6px 0}
+.hits{display:grid;gap:8px;margin:10px 0}
+.hit{display:flex;gap:10px;align-items:center;border:2px solid #eadfd2;border-radius:14px;padding:8px;background:#fff}
+.hit img{width:48px;height:70px;object-fit:cover;border-radius:6px}
+.hit div{flex:1}
 .hit small{color:var(--muted)}
-.list{display:grid;gap:12px}
-.book{display:grid;grid-template-columns:72px 1fr;gap:14px;background:#fff;border:2px solid var(--ink);border-radius:18px;padding:14px;box-shadow:4px 4px 0 var(--ink)}
-.book img{width:72px;height:104px;object-fit:cover;border-radius:8px;background:var(--line)}
-.book h3{margin:0;font-size:19px;line-height:1.2}
-.meta{color:var(--muted);font-size:14px;margin:2px 0 6px}
-.badge{display:inline-block;font-size:12px;font-weight:900;border:2px solid var(--ink);border-radius:999px;padding:1px 9px;margin-right:4px;background:var(--mint)}
-.badge.reading{background:var(--sun)}.badge.tb{background:var(--sky)}.badge.wish{background:#ffd6e5}
-.stars button{border:0;background:none;padding:0 2px;font-size:22px;cursor:pointer;color:#c9bfd8}
-.stars button.on{color:var(--sun)}
-.summary{font-size:14px;margin:6px 0}
-details summary{cursor:pointer;font-weight:800;margin-top:6px}
-textarea{width:100%;min-height:70px;margin-top:6px}
-.empty{border:2px dashed var(--ink);border-radius:18px;padding:24px;text-align:center;color:var(--muted);background:#fff}
-.note{color:var(--muted);font-size:13px;margin:18px 0 40px}
-@media (max-width:560px){.book{grid-template-columns:60px 1fr}.book img{width:60px;height:88px}}
-@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+.foot{margin:24px 0 40px;font-size:14px;color:var(--muted)}
+.foot button{font-size:14px;min-height:0;padding:6px 12px}
 </style>
 </head>
 <body>
-<div class="wrap">
-  <header><a href="/factory/">← Factory</a><span>📚 My Books</span></header>
-  <h1>My <span>books</span></h1>
-  <p class="lede">Find a book by title or ISBN, then keep track of what you read, rate it and write what you thought.</p>
+<main class="wrap">
+  <h1>📚 My Books</h1>
+  <button class="big" id="addBtn">+ Add a book</button>
 
-  <section class="add" aria-labelledby="addh">
-    <h2 id="addh">Add a book</h2>
-    <div class="row">
-      <input id="q" type="search" placeholder="Title, author or ISBN (the number under the barcode)" aria-label="Search for a book">
-      <button class="primary" id="go">Find book</button>
-      <button id="cam" hidden>📷 Scan barcode</button>
-    </div>
-    <div class="results" id="hits" aria-live="polite"></div>
-  </section>
-
-  <nav class="tabs" role="tablist" aria-label="Shelves" id="tabs"></nav>
-  <div class="bar">
-    <input id="find" type="search" placeholder="Search my books" aria-label="Search my books">
-    <select id="sort" aria-label="Sort"><option value="added">Newest added</option><option value="finished">Date finished (newest)</option><option value="finished-old">Date finished (oldest)</option><option value="title">Title A–Z</option><option value="rating">Best rated</option></select>
-    <button id="export">Save a copy</button>
-    <label class="btn" style="cursor:pointer">Restore a copy<input type="file" id="import" accept="application/json" hidden></label>
+  <div class="shelves" role="group" aria-label="Shelves">
+    <button data-s="reading" aria-pressed="false">📖 Reading <small id="n-reading"></small></button>
+    <button data-s="read" aria-pressed="false">✅ Read <small id="n-read"></small></button>
+    <button data-s="tb" aria-pressed="false">🏫 To borrow <small id="n-tb"></small></button>
+    <button data-s="wish" aria-pressed="false">⭐ Wish list <small id="n-wish"></small></button>
   </div>
-  <div class="list" id="list" aria-live="polite"></div>
-  <p class="note">Your list is saved on this device, not on a server. Use "Save a copy" now and then so nothing is lost if the browser is cleared.</p>
-</div>
 
+  <input class="search" id="find" type="search" placeholder="🔍 Search my books" aria-label="Search my books">
+  <div class="grid" id="list" aria-live="polite"></div>
+
+  <div class="foot">
+    <button id="export">Save a copy</button>
+    <label><button type="button" onclick="document.getElementById('import').click()">Restore a copy</button><input type="file" id="import" accept="application/json" hidden></label>
+  </div>
+</main>
+
+<dialog id="add">
+  <div class="sheet">
+    <h2>Add a book</h2>
+    <p class="by">Type the title, or the number under the barcode.</p>
+    <input class="search" id="q" type="search" placeholder="Title or ISBN" aria-label="Book title or ISBN">
+    <div class="row"><button class="big" id="go">Find it</button></div>
+    <div class="hits" id="hits" aria-live="polite"></div>
+    <div class="row"><button class="x" id="closeAdd">Close</button></div>
+  </div>
+</dialog>
+
+<dialog id="detail">
+  <div class="sheet" id="detailBody"></div>
+</dialog>
 <script>
 const KEY = "hu_books_v1";
-const SHELVES = [["read","Read"],["reading","Reading"],["tb","To borrow"],["wish","Wish list"],["all","All"]];
-const BADGE = { read:"", reading:"reading", tb:"tb", wish:"wish" };
 const $ = id => document.getElementById(id);
 const esc = s => String(s == null ? "" : s).replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 const today = () => new Date().toISOString().slice(0, 10);
-
-let state = { shelf: "all", sort: "added", q: "", books: [] };
+const LABEL = { reading: "Reading", read: "Read", tb: "To borrow", wish: "Wish list" };
+let state = { shelf: "reading", q: "", sort: "added", books: [] };
 function load() { try { return JSON.parse(localStorage.getItem(KEY) || "[]"); } catch (e) { return []; } }
 function save() { try { localStorage.setItem(KEY, JSON.stringify(state.books)); } catch (e) {} }
 
-// ── Searching the book catalogue (Open Library: free, no key) ──
+async function summaryFor(workKey) {
+  if (!workKey) return "";
+  try { const d = await (await fetch(`https://openlibrary.org${workKey}.json`)).json(); const v = d.description; return (typeof v === "string" ? v : (v && v.value)) || ""; }
+  catch (e) { return ""; }
+}
+
+const STOP = new Set(["the","of","a","an","and","in","to","for","on","with"]);
+function keyWords(q) { return q.toLowerCase().replace(/[^a-z0-9 ]/g, " ").split(/\s+/).filter(w => w && !STOP.has(w)); }
 async function findBooks(q) {
   q = q.trim(); if (q.length < 2) return [];
   const isbn = q.replace(/[^0-9Xx]/g, "");
-  const url = (/^(\d{10}|\d{13})$/.test(isbn))
-    ? `https://openlibrary.org/search.json?isbn=${isbn}&limit=5&fields=key,title,author_name,first_publish_year,isbn,number_of_pages_median,subject,cover_i,publisher`
-    : `https://openlibrary.org/search.json?q=${encodeURIComponent(q)}&limit=8&fields=key,title,author_name,first_publish_year,isbn,number_of_pages_median,subject,cover_i,publisher`;
-  const r = await fetch(url); const d = await r.json();
-  return (d.docs || []).map(x => ({
+  const fields = "key,title,author_name,first_publish_year,isbn,number_of_pages_median,subject,cover_i,publisher,edition_count";
+  if (/^(\d{10}|\d{13})$/.test(isbn)) {
+    const d = await (await fetch(`https://openlibrary.org/search.json?isbn=${isbn}&limit=5&fields=${fields}`)).json();
+    return toBooks(d.docs || [], isbn);
+  }
+  // Two searches (by title and by any words), most-published editions first, then ranked by how well the title matches
+  const enc = encodeURIComponent(q);
+  const [a, b] = await Promise.all([
+    fetch(`https://openlibrary.org/search.json?title=${enc}&sort=editions&limit=20&fields=${fields}`).then(r => r.json()).catch(() => ({})),
+    fetch(`https://openlibrary.org/search.json?q=${enc}&sort=editions&limit=20&fields=${fields}`).then(r => r.json()).catch(() => ({})),
+  ]);
+  const seen = new Set(); const docs = [];
+  for (const x of [...(a.docs || []), ...(b.docs || [])]) {
+    const k = (x.title || "").toLowerCase() + "|" + ((x.author_name || [])[0] || "");
+    if (!seen.has(k)) { seen.add(k); docs.push(x); }
+  }
+  const words = keyWords(q);
+  const score = x => {
+    const t = (x.title || "").toLowerCase();
+    const hit = words.filter(w => t.includes(w)).length;
+    return (words.length && hit === words.length ? 10 : 0) + hit * 2 + Math.min(x.edition_count || 0, 50) / 10;
+  };
+  docs.sort((x, y) => score(y) - score(x));
+  const need = Math.max(1, Math.ceil(words.length / 2));  // the title must match at least half the words
+  const hitsOf = x => words.filter(w => (x.title || "").toLowerCase().includes(w)).length;
+  return toBooks(docs.filter(x => hitsOf(x) >= need).slice(0, 8), "");
+}
+function toBooks(docs, isbnQuery) {
+  return docs.map(x => ({
     title: x.title || "Untitled", author: (x.author_name || [])[0] || "Unknown author",
     year: x.first_publish_year || "", pages: x.number_of_pages_median || "",
-    isbn: (x.isbn || []).find(i => i.length === 13) || (x.isbn || [])[0] || (/^\d{10,13}$/.test(isbn) ? isbn : ""),
+    isbn: (x.isbn || []).find(i => i.length === 13) || (x.isbn || [])[0] || isbnQuery,
     genres: (x.subject || []).slice(0, 4), publisher: (x.publisher || [])[0] || "",
     cover: x.cover_i ? `https://covers.openlibrary.org/b/id/${x.cover_i}-M.jpg` : "",
     workKey: x.key || ""
@@ -114,111 +146,88 @@ async function summaryFor(workKey) {
   } catch (e) { return ""; }
 }
 
+
 function showHits(list) {
-  $("hits").innerHTML = list.length ? list.map((b, i) => `
+  $("hits").innerHTML = (list.length ? list.map((b, i) => `
     <div class="hit">
-      ${b.cover ? `<img alt="" src="${esc(b.cover)}">` : `<img alt="" src="">`}
-      <div style="flex:1"><b>${esc(b.title)}</b><small>${esc(b.author)}${b.year ? " · " + esc(b.year) : ""}${b.pages ? " · " + esc(b.pages) + " pages" : ""}</small></div>
-      <button data-add="${i}" class="primary">Add</button>
-    </div>`).join("") : `<p class="note">No books found. Try a different spelling, or the ISBN.</p>`;
+      ${b.cover ? `<img alt="" src="${esc(b.cover)}">` : ""}
+      <div><b>${esc(b.title)}</b><br><small>${esc(b.author)}${b.year ? " · " + esc(b.year) : ""}</small></div>
+      <button data-add="${i}">Add</button>
+    </div>`).join("") : `<p>No books found. Try the author's name, or add it by hand.</p>`)
+    + `<button id="byHand">Add by hand</button>`;
   $("hits").querySelectorAll("[data-add]").forEach(btn => btn.onclick = () => addBook(list[+btn.dataset.add]));
+  $("byHand").onclick = () => {
+    const title = prompt("Book title?"); if (!title) return;
+    const author = prompt("Who wrote it?") || "Unknown author";
+    addBook({ title: title.trim(), author: author.trim(), year: "", pages: "", isbn: "", genres: [], publisher: "", cover: "", workKey: "" });
+  };
 }
 
 async function addBook(b) {
   const summary = await summaryFor(b.workKey);
   state.books.unshift({ id: String(Date.now()), ...b, summary, shelf: "tb", rating: 0, finished: "", notes: "", added: today() });
-  save(); $("hits").innerHTML = ""; $("q").value = ""; state.shelf = "tb"; render();
+  save(); $("add").close(); $("hits").innerHTML = ""; $("q").value = ""; state.shelf = "tb"; render();
 }
 
-// ── Barcode: uses the camera where the browser supports it; otherwise type the ISBN ──
-if ("BarcodeDetector" in window) {
-  $("cam").hidden = false;
-  $("cam").onclick = async () => {
-    try {
-      const det = new BarcodeDetector({ formats: ["ean_13", "ean_8", "isbn_13", "isbn_10"] });
-      const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } });
-      const v = document.createElement("video"); v.srcObject = stream; v.setAttribute("playsinline", ""); await v.play();
-      const tick = async () => {
-        const codes = await det.detect(v);
-        if (codes.length) { stream.getTracks().forEach(t => t.stop()); $("q").value = codes[0].rawValue; $("go").click(); return; }
-        requestAnimationFrame(tick);
-      };
-      tick();
-      alert("Hold the barcode in view of the camera.");
-    } catch (e) {
-      const why = e && e.name === "NotAllowedError" ? "Camera access was blocked. Allow the camera for this site in your browser settings, then try again."
-        : e && e.name === "NotFoundError" ? "No camera was found on this device."
-        : e && e.name === "NotReadableError" ? "The camera is being used by another app."
-        : "The camera could not start (" + (e && e.name || "unknown error") + ").";
-      alert(why + " You can also type the ISBN number instead.");
-    }
-  };
-}
-
-// ── Shelves, sorting and search of my own list ──
-function renderTabs() {
-  $("tabs").innerHTML = SHELVES.map(([k, label]) => {
-    const n = k === "all" ? state.books.length : state.books.filter(b => b.shelf === k).length;
-    return `<button role="tab" aria-selected="${state.shelf === k}" data-s="${k}">${label} (${n})</button>`;
-  }).join("");
-  $("tabs").querySelectorAll("button").forEach(b => b.onclick = () => { state.shelf = b.dataset.s; render(); });
-}
+// What shows on the grid: the chosen shelf, filtered by search, newest first
 function visible() {
   const q = state.q.toLowerCase();
-  let list = state.books.filter(b => state.shelf === "all" || b.shelf === state.shelf);
-  if (q) list = list.filter(b => [b.title, b.author, b.notes, (b.genres || []).join(" ")].join(" ").toLowerCase().includes(q));
-  const byNum = (a, b) => (a || "").localeCompare(b || "");
-  const sorters = {
-    added: (a, b) => byNum(b.added, a.added),
-    finished: (a, b) => byNum(b.finished || "0000", a.finished || "0000"),
-    "finished-old": (a, b) => byNum(a.finished || "9999", b.finished || "9999"),
-    title: (a, b) => a.title.localeCompare(b.title),
-    rating: (a, b) => (b.rating || 0) - (a.rating || 0),
-  };
-  return list.sort(sorters[state.sort] || sorters.added);
+  let list = state.books.filter(b => b.shelf === state.shelf);
+  if (q) list = list.filter(b => [b.title, b.author, b.notes].join(" ").toLowerCase().includes(q));
+  return list.sort((a, b) => ((b.finished || b.added || "") > (a.finished || a.added || "") ? 1 : -1));
 }
-function stars(b) {
-  return `<span class="stars" role="group" aria-label="Rating">${[1,2,3,4,5].map(n =>
-    `<button data-rate="${b.id}:${n}" class="${n <= (b.rating || 0) ? "on" : ""}" aria-label="${n} star${n > 1 ? "s" : ""}">★</button>`).join("")}</span>`;
-}
-function card(b) {
-  const shelfLabel = { read: "Read", reading: "Reading", tb: "To borrow", wish: "Wish list" }[b.shelf];
-  return `<article class="book">
-    ${b.cover ? `<img alt="" src="${esc(b.cover)}">` : `<img alt="" src="">`}
-    <div>
-      <h3>${esc(b.title)}</h3>
-      <div class="meta">${esc(b.author)}${b.year ? " · " + esc(b.year) : ""}${b.pages ? " · " + esc(b.pages) + " pages" : ""}</div>
-      <span class="badge ${BADGE[b.shelf]}">${esc(shelfLabel)}</span>
-      ${b.finished ? `<span class="meta">Finished ${esc(b.finished)}</span>` : ""}
-      <div>${stars(b)}</div>
-      ${b.summary ? `<details><summary>What it's about</summary><p class="summary">${esc(b.summary.slice(0, 700))}${b.summary.length > 700 ? "…" : ""}</p></details>` : ""}
-      <details><summary>My thoughts</summary>
-        <label>Shelf <select data-shelf="${b.id}">${["tb","reading","read","wish"].map(s => `<option value="${s}" ${b.shelf === s ? "selected" : ""}>${{tb:"To borrow",reading:"Reading",read:"Read",wish:"Wish list"}[s]}</option>`).join("")}</select></label>
-        <label>Date finished <input type="date" data-finished="${b.id}" value="${esc(b.finished)}"></label>
-        <textarea data-notes="${b.id}" placeholder="What did you think? Who would you recommend it to?">${esc(b.notes)}</textarea>
-        <button data-del="${b.id}">Remove from my books</button>
-      </details>
-    </div>
-  </article>`;
-}
+function starsOf(n) { return `<span class="stars">${[1,2,3,4,5].map(i => `<span class="${i <= (n || 0) ? "on" : ""}">★</span>`).join("")}</span>`; }
+
 function render() {
-  renderTabs();
+  document.querySelectorAll(".shelves button").forEach(b => b.setAttribute("aria-pressed", String(b.dataset.s === state.shelf)));
+  ["reading","read","tb","wish"].forEach(k => { const el = $("n-" + k); if (el) el.textContent = "(" + state.books.filter(b => b.shelf === k).length + ")"; });
   const list = visible();
-  $("list").innerHTML = list.length ? list.map(card).join("") :
-    `<div class="empty">${state.books.length ? "Nothing here yet." : "No books yet. Find one above and tap Add."}</div>`;
-  const update = (id, fn) => { const b = state.books.find(x => x.id === id); if (b) { fn(b); save(); render(); } };
-  $("list").querySelectorAll("[data-rate]").forEach(btn => btn.onclick = () => {
-    const [id, n] = btn.dataset.rate.split(":"); update(id, b => { b.rating = +n; if (b.shelf !== "read" && +n) { b.shelf = "read"; b.finished = b.finished || today(); } });
-  });
-  $("list").querySelectorAll("[data-shelf]").forEach(sel => sel.onchange = () => update(sel.dataset.shelf, b => { b.shelf = sel.value; if (sel.value === "read") b.finished = b.finished || today(); }));
-  $("list").querySelectorAll("[data-finished]").forEach(inp => inp.onchange = () => update(inp.dataset.finished, b => b.finished = inp.value));
-  $("list").querySelectorAll("[data-notes]").forEach(t => t.onchange = () => update(t.dataset.notes, b => b.notes = t.value));
-  $("list").querySelectorAll("[data-del]").forEach(btn => btn.onclick = () => {
-    if (confirm("Remove this book from your list?")) { state.books = state.books.filter(b => b.id !== btn.dataset.del); save(); render(); }
-  });
+  $("list").innerHTML = list.length ? list.map(b => `
+    <button class="card" data-open="${esc(b.id)}" aria-label="${esc(b.title)}">
+      ${b.cover ? `<img alt="" src="${esc(b.cover)}">` : `<div class="noc"></div>`}
+      <b>${esc(b.title)}</b>
+      <small>${esc(b.author)}</small>
+      ${starsOf(b.rating)}
+    </button>`).join("")
+    : `<div class="empty" style="grid-column:1/-1">${state.books.some(b => b.shelf === state.shelf) ? "Nothing matches your search." : "No books here yet. Tap + Add a book."}</div>`;
+  $("list").querySelectorAll("[data-open]").forEach(btn => btn.onclick = () => openDetail(btn.dataset.open));
 }
 
-// ── Save / restore a copy ──
+function openDetail(id) {
+  const b = state.books.find(x => x.id === id); if (!b) return;
+  const shelfBtns = ["reading","read","tb","wish"].map(k => `<button data-to="${k}" class="${b.shelf === k ? "on" : ""}">${LABEL[k]}</button>`).join("");
+  const rate = [1,2,3,4,5].map(n => `<button data-rate="${n}" aria-label="${n} stars">${n <= (b.rating || 0) ? "★" : "☆"}</button>`).join("");
+  $("detailBody").innerHTML = `
+    <h2>${esc(b.title)}</h2>
+    <p class="by">${esc(b.author)}${b.year ? " · " + esc(b.year) : ""}${b.pages ? " · " + esc(b.pages) + " pages" : ""}</p>
+    ${b.summary ? `<p class="sum">${esc(b.summary.slice(0, 400))}${b.summary.length > 400 ? "…" : ""}</p>` : ""}
+    <p><b>Put it on:</b></p>
+    <div class="row">${shelfBtns}</div>
+    <p><b>My rating:</b></p>
+    <div class="row">${rate}</div>
+    ${b.shelf === "read" ? `<p><b>Finished on:</b> <input type="date" id="fin" value="${esc(b.finished)}"></p>` : ""}
+    <p><b>What did you think?</b></p>
+    <textarea id="notes" placeholder="Tap here to write">${esc(b.notes)}</textarea>
+    <div class="row"><button class="x" id="del">Remove this book</button><button id="done">Close</button></div>`;
+  const change = fn => { fn(b); save(); openDetail(id); render(); };
+  $("detailBody").querySelectorAll("[data-to]").forEach(btn => btn.onclick = () => change(x => { x.shelf = btn.dataset.to; if (x.shelf === "read" && !x.finished) x.finished = today(); }));
+  $("detailBody").querySelectorAll("[data-rate]").forEach(btn => btn.onclick = () => change(x => { x.rating = +btn.dataset.rate; if (x.shelf !== "read") { x.shelf = "read"; x.finished = x.finished || today(); } }));
+  if ($("fin")) $("fin").onchange = () => change(x => x.finished = $("fin").value);
+  $("notes").onchange = () => { b.notes = $("notes").value; save(); };
+  $("del").onclick = () => { if (confirm("Remove this book?")) { state.books = state.books.filter(x => x.id !== id); save(); $("detail").close(); render(); } };
+  $("done").onclick = () => { b.notes = $("notes").value; save(); $("detail").close(); render(); };
+  $("detail").showModal();
+}
+
+document.querySelectorAll(".shelves button").forEach(b => b.onclick = () => { state.shelf = b.dataset.s; render(); });
+$("addBtn").onclick = () => { $("hits").innerHTML = ""; $("add").showModal(); $("q").focus(); };
+$("closeAdd").onclick = () => $("add").close();
+$("go").onclick = async () => {
+  $("hits").innerHTML = "<p>Looking…</p>";
+  try { showHits(await findBooks($("q").value)); } catch (e) { $("hits").innerHTML = "<p>Search isn't working right now. Try again in a moment.</p>"; }
+};
+$("q").addEventListener("keydown", e => { if (e.key === "Enter") { e.preventDefault(); $("go").click(); } });
+$("find").oninput = e => { state.q = e.target.value; render(); };
 $("export").onclick = () => {
   const blob = new Blob([JSON.stringify(state.books, null, 2)], { type: "application/json" });
   const a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = "my-books-" + today() + ".json"; a.click();
@@ -228,14 +237,6 @@ $("import").onchange = async e => {
   try { const list = JSON.parse(await f.text()); if (Array.isArray(list)) { state.books = list; save(); render(); } else alert("That file isn't a books copy."); }
   catch (err) { alert("That file couldn't be read."); }
 };
-
-$("go").onclick = async () => {
-  $("hits").innerHTML = `<p class="note">Looking…</p>`;
-  try { showHits(await findBooks($("q").value)); } catch (e) { $("hits").innerHTML = `<p class="note">Book search isn't available right now. Try again in a moment.</p>`; }
-};
-$("q").addEventListener("keydown", e => { if (e.key === "Enter") { e.preventDefault(); $("go").click(); } });
-$("find").oninput = e => { state.q = e.target.value; render(); };
-$("sort").onchange = e => { state.sort = e.target.value; render(); };
 
 state.books = load();
 render();
