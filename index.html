@@ -143,6 +143,11 @@ footer { text-align:center; color:var(--muted); font-size:13px; padding:0 20px 4
 .offe { font-size:24px; }
 .offcard small { color:var(--muted); }
 .offgo { margin-top:auto; font-weight:900; color:var(--accent2, #8b5cf6); font-size:13px; }
+.bin-card { display:block; background:#fff; border:2px solid #1d1630; border-radius:16px; padding:16px; }
+.bin-btn { border:2px solid #1d1630; background:#1d1630; color:#fff; font-weight:800; border-radius:999px; padding:10px 18px; cursor:pointer; }
+.bin-note { margin:6px 0; color:#4d4566; }
+.bin-select { width:100%; max-width:520px; padding:10px 12px; border:2px solid #1d1630; border-radius:12px; font:inherit; background:#fff; }
+.facts { margin:8px 0; padding-left:20px; }
 .areacard { display:grid; grid-template-columns:repeat(auto-fill,minmax(230px,1fr)); gap:14px; }
 .areastat { background:#fff; border:2px solid var(--ink); border-radius:16px; padding:14px; box-shadow:4px 4px 0 var(--ink); display:flex; flex-direction:column; gap:6px; }
 .areastat small { color:var(--muted); }
@@ -259,7 +264,6 @@ const MODULES = [
   { id:"vehicle", type:"topic", emo:"🚗", name:"Vehicle check", desc:"MOT, tax and details from a registration number.", status:"ready", c:"#ffe6d5", pkg:"", repo:"" },
   { id:"guides", type:"topic", emo:"🧭", name:"AI guides", desc:"Plain-English guides to AI, for anyone.", status:"ready", c:"#dff5e8", pkg:"", repo:"github.com/humanagencyco/ai-humanagency", link:"https://ai.humanagency.co" },
   { id:"reading", type:"topic", emo:"📚", name:"Reading & talks", desc:"Talks and articles on AI, curated by hand.", status:"ready", c:"#e4e0ff", pkg:"", repo:"github.com/humanagencyco/ai-humanagency", link:"https://ai.humanagency.co/reading.html" },
-  { id:"bins", type:"personal", emo:"🗑️", name:"Bin day", desc:"Your collection day and reminders.", status:"beta", c:"#e1f5d9", pkg:"", repo:"", link:"https://miru.humanagency.co" },
   { id:"school-msgs", type:"personal", emo:"✉️", name:"School messages", desc:"Your school emails, sorted into one place.", status:"beta", c:"#ffe3ef", pkg:"", repo:"", link:"https://miru.humanagency.co" },
   { id:"weather", type:"near", emo:"☀️", name:"Weather now", desc:"Current conditions for your postcode.", status:"ready", c:"#fff3b0", pkg:"@humanagency/weather-now", repo:"github.com/humanagencyco/weather-now" },
   { id:"fuel", type:"near", emo:"⛽", name:"Fuel prices", desc:"Cheapest petrol and diesel near a postcode.", status:"ready", c:"#ffd6e5", pkg:"@humanagency/fuel-finder", repo:"github.com/humanagencyco/fuel-finder" },
@@ -539,13 +543,13 @@ function render() {
   if (activeSection === "personal") loadPersonal(); else { const pb = document.getElementById("personalBox"); if (pb) pb.innerHTML = ""; }
   const pcq = encodeURIComponent(postcode);
   const official = [
-    ["🗑️", "Bin collection", "Find your council and bin days", `https://www.gov.uk/find-local-council?postcode=${pcq}`],
     ["🚧", "Report a pothole", "See and report potholes near you", `https://www.fixmystreet.com/around?pc=${pcq}`],
     ["🏫", "School reports", "Ofsted reports for any school", "https://reports.ofsted.gov.uk/"],
     ["🩺", "GP and dentist", "Find and register with a GP near you", `https://www.nhs.uk/service-search/find-a-gp/results?postcode=${pcq}`],
     ["🔧", "MOT history", "Check any vehicle's MOT record", "https://www.gov.uk/check-mot-history"],
     ["🧾", "Council tax", "Band and bills for your home", "https://www.gov.uk/council-tax-bands"],
   ];
+  const binHtml = `<div class="sec" id="sec-bins"><h2>🗑️ Bin day <span>Your council and collection days for ${esc(postcode)}.</span></h2><div class="bin-card" id="binCard"><button class="bin-btn" onclick="binFind()">Find my bin day</button></div></div>`;
   const areaHtml = `<div class="sec" id="sec-area"><h2>🧭 Your area <span>Flood warnings, street crime and reported potholes near ${esc(postcode)}.</span></h2><div class="areacard" id="areaCard">Checking your area…</div></div>`;
   const linksHtml = `<div class="sec" id="sec-official"><h2>🔗 Official sources <span>Not on this page yet? Here's where to go for ${esc(postcode)}.</span></h2>
     <div class="offgrid">${official.map(([e, t, d, u]) => `<a class="offcard" href="${u}" target="_blank" rel="noopener"><span class="offe">${e}</span><b>${t}</b><small>${d}</small><span class="offgo">Open ↗</span></a>`).join("")}</div></div>`;
@@ -554,7 +558,7 @@ function render() {
     const items = list.filter(m => m.type === t);
     if (!items.length) return "";
     return `<div class="sec" id="sec-${t}"><h2>${title} <span>${sub}</span></h2><div class="rowline">${items.map(card).join("")}</div></div>`;
-  }).join("") + (activeSection === "near" ? areaHtml + linksHtml : "");
+  }).join("") + (activeSection === "near" ? binHtml + areaHtml + linksHtml : "");
   if (activeSection === "near") loadArea();
   loadTeasers();
   $("grid").querySelectorAll(".mod").forEach(el => {
@@ -616,6 +620,46 @@ function wxText(code) {
 }
 const JCACHE = new Map();
 const JTTL = 10 * 60 * 1000;
+// Bin day: any postcode. Miru finds the council, then either lists addresses or links to the council.
+async function binFind() {
+  const box = $("binCard"); if (!box) return;
+  box.innerHTML = `<p class="bin-note">Looking up your council…</p>`;
+  try {
+    const d = await getJSON(`${API}/api/bins/lookup?postcode=${encodeURIComponent(postcode)}`);
+    if (d.status === "addresses") {
+      box.innerHTML = `<div class="bin-pick"><p class="bin-note">Your council is <b>${esc(d.council)}</b>. Which address is yours?</p>
+        <select id="binAddr" class="bin-select" aria-label="Your address"><option value="">Choose your address…</option>${d.addresses.map(a => `<option value="${esc(a.id)}">${esc(a.label)}</option>`).join("")}</select>
+        <div id="binDates"></div></div>`;
+      $("binAddr").onchange = e => binDates(e.target.value);
+    } else {
+      box.innerHTML = `<p class="bin-note">${esc(d.message || "Check your council's bin checker.")}</p>
+        <a class="offgo" href="${esc(d.council_page)}" target="_blank" rel="noopener">Open ${esc(d.council || "your council")}'s bin checker ↗</a>`;
+    }
+  } catch (e) {
+    box.innerHTML = `<p class="bin-note">Bin days are not available right now.</p>`;
+  }
+}
+async function binDates(uprn) {
+  const out = $("binDates"); if (!out) return;
+  if (!uprn) { out.innerHTML = ""; return; }
+  out.innerHTML = `<p class="bin-note">Checking the council…</p>`;
+  try {
+    const r = await fetch(`${API}/api/bins/dates?postcode=${encodeURIComponent(postcode)}&uprn=${encodeURIComponent(uprn)}`);
+    const d = await r.json().catch(() => ({}));
+    if (!r.ok) {
+      out.innerHTML = `<p class="bin-note">${esc(d.error || "Dates are not available for this council yet.")}</p>` +
+        (d.council_page ? `<a class="offgo" href="${esc(d.council_page)}" target="_blank" rel="noopener">Check on the council's site ↗</a>` : "");
+      return;
+    }
+    const items = (d.collections || []).map(c => `<li><b>${esc(c.bin)}</b> · ${esc(c.date)}</li>`).join("");
+    out.innerHTML = items
+      ? `<ul class="facts">${items}</ul><p class="sources">Source: ${esc(d.source || "the council")}. Checked ${esc(d.checked || "today")}.</p>`
+      : `<p class="bin-note">No collection dates found for that address.</p>`;
+  } catch (e) {
+    out.innerHTML = `<p class="bin-note">Could not check the council right now.</p>`;
+  }
+}
+
 function getJSON(url) {
   const hit = JCACHE.get(url);
   if (hit && Date.now() - hit.t < JTTL) return hit.p;
