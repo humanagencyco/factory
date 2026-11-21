@@ -79,6 +79,10 @@ dialog::backdrop{background:rgba(36,24,74,.4);backdrop-filter:blur(3px)}
 .badge{display:flex;flex-direction:column;align-items:center;width:84px;padding:8px 4px;border-radius:18px;background:var(--g3);font-size:13px;font-weight:800;text-align:center}
 .badge .e{font-size:28px;line-height:1.1}
 .badge.locked{opacity:.35;filter:grayscale(1)}
+.picked{background:#fff;border-radius:24px;padding:16px 18px;box-shadow:0 6px 0 rgba(36,24,74,.08);margin-top:6px}
+.picked-h{font-weight:800;font-size:20px;margin-bottom:10px}
+.pickrow{border-top:2px dashed var(--line);padding:14px 0}
+.pickrow:first-of-type{border-top:0;padding-top:4px}
 .libby{font-weight:800;color:#fff;background:var(--sky);text-decoration:none;padding:11px 18px;border-radius:999px}
 .foot2{margin:30px 0 0;text-align:center}
 .foot2 button{background:none;border:0;font:inherit;font-size:15px;color:var(--muted);cursor:pointer;text-decoration:underline;padding:6px}
@@ -283,13 +287,14 @@ async function renderForYou() {
   // She may have switched shelves while this was loading; only show it on the Read shelf
   if (!rows.length || state.shelf !== "read") { box.innerHTML = ""; return; }
   window._fy = rows.map(r => r.hits);
-  box.innerHTML = rows.map((row, ri) => `
-    <div class="lab" style="margin:0 0 8px">✨ Because you loved <b>${esc(row.fav.title)}</b></div>
-    <div class="grid" style="grid-template-columns:repeat(auto-fill,minmax(130px,1fr));margin-bottom:18px">
+  box.innerHTML = `<div class="picked"><div class="picked-h">✨ Picked for you</div>` + rows.map((row, ri) => `
+    <div class="pickrow">
+    <div class="lab" style="margin:0 0 10px">Because you loved <b>${esc(row.fav.title)}</b></div>
+    <div class="grid" style="grid-template-columns:repeat(auto-fill,minmax(130px,1fr))">
       ${row.hits.map((h, i) => `<div class="book" style="cursor:default"><div class="cover">${h.cover ? `<img alt="" src="${esc(h.cover)}">` : `<div class="ph">📕</div>`}</div>
         <div class="bname" style="font-size:15px">${esc(h.title)}</div>
         <button class="chip" data-fy="${ri}-${i}" style="font-size:14px;padding:6px 10px">+ Add</button></div>`).join("")}
-    </div>`).join("");
+    </div></div>`).join("") + `</div>`;
   box.querySelectorAll("[data-fy]").forEach(btn => btn.onclick = () => {
     const [ri, i] = btn.dataset.fy.split("-").map(Number);
     const h = window._fy[ri][i];
