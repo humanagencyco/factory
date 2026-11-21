@@ -293,12 +293,12 @@ function renderGoal() {
   const byAuthor = {}; read.forEach(b => { const a = (b.author || "").toLowerCase(); if (a) byAuthor[a] = (byAuthor[a] || 0) + 1; });
   const byMonth = {}; read.forEach(b => { const m = (b.finished || "").slice(0, 7); if (m) byMonth[m] = (byMonth[m] || 0) + 1; });
   const badges = [
-    ["📖", "First book", read.length >= 1],
-    ["🔟", "Five books", read.length >= 5],
-    ["🏆", "Ten books", read.length >= 10],
-    ["⭐", "Top rating", state.books.some(b => b.rating === 5)],
-    ["💖", "Favourite author", Object.values(byAuthor).some(n => n >= 2)],
-    ["🗓️", "Busy month", Object.values(byMonth).some(n => n >= 3)],
+    ["📖", "First book", read.length >= 1, "Finish your first book."],
+    ["🔟", "Five books", read.length >= 5, "Finish 5 books."],
+    ["🏆", "Ten books", read.length >= 10, "Finish 10 books."],
+    ["⭐", "Top rating", state.books.some(b => b.rating === 5), "Give one book 5 stars."],
+    ["💖", "Favourite author", Object.values(byAuthor).some(n => n >= 2), "Read 2 books by the same author."],
+    ["🗓️", "Busy month", Object.values(byMonth).some(n => n >= 3), "Finish 3 books in one month."],
   ];
   const pct = goal ? Math.min(100, Math.round(thisYear / goal * 100)) : 0;
   box.innerHTML = `<div class="goalbox">
@@ -306,8 +306,13 @@ function renderGoal() {
       ? `<div style="font-weight:800;font-size:18px">📚 ${thisYear} of ${goal} books in ${year}</div><div class="bar"><span style="width:${pct}%"></span></div>`
       : `<div style="font-weight:800;font-size:18px">📚 Set a reading goal for ${year}</div>`}
     <button class="link" id="setGoal" style="padding:4px 0;font-size:15px">${goal ? "Change goal" : "Set goal"}</button>
-    <div class="badges">${badges.map(([e, n, got]) => `<div class="badge ${got ? "" : "locked"}"><span class="e">${e}</span>${esc(n)}</div>`).join("")}</div>
+    <div class="badges">${badges.map(([e, n, got], i) => `<button class="badge ${got ? "" : "locked"}" data-badge="${i}" aria-label="${esc(n)}${got ? ", earned" : ", not yet"}"><span class="e">${e}</span>${esc(n)}</button>`).join("")}</div>
+    <p id="badgeInfo" class="by" style="margin:10px 0 0;min-height:1.4em"></p>
   </div>`;
+  box.querySelectorAll("[data-badge]").forEach(btn => btn.onclick = () => {
+    const [e, n, got, how] = badges[+btn.dataset.badge];
+    $("badgeInfo").textContent = `${e} ${n}: ${how} ${got ? "You've got it! 🎉" : "Not yet, keep going."}`;
+  });
   $("setGoal").onclick = () => {
     const n = parseInt(prompt("How many books this year?", goal || "20"), 10);
     if (!n || n < 1 || n > 500) return;
