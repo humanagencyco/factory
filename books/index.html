@@ -129,6 +129,18 @@ dialog::backdrop{background:rgba(36,24,74,.4);backdrop-filter:blur(3px)}
   </div>
 </dialog>
 
+<dialog id="style">
+  <div class="sheet">
+    <h2>Make it yours</h2>
+    <p class="by">Pick a background and a picture for your name.</p>
+    <div class="lab">Background</div>
+    <div class="chips" id="themeChoices"></div>
+    <div class="lab">Picture</div>
+    <div class="chips" id="avatarChoices"></div>
+    <div class="foot"><span></span><button class="close" id="closeStyle">Done</button></div>
+  </div>
+</dialog>
+
 <dialog id="card">
   <div class="sheet" id="cardBody"></div>
 </dialog>
@@ -169,11 +181,41 @@ function currentReader() {
   return readers.find(r => r.id === id) || readers[0];
 }
 function pickReader(id) { try { localStorage.setItem("hu_reader", id); } catch (e) {} renderReaders(); loadBooks(); }
+const THEMES = {
+  sunny: ["Sunny", ["#ffe9f3", "#e9f4ff", "#f3ecff"]],
+  ocean: ["Ocean", ["#d9f6ff", "#c8f0ff", "#e6fbff"]],
+  jungle: ["Jungle", ["#e4ffe6", "#f0ffe0", "#e9fff4"]],
+  sunset: ["Sunset", ["#ffe3d1", "#ffd6e8", "#fff0d9"]],
+  space: ["Space", ["#e3dcff", "#d6d0ff", "#f0edff"]],
+  candy: ["Candy", ["#ffd9f0", "#e6d9ff", "#fff0fa"]],
+};
+const AVATARS = ["🙂", "🦊", "🐼", "🦄", "🐸", "🐯", "🦋", "🐙"];
+function applyTheme(name) {
+  const t = THEMES[name] || THEMES.sunny;
+  document.body.style.setProperty("--g1", t[1][0]);
+  document.body.style.setProperty("--g2", t[1][1]);
+  document.body.style.setProperty("--g3", t[1][2]);
+}
+function openStyle() {
+  const cur = currentReader(); if (!cur) return;
+  const save = async body => {
+    try { await api(`/api/books/readers/${cur.id}`, { method: "PATCH", body: JSON.stringify({ household: household(), ...body }) }); Object.assign(cur, body); applyTheme(cur.theme); renderReaders(); openStyle(); }
+    catch (e) { alert("Couldn't save that. Try again."); }
+  };
+  $("themeChoices").innerHTML = Object.entries(THEMES).map(([k, [label]]) => `<button class="chip ${cur.theme === k ? "on" : ""}" data-theme="${k}">${label}</button>`).join("");
+  $("avatarChoices").innerHTML = AVATARS.map(a => `<button class="chip ${cur.avatar === a ? "on" : ""}" data-avatar="${a}" style="font-size:24px;padding:4px 10px">${a}</button>`).join("");
+  $("themeChoices").querySelectorAll("[data-theme]").forEach(b => b.onclick = () => save({ theme: b.dataset.theme }));
+  $("avatarChoices").querySelectorAll("[data-avatar]").forEach(b => b.onclick = () => save({ avatar: b.dataset.avatar }));
+  $("closeStyle").onclick = () => $("style").close();
+  $("style").showModal();
+}
 function renderReaders() {
   // One reader per device. Tap the name to rename it; "Start again" is kept small, since it removes books.
   const cur = currentReader();
   if (!cur) { $("readers").innerHTML = ""; return; }
-  $("readers").innerHTML = `<button class="rpill on" id="renameReader" aria-label="Change name">👤 ${esc(cur.name)}'s books ✏️</button>
+  applyTheme(cur.theme || "sunny");
+  $("readers").innerHTML = `<button class="rpill on" id="renameReader" aria-label="Change name">${esc(cur.avatar || "🙂")} ${esc(cur.name)}'s books ✏️</button>
+    <button class="link" id="styleBtn" style="font-size:14px;padding:6px 8px">🎨 Make it yours</button>
     <button class="link" id="linkDevice" style="font-size:14px;padding:6px 8px">📲 Use on another device</button>
     <button class="link" id="startAgain" style="font-size:14px;padding:6px 8px;color:var(--muted)">Start again</button>`;
   $("linkDevice").onclick = async () => {
@@ -182,6 +224,7 @@ function renderReaders() {
       alert(`On the other device, open this page and choose "I have a code".\n\nCode: ${d.code}\n(It works for 10 minutes.)`);
     } catch (e) { alert("Couldn't make a code. Try again."); }
   };
+  $("styleBtn").onclick = openStyle;
   $("renameReader").onclick = async () => {
     const n = (prompt("What's your name?", cur.name) || "").trim(); if (!n || n === cur.name) return;
     try { await api(`/api/books/readers/${cur.id}`, { method: "PATCH", body: JSON.stringify({ household: household(), name: n }) }); cur.name = n; renderReaders(); }
