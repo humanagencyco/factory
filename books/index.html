@@ -120,6 +120,7 @@ dialog::backdrop{background:rgba(36,24,74,.4);backdrop-filter:blur(3px)}
     <div class="sugg" id="sugg" aria-live="polite"></div>
     <div class="foot" style="margin-top:0">
       <label class="link" style="cursor:pointer">📷 Scan the barcode<input type="file" id="snap" accept="image/*" capture="environment" hidden></label>
+      <label class="link" style="cursor:pointer">🧾 Read my library slip<input type="file" id="slip" accept="image/*" capture="environment" hidden></label>
       <button class="close" id="go">Find</button>
     </div>
     <p class="by" id="scanMsg" style="margin:6px 0 0"></p>
@@ -197,14 +198,14 @@ async function loadBooks() {
   try {
     const rows = await api(`/api/books/list?household=${household()}&reader=${r.id}`);
     state.books = rows.map(x => ({ id: x.id, title: x.title, author: x.author, cover: x.cover, shelf: x.shelf, rating: x.rating,
-      finished: x.finished || "", notes: x.notes || "", added: (x.added || "").slice(0, 10), book_id: x.book_id, summary: "" }));
+      finished: x.finished || "", notes: x.notes || "", added: (x.added || "").slice(0, 10), book_id: x.book_id, due: x.due || "", summary: "" }));
   } catch (e) { state.books = []; }
   render();
 }
 async function syncBook(b) {
   const r = currentReader(); if (!r) return;
   const body = { household: household(), reader: r.id, title: b.title, author: b.author || "", cover: b.cover || "", shelf: b.shelf,
-    rating: b.rating || 0, finished: b.finished || null, notes: b.notes || "", book_id: b.book_id || null };
+    rating: b.rating || 0, finished: b.finished || null, notes: b.notes || "", book_id: b.book_id || null, due: b.due || null };
   const isServerId = /^[0-9a-f-]{36}$/.test(b.id);
   if (isServerId) body.id = b.id;
   try {
@@ -601,6 +602,7 @@ function render() {
       <div class="bname">${esc(b.title)}</div>
       <div class="bmeta">${esc(b.author)}</div>
       ${starsOf(b.rating)}
+      ${b.shelf === "tb" && b.due ? `<div class="bmeta">Due back ${esc(new Date(b.due + "T12:00:00").toLocaleDateString("en-GB", { day: "numeric", month: "short" }))}</div>` : ""}
     </button>`).join("")
     : `<div class="empty" style="grid-column:1/-1">${state.books.some(b => b.shelf === state.shelf) ? "Nothing matches your search." : "No books here yet. Tap the big + Add button to add your first one! 🎉"}</div>`;
   $("list").querySelectorAll("[data-open]").forEach(btn => btn.onclick = () => openDetail(btn.dataset.open));
@@ -620,6 +622,7 @@ function openDetail(id) {
     <div class="chips">${shelfBtns}</div>
     <div class="lab">My rating</div>
     <div class="starpick">${rate}</div>
+    ${b.shelf === "tb" ? `<div class="lab">Due back</div><input class="search" type="date" id="due" value="${esc(b.due)}" style="max-width:240px">` : ""}
     ${b.shelf === "read" ? `<div class="lab">Finished on</div><input class="search" type="date" id="fin" value="${esc(b.finished)}" style="max-width:240px">` : ""}
     <div class="lab">What did you think?</div>
     <textarea id="notes" placeholder="Write it here…">${esc(b.notes)}</textarea>
@@ -629,6 +632,7 @@ function openDetail(id) {
   $("detailBody").querySelectorAll("[data-to]").forEach(btn => btn.onclick = () => change(x => { x.shelf = btn.dataset.to; if (x.shelf === "read" && !x.finished) x.finished = today(); }));
   $("detailBody").querySelectorAll("[data-rate]").forEach(btn => btn.onclick = () => change(x => { x.rating = +btn.dataset.rate; if (x.shelf === "reading" || x.shelf === "tb") { x.shelf = "read"; x.finished = x.finished || today(); } }));
   if ($("fin")) $("fin").onchange = () => change(x => x.finished = $("fin").value);
+  if ($("due")) $("due").onchange = () => change(x => x.due = $("due").value);
   $("notes").onchange = () => { b.notes = $("notes").value; syncBook(b); };
   $("del").onclick = () => { if (confirm("Remove this book?")) { $("detail").close(); removeBook(b); } };
   $("done").onclick = () => { b.notes = $("notes").value; syncBook(b); $("detail").close(); render(); };
@@ -663,6 +667,35 @@ $("q").addEventListener("input", () => {
 });
 // Scan: take a photo of the barcode; the server reads the number, then we search for it
 const SCAN_API = "https://miru.humanagency.co/api/scan-barcode";
+// Library slip: read the titles and due dates from a photo, she ticks the ones to add
+$("slip").onchange = async e => {
+  const f = e.target.files[0]; if (!f) return;
+  $("scanMsg").textContent = "Reading the slip…";
+  try {
+    const body = new FormData(); body.append("image", f);
+    const r = await fetch(`${API}/api/books/read-slip`, { method: "POST", body });
+    const d = await r.json();
+    if (!r.ok) { $("scanMsg").textContent = d.error || "Couldn't read that slip."; }
+    else if (!d.books.length) { $("scanMsg").textContent = "No books found on that slip. Try a clearer photo."; }
+    else {
+      $("scanMsg").textContent = "Tick the books to add to From the library:";
+      $("hits").innerHTML = d.books.map((b, i) => `<label class="hit"><input type="checkbox" checked data-slip="${i}" style="width:22px;height:22px">
+        <div><b>${esc(b.title)}</b><br><small>${esc(b.author || "")}${b.due ? " · Due back " + esc(b.due) : ""}</small></div></label>`).join("")
+        + `<button id="addSlip">Add the ticked books</button>`;
+      $("addSlip").onclick = async () => {
+        const ticked = [...$("hits").querySelectorAll("[data-slip]")].filter(x => x.checked).map(x => d.books[+x.dataset.slip]);
+        for (const b of ticked) {
+          state.books.unshift({ id: String(Date.now() + Math.random()), title: b.title, author: b.author || "", cover: "", shelf: "tb",
+            rating: 0, finished: "", notes: "", added: today(), due: b.due || "", summary: "" });
+          await syncBook(state.books[0]);
+        }
+        $("add").close(); $("hits").innerHTML = ""; $("scanMsg").textContent = ""; state.shelf = "tb"; render();
+        celebrate(`${ticked.length} books added to From the library 📚`);
+      };
+    }
+  } catch (err) { $("scanMsg").textContent = "The slip reader isn't available right now."; }
+  e.target.value = "";
+};
 $("snap").onchange = async e => {
   const f = e.target.files[0]; if (!f) return;
   $("scanMsg").textContent = "Reading the barcode…";
