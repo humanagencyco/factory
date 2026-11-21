@@ -165,16 +165,15 @@ function currentReader() {
 }
 function pickReader(id) { try { localStorage.setItem("hu_reader", id); } catch (e) {} renderReaders(); loadBooks(); }
 function renderReaders() {
-  // One reader per device: the name, with a quiet rename and start-again option
+  // One reader per device. Tap the name to rename it; "Start again" is kept small, since it removes books.
   const cur = currentReader();
-  $("readers").innerHTML = cur ? `<div class="rpill on" style="cursor:default">👤 ${esc(cur.name)}'s books</div>
-    <button class="link" id="renameReader" style="font-size:15px;padding:6px 8px">Rename</button>
-    <button class="link" id="startAgain" style="font-size:15px;padding:6px 8px">Start again</button>` : "";
-  if (!cur) return;
+  if (!cur) { $("readers").innerHTML = ""; return; }
+  $("readers").innerHTML = `<button class="rpill on" id="renameReader" aria-label="Change name">👤 ${esc(cur.name)}'s books ✏️</button>
+    <button class="link" id="startAgain" style="font-size:14px;padding:6px 8px;color:var(--muted)">Start again</button>`;
   $("renameReader").onclick = async () => {
-    const n = (prompt("New name?", cur.name) || "").trim(); if (!n || n === cur.name) return;
+    const n = (prompt("What's your name?", cur.name) || "").trim(); if (!n || n === cur.name) return;
     try { await api(`/api/books/readers/${cur.id}`, { method: "PATCH", body: JSON.stringify({ household: household(), name: n }) }); cur.name = n; renderReaders(); }
-    catch (e) { alert("Couldn't rename. Try again."); }
+    catch (e) { alert("Couldn't change the name. Try again."); }
   };
   $("startAgain").onclick = async () => {
     if (!confirm(`Start again? This removes ${cur.name}'s books from this device.`)) return;
