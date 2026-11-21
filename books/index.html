@@ -169,7 +169,14 @@ function renderReaders() {
   const cur = currentReader();
   if (!cur) { $("readers").innerHTML = ""; return; }
   $("readers").innerHTML = `<button class="rpill on" id="renameReader" aria-label="Change name">👤 ${esc(cur.name)}'s books ✏️</button>
+    <button class="link" id="linkDevice" style="font-size:14px;padding:6px 8px">📲 Use on another device</button>
     <button class="link" id="startAgain" style="font-size:14px;padding:6px 8px;color:var(--muted)">Start again</button>`;
+  $("linkDevice").onclick = async () => {
+    try {
+      const d = await api("/api/books/link-code", { method: "POST", body: JSON.stringify({ household: household() }) });
+      alert(`On the other device, open this page and choose "I have a code".\n\nCode: ${d.code}\n(It works for 10 minutes.)`);
+    } catch (e) { alert("Couldn't make a code. Try again."); }
+  };
   $("renameReader").onclick = async () => {
     const n = (prompt("What's your name?", cur.name) || "").trim(); if (!n || n === cur.name) return;
     try { await api(`/api/books/readers/${cur.id}`, { method: "PATCH", body: JSON.stringify({ household: household(), name: n }) }); cur.name = n; renderReaders(); }
@@ -217,7 +224,18 @@ async function migrateLocal(r) {
 function showWelcome() {
   $("list").innerHTML = `<div class="empty" style="grid-column:1/-1"><p style="font-size:26px;font-weight:800;margin:0 0 12px">👋 Who's reading?</p>
     <input class="search" id="wname" placeholder="Type your name" aria-label="Your name" style="max-width:320px">
-    <div><button class="rpill on" id="wgo">Let's go!</button></div></div>`;
+    <div><button class="rpill on" id="wgo">Let's go!</button></div>
+    <p class="by" style="margin-top:14px"><button class="link" id="haveCode" style="font-size:16px">I have a code from another device</button></p></div>`;
+  $("haveCode").onclick = async () => {
+    const c = (prompt("Type the 6-digit code") || "").replace(/\D/g, ""); if (c.length !== 6) return;
+    try {
+      const d = await api("/api/books/link", { method: "POST", body: JSON.stringify({ code: c }) });
+      try { localStorage.setItem("hu_household", d.household); } catch (e) {}
+      readers = await api(`/api/books/readers?household=${d.household}`);
+      if (!readers.length) { showWelcome(); return; }
+      pickReader(readers[0].id);
+    } catch (e) { alert(e.message || "That code didn't work. Try again."); }
+  };
   $("wgo").onclick = async () => {
     const n = ($("wname").value || "").trim(); if (!n || $("wgo").disabled) return;
     $("wgo").disabled = true;   // ignore repeated taps while saving
