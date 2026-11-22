@@ -442,6 +442,13 @@ async function loadPersonal() {
   try {
     const me = await fetch(`${API}/api/auth/me`, AUTH).then(r => r.json());
     if (!me.signed_in) return renderSignIn(box);
+    if (activeSection !== "personal") {
+      box.innerHTML = `<div class="sample" style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap">
+        <span>🔒 Signed in. Your school messages, spending and bin day are under <b>Personal</b>.</span>
+        <button class="link" id="goPersonal" style="padding:4px 0">Open Personal →</button></div>`;
+      $("goPersonal").onclick = () => { activeSection = "personal"; render(); };
+      return;
+    }
     const [msgs, spend] = await Promise.all([
       fetch(`${API}/api/factory/me/messages`, AUTH).then(r => r.json()),
       fetch(`${API}/api/factory/me/spend`, AUTH).then(r => r.json()),
@@ -582,7 +589,7 @@ function render() {
   const areaHtml = `<div class="sec" id="sec-area"><h2>🧭 Your area <span>Flood warnings, street crime and reported potholes near ${esc(postcode)}.</span></h2><div class="areacard" id="areaCard">Checking your area…</div></div>`;
   const linksHtml = `<div class="sec" id="sec-official"><h2>🔗 Official sources <span>Not on this page yet? Here's where to go for ${esc(postcode)}.</span></h2>
     <div class="offgrid">${official.map(([e, t, d, u]) => `<a class="offcard" href="${u}" target="_blank" rel="noopener"><span class="offe">${e}</span><b>${t}</b><small>${d}</small><span class="offgo">Open ↗</span></a>`).join("")}</div></div>`;
-  $("binSlot").innerHTML = binHtml;
+  $("binSlot").innerHTML = activeSection === "personal" ? binHtml : "";
   $("grid").innerHTML = SECTIONS.map(([t, title, sub]) => {
     if (t !== activeSection) return "";
     const items = list.filter(m => m.type === t);
