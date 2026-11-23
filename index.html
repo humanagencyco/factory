@@ -323,6 +323,28 @@ body.back .stepsmore { display:none; }
 .tcheck { flex-direction:row !important; align-items:center; gap:8px !important; font-weight:700 !important; margin:4px 0; }
 .tcheck input { width:16px; height:16px; }
 @media (max-width:600px) { .tpick { grid-template-columns:1fr; } }
+.tdcta { display:flex; align-items:center; gap:10px; flex-wrap:wrap; margin-top:8px; }
+.tdbtn { border:2px solid var(--ink); border-radius:999px; background:var(--sun); color:var(--ink); font:inherit; font-size:14px; font-weight:800; padding:6px 14px; cursor:pointer; box-shadow:3px 3px 0 var(--ink); }
+.tdbtn:hover { transform:translate(-1px,-1px); box-shadow:4px 4px 0 var(--ink); }
+.tdcta small { font-size:13px; }
+.family { display:flex; justify-content:center; align-items:center; gap:14px; flex-wrap:wrap; font-size:13px; padding:8px 12px; border-bottom:2px solid var(--ink); background:#fff; position:relative; z-index:2; }
+.family a { color:var(--ink); text-decoration:none; font-weight:700; opacity:.75; }
+.family a:hover { opacity:1; text-decoration:underline; }
+.family a.on { opacity:1; background:var(--ink); color:#fff; border-radius:999px; padding:2px 10px; }
+.family span { opacity:.4; margin:0 -6px; }
+.bymiru { font-size:12px; font-weight:800; color:var(--muted); text-decoration:none; border:1.5px solid var(--line); border-radius:999px; padding:1px 8px; }
+.bymiru:hover { color:var(--ink); border-color:var(--ink); }
+.ftip { margin-top:10px; font-size:14px; background:#f4f0ff; border-radius:12px; padding:8px 12px; }
+.ftip a, .ftip button { color:var(--violet); font-weight:800; }
+.ftip button { font-size:14px; padding:0; margin:0; }
+.family-foot { max-width:1100px; margin:0 auto 26px; padding:0 20px; }
+.family-foot h2 { font-size:20px; font-weight:900; margin:0 0 10px; }
+.ffgrid { display:grid; grid-template-columns:repeat(3,1fr); gap:12px; }
+.ffgrid a { display:block; background:#fff; border:2px solid var(--ink); border-radius:16px; padding:12px 14px; color:var(--ink); text-decoration:none; box-shadow:4px 4px 0 var(--ink); }
+.ffgrid a:hover { transform:translate(-1px,-1px); box-shadow:5px 5px 0 var(--ink); }
+.ffgrid b { display:block; font-size:16px; margin-bottom:3px; }
+.ffgrid span { font-size:13px; color:var(--muted); }
+@media (max-width:800px) { .ffgrid { grid-template-columns:1fr; } .family { gap:10px; font-size:12px; } }
 .remind { margin-top:14px; border-top:2px solid var(--ink); padding-top:14px; }
 .remind .rhead { display:flex; gap:10px; align-items:center; flex-wrap:wrap; }
 .remind .rhead b { font-size:16px; }
@@ -351,6 +373,7 @@ body.back .stepsmore { display:none; }
 <link rel="apple-touch-icon" href="icon-192.png">
 </head>
 <body>
+<nav class="family" aria-label="Human Agency products"><a href="https://humanagency.co/" data-promo="home"><b>Human Agency</b></a><span>·</span><a href="https://miru.humanagency.co/" data-promo="miru">Miru</a><a href="https://intel.humanagency.co/brand/intelligence" data-promo="intel">Intel</a><a href="https://ai.humanagency.co/" data-promo="ai">AI Learning</a><a class="on" href="./" aria-current="page">Factory</a></nav>
 
 <header class="hero">
   <div class="blob b1"></div><div class="blob b2"></div><div class="blob b3"></div>
@@ -420,6 +443,14 @@ body.back .stepsmore { display:none; }
   <div class="hook"><span class="hi">🛠️</span><div><b>Want a tool like this for your business or community?</b><small>We build small, useful tools on live data, and help teams put AI to work.</small></div><a class="btn" href="https://humanagency.co/" target="_blank" rel="noopener">Talk to us ↗</a></div>
 </section>
 
+<section class="family-foot" aria-label="More from Human Agency">
+  <h2>More from Human Agency</h2>
+  <div class="ffgrid">
+    <a href="https://miru.humanagency.co/" target="_blank" rel="noopener" data-promo="miru"><b>📲 Miru</b><span>Your area and your day on WhatsApp: a 7.30am brief, school messages, bills.</span></a>
+    <a href="https://intel.humanagency.co/brand/intelligence" target="_blank" rel="noopener" data-promo="intel"><b>🔎 Intel</b><span>Look up any company or brand before you meet, buy or apply.</span></a>
+    <a href="https://ai.humanagency.co/" target="_blank" rel="noopener" data-promo="ai"><b>🎓 AI Learning</b><span>AI in plain English: guides, a jargon buster, and how to get started.</span></a>
+  </div>
+</section>
 <footer>Live data from public sources. Built by Human Agency. Fuel Finder code is MIT-licensed; other modules are licensed as they are published.</footer>
 
 <div class="scrim" id="scrim"></div>
@@ -444,6 +475,7 @@ body.back .stepsmore { display:none; }
 <script>
 // Live data from Miru's public read-only endpoints.
 const MODULES = [
+  { id:"company", type:"topic", emo:"🔎", name:"Company check", desc:"Look up a company or brand before you meet, buy or apply. Full report on Intel.", status:"ready", c:"#dcefff", pkg:"", repo:"", link:"https://intel.humanagency.co/brand/intelligence" },
   { id:"vehicle", type:"topic", emo:"🚗", name:"Vehicle check", desc:"MOT, tax and details from a registration number.", status:"ready", c:"#ffe6d5", pkg:"", repo:"" },
   { id:"guides", type:"topic", emo:"🧭", name:"AI guides", desc:"Plain-English guides to AI, for anyone.", status:"ready", c:"#dff5e8", pkg:"", repo:"github.com/humanagencyco/ai-humanagency", link:"https://ai.humanagency.co" },
   { id:"reading", type:"topic", emo:"📚", name:"Reading & talks", desc:"Talks and articles on AI, curated by hand.", status:"ready", c:"#e4e0ff", pkg:"", repo:"github.com/humanagencyco/ai-humanagency", link:"https://ai.humanagency.co/reading.html" },
@@ -541,7 +573,7 @@ async function loadTeasers() {
     fuel: async () => {
       const d = await getJSON(`${API}/api/factory/fuel-near?postcode=${encodeURIComponent(pc)}&fuel=${fuelType}`);
       const best = cheapestOf(d.stations);
-      return best ? line(`${fuelType === "diesel" ? "Diesel" : "Petrol"} ${best.price_p}p · ${esc(best.brand)}`) : line("No stations nearby", false);
+      return best ? line(`Cheapest ${fuelType === "diesel" ? "diesel" : "petrol"} ${best.price_p}p · ${esc(best.brand)}`) : line("No stations nearby", false);
     },
     mps: async () => {
       const mp = await getJSON(`${API}/api/mp?postcode=${encodeURIComponent(pc)}`);
@@ -811,6 +843,7 @@ function render() {
 }
 
 const BRIEF_URL = "https://miru.humanagency.co/";
+const INTEL = "https://intel.humanagency.co", AILEARN = "https://ai.humanagency.co";
 function hookHtml(slim = false) {
   return `<div class="hook${slim ? " slim" : ""}"><span class="hi">🌅</span><div><b>Want this every morning?</b><small>Miru sends weather, fuel and trains for ${esc(postcode)} to your WhatsApp at 7.30am.</small></div><a class="btn" href="${BRIEF_URL}" target="_blank" rel="noopener">Get it on WhatsApp ↗</a></div>`;
 }
@@ -849,6 +882,7 @@ document.addEventListener("keydown", e => { if (e.key==="Escape") closeDrawer();
 
 function tryPanel(m) {
   if (["pubs","trains","schools"].includes(m.id)) return `<div class="box"><div class="row"><input id="tIn" placeholder="Postcode" maxlength="8" value="${postcode}"><button class="btn pink" id="tGo">Check</button></div><div id="tOut" style="margin-top:10px"></div></div>`;
+  if (m.id === "company") return `<div class="box"><div class="row"><input id="tIn" placeholder="Company or brand, e.g. Tesco" maxlength="60" style="text-transform:none"><button class="btn pink" id="tGo">Check</button></div><div id="tOut" style="margin-top:10px"><div class="sample">Who they are, how they're doing, what people say, and who's hiring. From <b>Intel</b>, our company research tool.</div></div></div>`;
   if (m.id === "vehicle") return `<div class="box"><div class="row"><input id="tIn" placeholder="Registration, e.g. AB12 CDE" maxlength="10"><button class="btn pink" id="tGo">Check</button></div><div id="tOut" style="margin-top:10px"></div></div>`;
   if (m.type === "topic") return `<div class="box"><b>No postcode needed.</b><p style="margin:6px 0 10px;color:var(--muted)">This is for everyone.</p><a class="btn pink" href="${esc(m.link)}" target="_blank" rel="noopener" style="text-decoration:none">Open ${esc(m.name)} ↗</a></div>`;
   if (m.type === "personal") return `<div class="box"><b>Log in to see this.</b><p style="margin:6px 0 10px;color:var(--muted)">Your messages and data stay private. Sign in on Miru to open it.</p><a class="btn pink" href="${esc(m.link)}" target="_blank" rel="noopener" style="text-decoration:none">Sign in to Miru ↗</a></div>`;
@@ -1006,7 +1040,8 @@ async function wireLive(m) {
         show(ans + `<div class="subhead">Nearest station</div>`
           + `<div class="result"><div><b>${esc(near.name)}</b><small>${near.distance_km} km away</small></div></div>`
           + `<div class="subhead">Next trains${depStation && depStation.name !== near.name ? " from " + esc(depStation.name) : ""}</div>` + trainRows
-          + `<div class="sample">Live from the National Rail feed</div>`);
+          + `<div class="sample">Live from the National Rail feed</div>`
+          + `<div class="tdcta" style="margin-top:12px"><button class="tdbtn" type="button" data-trains-setup data-close-drawer>🚆 Track my trains</button><small class="muted">Pin your regular journey or a trip to the Today box.</small></div>`);
       }
       if (m.id === "schools") {
         const d = await getJSON(`${API}/api/factory/schools-near?postcode=${encodeURIComponent(pc)}`);
@@ -1022,6 +1057,22 @@ async function wireLive(m) {
 }
 function wireTry(m) {
   if (["pubs","trains","schools"].includes(m.id)) return wireLive(m);
+  if (m.id === "company") {
+    const go = $("tGo"), out = $("tOut");
+    const intelUrl = n => `${INTEL}/brand/intelligence?name=${encodeURIComponent(n)}`;
+    const run = async () => {
+      const q = $("tIn").value.trim();
+      if (!q) return;
+      out.innerHTML = `<div class="sample">Looking…</div>`;
+      let names = [];
+      try { names = (await getJSON(`${API}/api/companies/search?q=${encodeURIComponent(q)}`)).map(x => typeof x === "string" ? x : x.name).filter(Boolean).slice(0, 5); } catch (e) {}
+      out.innerHTML = (names.length ? names.map(n => `<div class="result"><div><b>${esc(n)}</b><small>Report ready on Intel</small></div><a class="btn ghost" style="text-decoration:none;padding:6px 12px;font-size:13px" href="${intelUrl(n)}" target="_blank" rel="noopener" data-promo="intel">Open ↗</a></div>`).join("") : "")
+        + `<div class="result"><div><b>${names.length ? "Not the one?" : esc(q)}</b><small>${names.length ? "Run a fresh check on Intel" : "Intel will research it for you, about 20 seconds"}</small></div><a class="btn pink" style="text-decoration:none;padding:6px 12px;font-size:13px" href="${intelUrl(q)}" target="_blank" rel="noopener" data-promo="intel">Check on Intel ↗</a></div>`;
+    };
+    go.onclick = run;
+    $("tIn").onkeydown = e => { if (e.key === "Enter") { e.preventDefault(); run(); } };
+    return;
+  }
   if (m.id === "vehicle") {
     const go = $("tGo"), out = $("tOut");
     const run = async () => {
@@ -1147,7 +1198,18 @@ document.addEventListener("click", e => {
   const f = e.target.closest("[data-fuel]");
   if (f) { e.stopPropagation(); setFuel(f.dataset.fuel); return; }
   if (e.target.closest("[data-install]")) { installApp(); return; }
-  if (e.target.closest("[data-trains-setup]")) { openTrainSetup(); return; }
+  const pr = e.target.closest("[data-promo]");
+  if (pr) track("promo:" + pr.dataset.promo);
+  const om = e.target.closest("[data-open-mod]");
+  if (om) { openModule(om.dataset.openMod); return; }
+  const ts = e.target.closest("[data-trains-setup]");
+  if (ts) {
+    if (ts.hasAttribute("data-close-drawer")) {
+      closeDrawer();
+      const t = document.getElementById("today"); if (t && t.scrollIntoView) t.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
+    openTrainSetup(); return;
+  }
   const hw = e.target.closest("[data-how]");
   if (hw) {
     e.preventDefault(); track("how");
@@ -1316,9 +1378,10 @@ async function loadToday() {
   const pc = postcode, seq = ++todaySeq;
   const ICON = { wx: "🌤️", fuel: "⛽", train: "🚆", bin: "🗑️" };
   const OPEN = { wx: "weather", fuel: "fuel", train: anyTrains() ? "" : "trains", bin: "" };
-  el.innerHTML = `<div class="tdhead"><h2>Today in ${esc(pc)}</h2><span class="tddate">${esc(new Date().toLocaleDateString("en-GB", { weekday: "long", day: "numeric", month: "long" }))}</span>${installBtn()}</div>
+  el.innerHTML = `<div class="tdhead"><h2>Today in ${esc(pc)}</h2><span class="tddate">${esc(new Date().toLocaleDateString("en-GB", { weekday: "long", day: "numeric", month: "long" }))}</span><a class="bymiru" href="https://miru.humanagency.co/" target="_blank" rel="noopener" data-promo="miru">by Miru</a>${installBtn()}</div>
     <div>${["wx", "fuel", "train", "bin"].map(k => `<div class="tdrow" id="td-${k}"${OPEN[k] ? ` data-open="${OPEN[k]}"` : ""}><span class="tdi">${ICON[k]}</span><span class="tdt muted">Checking…</span></div>`).join("")}</div>
     <div class="tdchanges" id="tdChanges"></div>
+    ${familyTip()}
     <div class="remind" id="remind"></div>`;
   renderRemind();
   const put = (k, html, muted) => { if (seq !== todaySeq) return; const r = document.getElementById("td-" + k); if (r) r.innerHTML = `<span class="tdi">${ICON[k]}</span><span class="tdt${muted ? " muted" : ""}">${html}</span>`; };
@@ -1329,10 +1392,10 @@ async function loadToday() {
     .catch(() => { put("wx", "Weather isn't available right now.", true); return null; });
   const fuel = getJSON(`${API}/api/factory/fuel-near?postcode=${encodeURIComponent(pc)}&fuel=${fuelType}`).then(d => {
     const c = cheapestOf(d.stations);
-    put("fuel", c ? `<b>${fuelLabel} ${c.price_p}p</b> at ${esc(shortBrand(c.brand))}, ${c.distance_mi} mi away. ${tog}` : `No ${fuelLabel.toLowerCase()} prices nearby. ${tog}`);
+    put("fuel", c ? `<b>Cheapest ${fuelLabel.toLowerCase()} ${c.price_p}p</b> at ${esc(shortBrand(c.brand))}, ${c.distance_mi} mi away. ${tog}` : `No ${fuelLabel.toLowerCase()} prices nearby. ${tog}`);
     return c;
   }).catch(() => { put("fuel", `Fuel prices aren't available right now. ${tog}`, true); return null; });
-  const setTrains = ` <button class="showhidden" type="button" data-trains-setup style="margin-left:2px">🚆 Track my trains</button>`;
+  const setTrains = `<div class="tdcta"><button class="tdbtn" type="button" data-trains-setup>🚆 Track my trains</button><small class="muted">Your regular journey or a trip today, live both ways.</small></div>`;
   if (anyTrains()) loadMyTrains(put);
   else todayTrain(pc).then(r => {
     if (!r.next) return put("train", `No more trains listed from ${esc(r.st.name || "your nearest station")} right now.${setTrains}`, true);
@@ -1583,6 +1646,19 @@ async function pushSubscription(wanted) {
   if (perm !== "granted") throw new Error("Notifications are blocked. Allow them for this site in your browser settings.");
   if (!sub) sub = await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: b64u8(key) });
   return sub.toJSON();
+}
+
+// ---------- One line a day from the rest of Human Agency (changes daily, never more than one) ----------
+function familyTip() {
+  const tips = [
+    { k: "intel", html: `🔎 Meeting a company this week? <button class="showhidden" type="button" data-open-mod="company" data-promo="intel">Check them in seconds</button> with Intel.` },
+    { k: "ai", html: `🎓 New to AI, or want to use it better? <a href="${AILEARN}/" target="_blank" rel="noopener" data-promo="ai">Plain-English guides</a>, a few minutes each.` },
+    { k: "miru", html: `📲 Want this without opening the page? <a href="${BRIEF_URL}" target="_blank" rel="noopener" data-promo="miru">Miru sends it to WhatsApp</a> at 7.30am.` },
+    { k: "talk", html: `🛠️ Want a tool like this for your business or community? <a href="https://humanagency.co/" target="_blank" rel="noopener" data-promo="talk">We build them.</a>` },
+  ];
+  const d = new Date(), day = Math.floor((d - new Date(d.getFullYear(), 0, 0)) / 864e5);
+  const t = tips[day % tips.length];
+  return `<div class="ftip" data-tip="${t.k}">${t.html}</div>`;
 }
 
 // ---------- My trains: a saved journey out and back, at a glance ----------
