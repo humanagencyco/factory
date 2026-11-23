@@ -192,7 +192,7 @@ const CATS = [
   ["trainers", "Trainers", "Fashion"], ["t-shirt", "T-shirts", "Fashion"], ["dog food", "Dog food", "Pet care"], ["cat food", "Cat food", "Pet care"],
 ];
 const LANG = { en: "English", fr: "French", de: "German", es: "Spanish", it: "Italian", pt: "Portuguese", ru: "Russian", ja: "Japanese", zh: "Chinese",
-  ar: "Arabic", fa: "Persian", hi: "Hindi", ko: "Korean", nl: "Dutch", pl: "Polish", sv: "Swedish", tr: "Turkish", id: "Indonesian", uk: "Ukrainian", he: "Hebrew", vi: "Vietnamese", th: "Thai" };
+  ar: "Arabic", fa: "Persian", hi: "Hindi", ko: "Korean", nl: "Dutch", pl: "Polish", sv: "Swedish", tr: "Turkish", id: "Indonesian", uk: "Ukrainian", he: "Hebrew", vi: "Vietnamese", th: "Thai", cs: "Czech", hu: "Hungarian", ro: "Romanian", el: "Greek", da: "Danish", fi: "Finnish", no: "Norwegian", ms: "Malay", bn: "Bengali", ur: "Urdu", ta: "Tamil", te: "Telugu", ca: "Catalan", sk: "Slovak", bg: "Bulgarian", sr: "Serbian", hr: "Croatian" };
 const median = a => { a = a.filter(Boolean).sort((x, y) => x - y); return a.length ? (a.length % 2 ? a[(a.length - 1) / 2] : (a[a.length / 2 - 1] + a[a.length / 2]) / 2) : null; };
 const listPrices = d => [...((d.catalog_intelligence || {}).top_products || []).map(p => p.price), ...((d.pricing_intelligence || {}).competitor_prices || []).map(p => p.price)].map(num).filter(Boolean);
 
@@ -212,7 +212,8 @@ async function wikiBrand(name) {
     const want = [...ids("P127"), ...ids("P495")];
     let labels = {};
     if (want.length) { const r = await getJSON(`https://www.wikidata.org/w/api.php?action=wbgetentities&props=labels&languages=en&format=json&origin=*&ids=${want.join("|")}`); labels = Object.fromEntries(want.map(i => [i, r.entities[i]?.labels?.en?.value])); }
-    out.owner = ids("P127").map(i => labels[i]).filter(Boolean)[0];
+    out.listed = !!(c.P414 && c.P414.length);
+    out.owner = out.listed ? null : ids("P127").map(i => labels[i]).filter(Boolean)[0];
     out.origin = ids("P495").map(i => labels[i]).filter(Boolean)[0];
     out.since = ((c.P571 || [])[0]?.mainsnak.datavalue?.value?.time || "").slice(1, 5);
   }
@@ -247,7 +248,8 @@ async function loadGlance(name) {
   if (size) cards.push(["How big · UK and worldwide", size, `Based on ${reasons.join(" and ")}. A rough guide, not sales.`]);
 
   // Who owns it
-  if (w && (w.owner || w.origin || w.since)) { const extra = [w.owner && w.origin ? `From ${w.origin}` : "", w.since && (w.owner || w.origin) ? `Since ${w.since}` : ""].filter(Boolean).join(". ");
+  if (w && w.listed) cards.push(["Who's behind it", "A company listed on the stock market", (w.since ? `Since ${w.since}. ` : "") + "Owned by its shareholders. Source: Wikidata."]);
+  else if (w && (w.owner || w.origin || w.since)) { const extra = [w.owner && w.origin ? `From ${w.origin}` : "", w.since && (w.owner || w.origin) ? `Since ${w.since}` : ""].filter(Boolean).join(". ");
     cards.push(["Who's behind it", w.owner ? `Owned by ${w.owner}` : (w.origin ? `From ${w.origin === "United Kingdom" || w.origin === "United States" ? "the " + w.origin : w.origin}` : `Started in ${w.since}`), (extra ? extra + ". " : "") + "Source: Wikidata."]); }
 
   // Where popular
@@ -258,8 +260,11 @@ async function loadGlance(name) {
   }
 
   // Which segment: what it sells, and where its prices sit against the category
-  const found = CATS.map(c => [c, titles.split(c[0]).length - 1]).filter(x => x[1] > 0).sort((a, b) => b[1] - a[1])[0];
-  if (found) {
+  const hits = CATS.map(c => [c, titles.split(c[0]).length - 1]).filter(x => x[1] > 0).sort((a, b) => b[1] - a[1]);
+  const groups = new Set(hits.map(x => x[0][2]));
+  const found = hits[0];
+  if (groups.size >= 3) cards.push(["Which segment · UK prices", "Sells across many categories", `Its listings cover ${[...groups].slice(0, 4).join(", ").toLowerCase()}, so it's more of a retailer or house brand than a single product brand.`]);
+  else if (found) {
     const [[kw, label, group]] = found;
     const mine = median(listPrices(d || {}));
     let tier = "", why = "";
