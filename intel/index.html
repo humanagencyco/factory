@@ -218,7 +218,7 @@ async function loadOpportunities(name) {
   const add = (lens, title, body, why) => opps.push({ lens, title, body, why });
 
   // 1. Be easy to buy
-  const shops = [...new Set(listings.map(x => x.shop).filter(Boolean))];
+  const shops = [...new Set(listings.map(x => x.shop).filter(x => x && !/do not use|test/i.test(x)))];
   const lower = name.toLowerCase().replace(/[^a-z0-9]/g, "");
   const ownShop = shops.some(s => s.toLowerCase().replace(/[^a-z0-9]/g, "").includes(lower));
   const seen = CHANNELS.filter(([, re]) => shops.some(s => re.test(s))).map(([n]) => n);
