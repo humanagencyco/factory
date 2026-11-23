@@ -129,14 +129,14 @@ function renderCompany(c) {
         <img class="logo" alt="" src="https://www.google.com/s2/favicons?sz=128&domain=${esc(brandDomain(c.website))}" onerror="this.style.display='none'">
         <div><b>${esc(c.display_name)}</b><p class="note">Logo from the company's own website domain.</p></div>
       </div>
-      <h3>Products seen online</h3><div id="products"><p class="note">Looking up product listings…</p></div>
-      <h3>Commercial opportunities for the brand</h3><div id="opps"><p class="note">Reading the listings for opportunities…</p></div>
+      <h3>Products seen online in the UK</h3><div id="products"><p class="note">Looking up product listings…</p></div>
+      <h3>Commercial opportunities for the brand in the UK</h3><div id="opps"><p class="note">Reading the listings for opportunities…</p></div>
       <h3>In the news</h3><div id="news"><p class="note">Counting recent coverage…</p></div>
       <h3>Christmas adverts</h3><p class="note">Not checked yet. <a href="https://www.youtube.com/results?search_query=${encodeURIComponent(c.display_name + ' Christmas advert')}" target="_blank" rel="noopener">Search YouTube for ${esc(c.display_name)} Christmas adverts ↗</a> (unchecked results).</p>
       <h3>AI use</h3><div id="aiuse"><p class="note">Working out how they use AI…</p></div>
       <h3>Company SWOT</h3><div id="swot"><p class="note">Working out a SWOT…</p></div>
       ${links.length ? `<h3>Find them online</h3><div class="links">${links.join("")}</div>` : ""}
-      <h3>Hiring</h3><div id="hiring">Checking job adverts…</div>
+      <h3>Hiring in the UK</h3><div id="hiring">Checking job adverts…</div>
       ${sources.length ? `<p class="sources">Sources: ${sources.map(u => `<a href="${esc(u)}" target="_blank" rel="noopener">${esc(u.replace(/^https?:\/\//, "").split("/").slice(0, 2).join("/"))}</a>`).join(", ")}</p>` : ""}`;
   } else if (status === "failed") {
     body = `<div class="state">We couldn't research ${esc(c.display_name)} just now. <br>Try again later.</div>`;
@@ -238,20 +238,20 @@ async function loadGlance(name) {
 
   // How big
   const reasons = [];
-  if (reviews) reasons.push(`${reviews.toLocaleString("en-GB")} shopper reviews`);
-  if (w) reasons.push(`a Wikipedia page in ${langs} language${langs > 1 ? "s" : ""}`);
+  if (reviews) reasons.push(`${reviews.toLocaleString("en-GB")} reviews on UK shopping listings`);
+  if (w) reasons.push(`a Wikipedia page in ${langs} language${langs > 1 ? "s" : ""} worldwide`);
   const size = (langs >= 15 || reviews >= 20000) ? "Big, known around the world" : (langs >= 5 || reviews >= 2000) ? "Mid-sized, known in several countries" : (reviews || langs) ? "Smaller or newer brand" : "";
-  if (size) cards.push(["How big", size, `Based on ${reasons.join(" and ")}. A rough guide, not sales.`]);
+  if (size) cards.push(["How big · UK and worldwide", size, `Based on ${reasons.join(" and ")}. A rough guide, not sales.`]);
 
   // Who owns it
-  if (w && (w.owner || w.origin || w.since)) cards.push(["Who's behind it", w.owner ? `Owned by ${w.owner}` : (w.origin ? `From ${w.origin}` : `Since ${w.since}`),
-    [w.owner && w.origin ? `From ${w.origin}` : "", w.since && (w.owner || w.origin) ? `since ${w.since}` : ""].filter(Boolean).join(", ") + (w.owner || w.origin ? ". " : "") + "Source: Wikidata."]);
+  if (w && (w.owner || w.origin || w.since)) { const extra = [w.owner && w.origin ? `From ${w.origin}` : "", w.since && (w.owner || w.origin) ? `Since ${w.since}` : ""].filter(Boolean).join(". ");
+    cards.push(["Who's behind it", w.owner ? `Owned by ${w.owner}` : (w.origin ? `From ${w.origin}` : `Since ${w.since}`), (extra ? extra + ". " : "") + "Source: Wikidata."]); }
 
   // Where popular
   if (w && w.views.length) {
     const tot = w.views.reduce((a, b) => a + b[1], 0);
     const topL = w.views.slice(0, 3).map(([l, v]) => `${LANG[l] || l} (${Math.round(100 * v / tot)}%)`);
-    cards.push(["Where people look it up", `Mostly in ${LANG[w.views[0][0]] || w.views[0][0]}`, `Wikipedia reads, last 3 months: ${topL.join(", ")}. Shows languages, not exact countries.`]);
+    cards.push(["Where people look it up · worldwide", `Mostly in ${LANG[w.views[0][0]] || w.views[0][0]}`, `Wikipedia reads, last 3 months: ${topL.join(", ")}. Shows languages, not exact countries.`]);
   }
 
   // Which segment: what it sells, and where its prices sit against the category
@@ -265,15 +265,15 @@ async function loadGlance(name) {
       if (mine && base) {
         const r = mine / base;
         tier = r < 0.7 ? "everyday price" : r > 1.4 ? "premium price" : "mid price";
-        why = `Middle price ${money2(mine)} against ${money2(base)} for ${label.toLowerCase()} listings in general.`;
+        why = `Middle UK price ${money2(mine)} against ${money2(base)} for ${label.toLowerCase()} listings in the UK generally.`;
       }
     } catch (_) {}
-    cards.push(["Which segment", `${group}, ${label.toLowerCase()}${tier ? `, ${tier}` : ""}`, (why || "From the product names in the listings.") + " Small samples, so a guide only."]);
+    cards.push(["Which segment · UK prices", `${group}, ${label.toLowerCase()}${tier ? `, ${tier}` : ""}`, (why || "From the product names in the listings.") + " Small samples, so a guide only."]);
   }
 
   el.innerHTML = cards.length
     ? `<div class="glance">${cards.map(([k, v, why]) => `<div class="fact"><small>${esc(k)}</small><b>${esc(v)}</b><span>${esc(why)}</span></div>`).join("")}</div>
-       <p class="sources">Sources: Google Shopping listings, Wikipedia and Wikidata, live. These are clues, not sales or market share figures.</p>`
+       <p class="sources">Prices and reviews come from UK shopping listings. Ownership and where people look it up are worldwide, from Wikipedia and Wikidata. These are clues, not sales or market share figures.</p>`
     : `<p class="note">Not enough public information to size up this brand.</p>`;
 }
 const money2 = n => "£" + n.toFixed(2);
@@ -397,10 +397,10 @@ async function loadOpportunities(name) {
   if (h && !hiringLooksOwn(h, name)) unknowns.push(`What the brand is investing in. The job adverts found mostly belong to other organisations with the same name.`);
   unknowns.push("Sales, market share and how many shops really stock it. That needs retail data (Kantar, NielsenIQ or the retailers' own data).");
 
-  el.innerHTML = `<p class="label">Worked out from live listings using set rules, not written by AI</p>`
+  el.innerHTML = `<p class="label">UK only: worked out from live UK shopping listings using set rules, not written by AI</p>`
     + opps.map(o => `<div class="opp"><span class="lens">${esc(o.lens)}</span><b>${esc(o.title)}</b>${esc(o.body)}<p class="why">${esc(o.why)}</p></div>`).join("")
     + `<p class="note"><b>Can't tell from public data:</b></p><ul class="facts">${unknowns.map(u => `<li>${esc(u)}</li>`).join("")}</ul>`
-    + `<p class="sources">Lenses: physical and mental availability (Byron Sharp, How Brands Grow, 2010); price ladder (Bain, "Your Brand's Best Strategy", HBR 1997); sources of growth (Igor Ansoff, "Strategies for Diversification", HBR 1957). Data: Google Shopping listings, NewsAPI, Adzuna, live.</p>`;
+    + `<p class="sources">Lenses: physical and mental availability (Byron Sharp, How Brands Grow, 2010); price ladder (Bain, "Your Brand's Best Strategy", HBR 1997); sources of growth (Igor Ansoff, "Strategies for Diversification", HBR 1957). Data: Google Shopping UK listings, NewsAPI, Adzuna UK job adverts, live. Other countries may look different.</p>`;
 }
 
 // Price and review summary from the Google Shopping listings (same data the brand dashboard used)
@@ -431,7 +431,7 @@ async function loadBrand(name) {
     pr.innerHTML = top.length
       ? priceSummary(d.pricing_intelligence || {}, cat, top)
         + `<ul class="facts">${top.slice(0, 6).map(p => `<li>${esc(p.title)} · ${esc(p.price || "")}${p.rating ? ` · ${esc(p.rating)}★` : ""} <span class="note">${esc(p.source || "")}</span></li>`).join("")}</ul>
-         <p class="sources">Source: Google Shopping listings, live. ${esc(cat.total_skus ?? top.length)} listings found. Not a full range.</p>`
+         <p class="sources">Source: Google Shopping UK listings, live. Prices in pounds from UK sellers. ${esc(cat.total_skus ?? top.length)} listings found. Not a full range.</p>`
       : `<p class="note">No product listings found right now.</p>`;
     const ai = d.ai_visibility || {};
     const heads = Array.isArray(ai.sample_headlines) ? ai.sample_headlines.slice(0, 3) : [];
@@ -458,7 +458,7 @@ async function loadHiring(name) {
         <div class="fact"><small>Main focus</small><b>${esc(o.signal || "No clear focus")}</b></div></div>`
       + (d.growth_signals || []).map(g => `<p class="note"><b>${esc(g.title)}:</b> ${esc(g.description)} <span class="conf">based on ${esc(o.total_open_roles ?? "?")} job adverts</span></p>`).join("")
       + ((d.sample_roles || []).length ? `<p class="note">Some of the adverts found:</p><ul class="facts">${d.sample_roles.slice(0, 4).map(r => `<li>${esc(r.title || "")}${r.location ? ` <span class="note">${esc(r.location)}</span>` : ""}</li>`).join("")}</ul>` : "")
-      + `<p class="sources">Source: Adzuna job adverts, checked live. These are adverts that mention the name, not confirmed hires. For a brand owned by a bigger company, or a name other organisations share, they may not be the brand's own jobs, so check the titles.</p>`;
+      + `<p class="sources">Source: Adzuna UK job adverts, checked live. These are adverts that mention the name, not confirmed hires. For a brand owned by a bigger company, or a name other organisations share, they may not be the brand's own jobs, so check the titles.</p>`;
   } catch (e) {
     el.innerHTML = `<p class="note">Job adverts unavailable right now.</p>`;
   }
