@@ -153,6 +153,23 @@ async function loadAnalysis(name) {
   }
 }
 
+// Price and review summary from the Google Shopping listings (same data the brand dashboard used)
+function priceSummary(pi, cat, top) {
+  const listed = [...(Array.isArray(pi.competitor_prices) ? pi.competitor_prices : []), ...top];
+  const nums = [...new Set(listed.map(x => parseFloat(String(x.price || "").replace(/[^0-9.]/g, ""))).filter(n => n > 0))].sort((a, b) => a - b);
+  const cur = (String(pi.current_price || top[0]?.price || "£").match(/^[^0-9]*/) || ["£"])[0] || "£";
+  const money = n => cur + n.toFixed(2);
+  const mid = nums.length ? (nums.length % 2 ? nums[(nums.length - 1) / 2] : (nums[nums.length / 2 - 1] + nums[nums.length / 2]) / 2) : null;
+  const shops = [...new Set(listed.map(x => x.retailer || x.source).filter(Boolean))];
+  const cells = [];
+  if (pi.price_range) cells.push(["Price range", String(pi.price_range).replace(/\s*[–-]\s*/, " to ")]);
+  else if (nums.length > 1) cells.push(["Price range", money(nums[0]) + " to " + money(nums[nums.length - 1])]);
+  if (mid !== null && nums.length > 2) cells.push(["Middle price", money(mid) + ` (of ${nums.length} prices seen)`]);
+  if (cat.review_average && cat.review_count) cells.push(["Rating", `${Number(cat.review_average).toFixed(1)}★ from ${Number(cat.review_count).toLocaleString("en-GB")} reviews`]);
+  if (shops.length) cells.push(["Sold by", shops.slice(0, 4).join(", ") + (shops.length > 4 ? ` and ${shops.length - 4} more` : "")]);
+  return cells.length ? `<div class="grid">${cells.map(([k, v]) => `<div class="fact"><small>${esc(k)}</small><b>${esc(v)}</b></div>`).join("")}</div>` : "";
+}
+
 // Brand data from Miru: product listings (Google Shopping) and news counts. Each names its source.
 async function loadBrand(name) {
   const pr = document.getElementById("products"), nw = document.getElementById("news");
@@ -162,13 +179,16 @@ async function loadBrand(name) {
     const cat = d.catalog_intelligence || {};
     const top = Array.isArray(cat.top_products) ? cat.top_products : [];
     pr.innerHTML = top.length
-      ? `<ul class="facts">${top.slice(0, 6).map(p => `<li>${esc(p.title)} · ${esc(p.price || "")}${p.rating ? ` · ${esc(p.rating)}★` : ""} <span class="note">${esc(p.source || "")}</span></li>`).join("")}</ul>
+      ? priceSummary(d.pricing_intelligence || {}, cat, top)
+        + `<ul class="facts">${top.slice(0, 6).map(p => `<li>${esc(p.title)} · ${esc(p.price || "")}${p.rating ? ` · ${esc(p.rating)}★` : ""} <span class="note">${esc(p.source || "")}</span></li>`).join("")}</ul>
          <p class="sources">Source: Google Shopping listings, live. ${esc(cat.total_skus ?? top.length)} listings found. Not a full range.</p>`
       : `<p class="note">No product listings found right now.</p>`;
     const ai = d.ai_visibility || {};
+    const heads = Array.isArray(ai.sample_headlines) ? ai.sample_headlines.slice(0, 3) : [];
     nw.innerHTML = ai.mentions_30d
       ? `<div class="fact"><small>Articles in the last 30 days</small><b>${esc(ai.mentions_30d)}</b></div>
-         <p class="sources">Source: NewsAPI, live. A count of articles that mention the name, not a measure of sentiment.</p>`
+         ${heads.length ? `<p class="note">Some of the headlines counted:</p><ul class="facts">${heads.map(h => `<li>${esc(h)}</li>`).join("")}</ul>` : ""}
+         <p class="sources">Source: NewsAPI, live. Counts every article that uses the name, not a measure of sentiment. If the name is also an everyday word, unrelated stories get counted too, so check the headlines.</p>`
       : `<p class="note">No recent coverage found.</p>`;
   } catch (e) {
     pr.innerHTML = `<p class="note">Product listings not available right now.</p>`;
@@ -187,7 +207,8 @@ async function loadHiring(name) {
         <div class="fact"><small>Trend, last 3 months</small><b>${esc(o.hiring_growth_3m || "Not enough data")}</b></div>
         <div class="fact"><small>Main focus</small><b>${esc(o.signal || "No clear focus")}</b></div></div>`
       + (d.growth_signals || []).map(g => `<p class="note"><b>${esc(g.title)}:</b> ${esc(g.description)} <span class="conf">based on ${esc(o.total_open_roles ?? "?")} job adverts</span></p>`).join("")
-      + `<p class="sources">Source: Adzuna job adverts, checked live. These are adverts found, not confirmed hires.</p>`;
+      + ((d.sample_roles || []).length ? `<p class="note">Some of the adverts found:</p><ul class="facts">${d.sample_roles.slice(0, 4).map(r => `<li>${esc(r.title || "")}${r.location ? ` <span class="note">${esc(r.location)}</span>` : ""}</li>`).join("")}</ul>` : "")
+      + `<p class="sources">Source: Adzuna job adverts, checked live. These are adverts that mention the name, not confirmed hires. For a brand owned by a bigger company, or a name other organisations share, they may not be the brand's own jobs, so check the titles.</p>`;
   } catch (e) {
     el.innerHTML = `<p class="note">Job adverts unavailable right now.</p>`;
   }
