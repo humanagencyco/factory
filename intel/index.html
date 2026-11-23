@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Intel · Human Agency</title>
+<title>Intel: companies and brands | Human Agency</title>
 <meta name="description" content="Look up a company: what it does, where it is, its key facts and where the information comes from.">
 <style>
 :root{--ink:#1d1630;--muted:#6c6485;--paper:#fff8f1;--pink:#ff5d8f;--sun:#ffb830;--mint:#2fd1a4;--sky:#5aa9ff;--violet:#8b5cf6;--line:#eadfd2}
@@ -40,6 +40,9 @@ h1 span{background:linear-gradient(90deg,var(--pink),var(--violet),var(--sky));-
 .fact{border:2px solid var(--ink);border-radius:16px;padding:12px 14px;background:var(--paper)}
 .fact small{display:block;color:var(--muted);font-weight:800;font-size:11px;text-transform:uppercase;letter-spacing:.06em}
 .fact b{font-size:15px}
+.glance{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px;margin:0 0 8px}
+.glance .fact b{display:block;font-size:18px;margin:2px 0 4px}
+.glance .fact span{display:block;color:var(--muted);font-size:13px}
 .opp{border:2px solid var(--ink);border-radius:16px;padding:12px 14px;background:var(--paper);margin:0 0 10px}
 .opp b{display:block;font-size:15px;margin:0 0 4px}
 .opp .why{color:var(--muted);font-size:13px;margin:6px 0 0}
@@ -49,6 +52,7 @@ ul.facts{margin:0;padding-left:20px}ul.facts li{margin:4px 0}
 .links{display:flex;gap:8px;flex-wrap:wrap}
 .links a{border:2px solid var(--ink);border-radius:999px;padding:6px 12px;text-decoration:none;background:#fff;color:var(--ink);font-size:14px}
 .sources{font-size:13px;color:var(--muted);margin-top:18px}
+.examples{font-size:14px;color:var(--muted);margin:10px 0 0}.examples a{color:var(--ink);font-weight:800}
 .state{padding:30px;text-align:center;color:var(--muted);border:2px dashed var(--ink);border-radius:18px;margin:26px 0;background:#fff}
 footer{color:var(--muted);font-size:13px;padding:30px 0 50px;text-align:center}
 @media (max-width:640px){.card h2{font-size:24px}.search{flex-direction:column;border-radius:20px}}
@@ -59,12 +63,13 @@ footer{color:var(--muted);font-size:13px;padding:30px 0 50px;text-align:center}
 <div class="wrap">
   <div class="top"><a class="brand" href="/">Human Agency</a><span class="kicker">🔍 Intel</span></div>
   <section class="hero">
-    <h1>What is this company <span>really</span> about?</h1>
-    <p class="lede">Search a company to see what it does, where it's based, its key facts and the sources behind them. Every fact links back to where it came from.</p>
+    <h1>What is this company or brand <span>really</span> about?</h1>
+    <p class="lede">Search a company or a brand to see what it does, where it's sold, how its prices compare and where the opportunities are. Every point says where it came from.</p>
     <form class="search" id="searchForm" role="search">
-      <input id="q" type="search" placeholder="Try Tesco, Ikea or a company name" aria-label="Company name" autocomplete="off">
+      <input id="q" type="search" placeholder="A company or brand, like Tesco or Glossier" aria-label="Company or brand name" autocomplete="off">
       <button class="btn" type="submit">Search</button>
     </form>
+    <p class="examples">Try a company: <a href="?q=Tesco">Tesco</a>, <a href="?q=Ikea">Ikea</a>. Or a brand: <a href="?q=Glossier">Glossier</a>, <a href="?q=Dove">Dove</a>, <a href="?q=Marmite">Marmite</a>.</p>
     <div class="results" id="suggest" aria-live="polite"></div>
   </section>
   <main id="out" aria-live="polite"></main>
@@ -118,6 +123,7 @@ function renderCompany(c) {
       <p class="note">Figures and rankings are left out until they can be checked.</p>
       ${grid ? `<div class="grid">${grid}</div>` : ""}
       <h3>Key facts</h3><p class="note">Not shown yet. Facts are added only once they can be checked against an official source.</p>
+      ${GLANCE ? `<h3>Brand at a glance</h3><div id="glance"><p class="note">Sizing up the brand…</p></div>` : ""}
       <h3>Brand</h3>
       <div class="brand">
         <img class="logo" alt="" src="https://www.google.com/s2/favicons?sz=128&domain=${esc(brandDomain(c.website))}" onerror="this.style.display='none'">
@@ -171,6 +177,106 @@ async function loadAnalysis(name) {
     sw.innerHTML = `<p class="note">SWOT not available right now.</p>`;
   }
 }
+
+// ---------- Brand at a glance (preview: add &glance=1 to the link) ----------
+const GLANCE = new URLSearchParams(location.search).get("glance") === "1";
+const CATS = [
+  ["deodorant", "Deodorant", "Personal care"], ["body wash", "Body wash", "Personal care"], ["shower gel", "Shower gel", "Personal care"],
+  ["shampoo", "Shampoo", "Hair care"], ["conditioner", "Conditioner", "Hair care"], ["moisturis", "Moisturiser", "Skin care"],
+  ["serum", "Face serum", "Skin care"], ["cleanser", "Face cleanser", "Skin care"], ["lip balm", "Lip balm", "Beauty"], ["balm", "Balm", "Beauty"],
+  ["mascara", "Mascara", "Make-up"], ["lipstick", "Lipstick", "Make-up"], ["foundation", "Foundation", "Make-up"], ["perfume", "Perfume", "Fragrance"],
+  ["beauty bar", "Soap bar", "Personal care"], ["soap", "Soap", "Personal care"], ["toothpaste", "Toothpaste", "Oral care"],
+  ["yeast extract", "Savoury spread", "Food"], ["spread", "Spread", "Food"], ["ice cream", "Ice cream", "Food"], ["crisps", "Crisps", "Food"],
+  ["chocolate", "Chocolate", "Food"], ["biscuit", "Biscuits", "Food"], ["cereal", "Cereal", "Food"], ["sauce", "Sauce", "Food"],
+  ["coffee", "Coffee", "Drinks"], ["tea", "Tea", "Drinks"], ["juice", "Juice", "Drinks"], ["beer", "Beer", "Drinks"], ["gin", "Gin", "Drinks"],
+  ["trainers", "Trainers", "Fashion"], ["t-shirt", "T-shirts", "Fashion"], ["dog food", "Dog food", "Pet care"], ["cat food", "Cat food", "Pet care"],
+];
+const LANG = { en: "English", fr: "French", de: "German", es: "Spanish", it: "Italian", pt: "Portuguese", ru: "Russian", ja: "Japanese", zh: "Chinese",
+  ar: "Arabic", fa: "Persian", hi: "Hindi", ko: "Korean", nl: "Dutch", pl: "Polish", sv: "Swedish", tr: "Turkish", id: "Indonesian", uk: "Ukrainian", he: "Hebrew", vi: "Vietnamese", th: "Thai" };
+const median = a => { a = a.filter(Boolean).sort((x, y) => x - y); return a.length ? (a.length % 2 ? a[(a.length - 1) / 2] : (a[a.length / 2 - 1] + a[a.length / 2]) / 2) : null; };
+const listPrices = d => [...((d.catalog_intelligence || {}).top_products || []).map(p => p.price), ...((d.pricing_intelligence || {}).competitor_prices || []).map(p => p.price)].map(num).filter(Boolean);
+
+async function wikiBrand(name) {
+  const W = "https://en.wikipedia.org/w/api.php?format=json&origin=*&";
+  const s = await getJSON(W + `action=query&list=search&srlimit=3&srsearch=${encodeURIComponent(name + " brand")}`);
+  const hit = (s.query?.search || []).find(x => x.title.toLowerCase().startsWith(name.toLowerCase()));
+  if (!hit) return null;
+  const p = await getJSON(W + `action=query&prop=pageprops|langlinks&lllimit=500&titles=${encodeURIComponent(hit.title)}`);
+  const pg = Object.values(p.query.pages)[0];
+  const out = { title: hit.title, langs: (pg.langlinks || []).map(l => [l.lang, l["*"]]) };
+  const qid = pg.pageprops?.wikibase_item;
+  if (qid) {
+    const e = await getJSON(`https://www.wikidata.org/wiki/Special:EntityData/${qid}.json`);
+    const c = e.entities[qid].claims || {};
+    const ids = k => (c[k] || []).map(x => x.mainsnak.datavalue?.value?.id).filter(Boolean);
+    const want = [...ids("P127"), ...ids("P495")];
+    let labels = {};
+    if (want.length) { const r = await getJSON(`https://www.wikidata.org/w/api.php?action=wbgetentities&props=labels&languages=en&format=json&origin=*&ids=${want.join("|")}`); labels = Object.fromEntries(want.map(i => [i, r.entities[i]?.labels?.en?.value])); }
+    out.owner = ids("P127").map(i => labels[i]).filter(Boolean)[0];
+    out.origin = ids("P495").map(i => labels[i]).filter(Boolean)[0];
+    out.since = ((c.P571 || [])[0]?.mainsnak.datavalue?.value?.time || "").slice(1, 5);
+  }
+  // Wikipedia reads per language over the last three full months
+  const end = new Date(); end.setDate(0); const start = new Date(end); start.setMonth(start.getMonth() - 2); start.setDate(1);
+  const ymd = d => d.toISOString().slice(0, 10).replace(/-/g, "");
+  const pages = [["en", hit.title], ...out.langs];
+  out.views = (await Promise.all(pages.map(async ([l, t]) => {
+    try { const r = await getJSON(`https://wikimedia.org/api/rest_v1/metrics/pageviews/per-article/${l}.wikipedia/all-access/user/${encodeURIComponent(t.replace(/ /g, "_"))}/monthly/${ymd(start)}/${ymd(end)}`);
+      return [l, (r.items || []).reduce((a, b) => a + b.views, 0)]; } catch (_) { return [l, 0]; }
+  }))).filter(x => x[1] > 0).sort((a, b) => b[1] - a[1]);
+  return out;
+}
+
+async function loadGlance(name) {
+  const el = document.getElementById("glance");
+  if (!el) return;
+  const [d, w] = await Promise.all([brandData(name).catch(() => null), wikiBrand(name).catch(() => null)]);
+  const cat = (d && d.catalog_intelligence) || {};
+  const titles = ((cat.top_products || []).map(p => p.title).concat(((d && d.pricing_intelligence || {}).competitor_prices || []).map(p => p.product))).join(" ").toLowerCase();
+  const reviews = num(cat.review_count) || 0, langs = w ? w.langs.length + 1 : 0;
+  const cards = [];
+
+  // How big
+  const reasons = [];
+  if (reviews) reasons.push(`${reviews.toLocaleString("en-GB")} shopper reviews`);
+  if (w) reasons.push(`a Wikipedia page in ${langs} language${langs > 1 ? "s" : ""}`);
+  const size = (langs >= 15 || reviews >= 20000) ? "Big, known around the world" : (langs >= 5 || reviews >= 2000) ? "Mid-sized, known in several countries" : (reviews || langs) ? "Smaller or newer brand" : "";
+  if (size) cards.push(["How big", size, `Based on ${reasons.join(" and ")}. A rough guide, not sales.`]);
+
+  // Who owns it
+  if (w && (w.owner || w.origin || w.since)) cards.push(["Who's behind it", w.owner ? `Owned by ${w.owner}` : (w.origin ? `From ${w.origin}` : `Since ${w.since}`),
+    [w.owner && w.origin ? `From ${w.origin}` : "", w.since && (w.owner || w.origin) ? `since ${w.since}` : ""].filter(Boolean).join(", ") + (w.owner || w.origin ? ". " : "") + "Source: Wikidata."]);
+
+  // Where popular
+  if (w && w.views.length) {
+    const tot = w.views.reduce((a, b) => a + b[1], 0);
+    const topL = w.views.slice(0, 3).map(([l, v]) => `${LANG[l] || l} (${Math.round(100 * v / tot)}%)`);
+    cards.push(["Where people look it up", `Mostly in ${LANG[w.views[0][0]] || w.views[0][0]}`, `Wikipedia reads, last 3 months: ${topL.join(", ")}. Shows languages, not exact countries.`]);
+  }
+
+  // Which segment: what it sells, and where its prices sit against the category
+  const found = CATS.map(c => [c, titles.split(c[0]).length - 1]).filter(x => x[1] > 0).sort((a, b) => b[1] - a[1])[0];
+  if (found) {
+    const [[kw, label, group]] = found;
+    const mine = median(listPrices(d || {}));
+    let tier = "", why = "";
+    try {
+      const base = median(listPrices(await brandData(kw)));
+      if (mine && base) {
+        const r = mine / base;
+        tier = r < 0.7 ? "everyday price" : r > 1.4 ? "premium price" : "mid price";
+        why = `Middle price ${money2(mine)} against ${money2(base)} for ${label.toLowerCase()} listings in general.`;
+      }
+    } catch (_) {}
+    cards.push(["Which segment", `${group}, ${label.toLowerCase()}${tier ? `, ${tier}` : ""}`, (why || "From the product names in the listings.") + " Small samples, so a guide only."]);
+  }
+
+  el.innerHTML = cards.length
+    ? `<div class="glance">${cards.map(([k, v, why]) => `<div class="fact"><small>${esc(k)}</small><b>${esc(v)}</b><span>${esc(why)}</span></div>`).join("")}</div>
+       <p class="sources">Sources: Google Shopping listings, Wikipedia and Wikidata, live. These are clues, not sales or market share figures.</p>`
+    : `<p class="note">Not enough public information to size up this brand.</p>`;
+}
+const money2 = n => "£" + n.toFixed(2);
 
 // ---------- Brand: commercial opportunities ----------
 // Lenses, each tied to a well known way of looking at brand growth:
@@ -363,7 +469,7 @@ async function showCompany(name) {
   try {
     const c = await getJSON(`${API}/api/company/${encodeURIComponent(name.toLowerCase().replace(/\s+/g, "-"))}`);
     $("out").innerHTML = renderCompany(c);
-    if (c.status === "ready") { loadHiring(c.display_name); loadAnalysis(c.display_name); loadBrand(c.display_name); loadOpportunities(c.display_name); }
+    if (c.status === "ready") { loadHiring(c.display_name); loadAnalysis(c.display_name); loadBrand(c.display_name); loadOpportunities(c.display_name); if (GLANCE) loadGlance(c.display_name); }
   } catch (e) {
     $("out").innerHTML = `<div class="state">Could not load ${esc(name)}. ${esc(e.message || "")}</div>`;
   }
