@@ -178,8 +178,8 @@ async function loadAnalysis(name) {
   }
 }
 
-// ---------- Brand at a glance (preview: add &glance=1 to the link) ----------
-const GLANCE = new URLSearchParams(location.search).get("glance") === "1";
+// ---------- Brand at a glance (hide with &glance=0) ----------
+const GLANCE = new URLSearchParams(location.search).get("glance") !== "0";
 const CATS = [
   ["deodorant", "Deodorant", "Personal care"], ["body wash", "Body wash", "Personal care"], ["shower gel", "Shower gel", "Personal care"],
   ["shampoo", "Shampoo", "Hair care"], ["conditioner", "Conditioner", "Hair care"], ["moisturis", "Moisturiser", "Skin care"],
@@ -248,7 +248,7 @@ async function loadGlance(name) {
 
   // Who owns it
   if (w && (w.owner || w.origin || w.since)) { const extra = [w.owner && w.origin ? `From ${w.origin}` : "", w.since && (w.owner || w.origin) ? `Since ${w.since}` : ""].filter(Boolean).join(". ");
-    cards.push(["Who's behind it", w.owner ? `Owned by ${w.owner}` : (w.origin ? `From ${w.origin}` : `Started in ${w.since}`), (extra ? extra + ". " : "") + "Source: Wikidata."]); }
+    cards.push(["Who's behind it", w.owner ? `Owned by ${w.owner}` : (w.origin ? `From ${w.origin === "United Kingdom" || w.origin === "United States" ? "the " + w.origin : w.origin}` : `Started in ${w.since}`), (extra ? extra + ". " : "") + "Source: Wikidata."]); }
 
   // Where popular
   if (w && w.views.length) {
