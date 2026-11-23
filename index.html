@@ -205,6 +205,21 @@ footer { text-align:center; color:var(--muted); font-size:13px; padding:0 20px 4
 @media (prefers-reduced-motion:reduce) { .prepgrid li.wait i { animation:none; } }
 .ofsted { text-align:right; font-size:12px; white-space:nowrap; }
 .ofsted a { color:var(--accent2, #8b5cf6); font-weight:800; text-decoration:none; }
+.mod .acts { margin-top:auto; display:flex; align-items:center; gap:6px; flex-wrap:wrap; }
+.mod .acts .go { margin-top:0; margin-right:auto; }
+.mod .mini { border:2px solid var(--ink); background:#fff; color:var(--ink); border-radius:999px; padding:4px 10px; font-size:12px; font-weight:800; cursor:pointer; }
+.mod .mini:hover { background:var(--c); }
+.hook { display:flex; align-items:center; gap:14px; flex-wrap:wrap; background:#d6f7ec; border:2px solid var(--ink); border-radius:18px; padding:16px 18px; box-shadow:5px 5px 0 var(--ink); margin:22px 0 6px; }
+.hook .hi { font-size:28px; }
+.hook > div { flex:1 1 220px; }
+.hook b { display:block; font-size:17px; }
+.hook small { color:var(--muted); font-size:14px; }
+.hook .btn { margin-left:auto; text-decoration:none; background:#25d366; color:var(--ink); border:2px solid var(--ink); }
+.hook.slim { margin:14px 0 0; padding:12px 14px; box-shadow:3px 3px 0 var(--ink); }
+.hook.slim b { font-size:15px; }
+.buildcta { max-width:1100px; margin:10px auto 34px; padding:0 20px; }
+.buildcta .hook { background:#efe2ff; }
+.buildcta .hook .btn { background:var(--ink); color:#fff; }
 </style>
 </head>
 <body>
@@ -238,6 +253,10 @@ footer { text-align:center; color:var(--muted); font-size:13px; padding:0 20px 4
   <div id="personalBox"></div>
   <div id="grid"></div>
 </main>
+
+<section class="buildcta" aria-label="Work with us">
+  <div class="hook"><span class="hi">🛠️</span><div><b>Want a tool like this for your business or community?</b><small>We build small, useful tools on live data, and help teams put AI to work.</small></div><a class="btn" href="https://humanagency.co/" target="_blank" rel="noopener">Talk to us ↗</a></div>
+</section>
 
 <footer>Live data from public sources. Built by Human Agency. Fuel Finder code is MIT-licensed; other modules are licensed as they are published.</footer>
 
@@ -568,7 +587,11 @@ function render() {
       <p>${esc(m.desc)}</p>
       <span class="pill ${m.status==='soon'?'soon':m.status}">${LABEL[m.status]}</span>
       <div class="teaser" data-teaser="${m.id}">${m.type === "near" ? "Checking your area…" : ""}</div>
-      <span class="go">Open →</span>
+      <div class="acts">
+        <span class="go">Open →</span>
+        ${m.type !== "personal" ? `<button class="mini" type="button" data-act="share" aria-label="Share ${esc(m.name)}">🔗 Share</button>` : ""}
+        ${m.pkg || m.repo ? `<button class="mini" type="button" data-act="build" aria-label="Get the code for ${esc(m.name)}">&lt;/&gt; Code</button>` : ""}
+      </div>
     </article>`;
   const SECTIONS = [
     ["near", "📍 Near you", "Uses the postcode you set above."],
@@ -595,27 +618,40 @@ function render() {
     const items = list.filter(m => m.type === t);
     if (!items.length) return "";
     return `<div class="sec" id="sec-${t}"><h2>${title} <span>${sub}</span></h2><div class="rowline">${items.map(card).join("")}</div></div>`;
-  }).join("") + (activeSection === "near" ? areaHtml + linksHtml : "");
+  }).join("") + (activeSection === "near" ? hookHtml() + areaHtml + linksHtml : "");
   if (activeSection === "near") loadArea();
   loadTeasers();
   $("grid").querySelectorAll(".mod").forEach(el => {
-    el.onclick = () => openModule(el.dataset.id);
+    el.onclick = e => {
+      const act = e.target.closest("[data-act]");
+      if (act && act.dataset.act === "share") { e.stopPropagation(); shareModule(el.dataset.id); return; }
+      openModule(el.dataset.id, act ? act.dataset.act : "try");
+    };
     el.onkeydown = e => { if (e.key==="Enter"||e.key===" ") { e.preventDefault(); openModule(el.dataset.id); } };
   });
 }
 
-function openModule(id) {
+const BRIEF_URL = "https://miru.humanagency.co/";
+function hookHtml(slim = false) {
+  return `<div class="hook${slim ? " slim" : ""}"><span class="hi">🌅</span><div><b>Want this every morning?</b><small>Miru sends weather, fuel and trains for ${esc(postcode)} to your WhatsApp at 7.30am.</small></div><a class="btn" href="${BRIEF_URL}" target="_blank" rel="noopener">Get it on WhatsApp ↗</a></div>`;
+}
+function shareModule(id) {
+  const link = `${location.origin}${location.pathname}#${id}?pc=${encodeURIComponent(postcode)}`;
+  navigator.clipboard?.writeText(link).catch(() => {});
+  toast("Link copied, with " + postcode + " filled in 🎉"); burst();
+}
+function openModule(id, tab = "try") {
   const m = MODULES.find(x => x.id === id);
   $("dhead").style.setProperty("--c", m.c);
   $("dhead").style.background = m.c;
   $("dtitle").textContent = `${m.emo} ${m.name}`;
   $("dtitle").dataset.id = m.id;
   $("dsub").textContent = `${LABEL[m.status]} · ${m.desc}`;
-  $("p-try").innerHTML = tryPanel(m);
+  $("p-try").innerHTML = tryPanel(m) + (m.type === "near" ? hookHtml(true) : "");
   $("p-take").innerHTML = takePanel(m);
   $("p-build").innerHTML = buildPanel(m);
   wireTry(m);
-  setTab("try");
+  setTab(tab);
   $("scrim").classList.add("open");
   $("drawer").classList.add("open");
   $("dclose").focus();
@@ -887,6 +923,7 @@ function wireTry(m) {
 
 function takePanel(m) {
   return `<div class="opts">
+    ${m.type === "near" ? `<div class="opt"><span class="i">🌅</span><div><b>Get it every morning</b><small>Miru sends it to your WhatsApp at 7.30am.</small></div><a class="btn pink" href="${BRIEF_URL}" target="_blank" rel="noopener" style="text-decoration:none">WhatsApp ↗</a></div>` : ""}
     <div class="opt"><span class="i">🔗</span><div><b>Share a link</b><small>Send this module to someone with your postcode filled in.</small></div><button class="btn" data-copy="__SHARE__" data-mod="${m.id}">Copy</button></div>
     <div class="opt"><span class="i">📱</span><div><b>Add to your home screen</b><small>Open it like an app. Works on iPhone and Android.</small></div><button class="btn ghost" data-toast="On iPhone: Share → Add to Home Screen">How</button></div>
     <div class="opt"><span class="i">🧩</span><div><b>Use it inside your own site</b><small>Paste a small embed code into any page.</small></div><button class="btn ghost" data-toast="Embed code is coming in the next release">Embed</button></div>
