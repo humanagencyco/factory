@@ -187,6 +187,18 @@ async function loadAnalysis(name) {
   }
 }
 
+// Marketplace sellers come through as "eBay - shopname": count them as the marketplace
+const sellerName = s => String(s || "").replace(/^(ebay|amazon(\.co\.uk)?|onbuy|fruugo)\b.*$/i, m => m.split(/\s+-\s+/)[0]).trim();
+const cleanShops = list => [...new Set(list.map(sellerName).filter(x => x && !/do not use|test/i.test(x)))];
+// Google Shopping shows whoever lists there, which is often small sellers and marketplaces, not the big chains.
+// So give one-click checks at the big UK chains instead of guessing.
+const CHECKS = {
+  food: [["Tesco", "https://www.tesco.com/groceries/en-GB/search?query="], ["Sainsbury's", "https://www.sainsburys.co.uk/gol-ui/SearchResults/"], ["Asda", "https://www.asda.com/groceries/search/"], ["Morrisons", "https://groceries.morrisons.com/search?q="], ["Waitrose", "https://www.waitrose.com/ecom/shop/search?searchTerm="], ["Ocado", "https://www.ocado.com/search?entry="]],
+  beauty: [["Boots", "https://www.boots.com/sitesearch?searchTerm="], ["Superdrug", "https://www.superdrug.com/search?text="], ["Tesco", "https://www.tesco.com/groceries/en-GB/search?query="], ["Sainsbury's", "https://www.sainsburys.co.uk/gol-ui/SearchResults/"], ["Asda", "https://www.asda.com/groceries/search/"]],
+};
+const checkLinks = (name, beauty) => (beauty ? CHECKS.beauty : CHECKS.food).map(([n, u]) => `<a href="${u}${encodeURIComponent(name)}" target="_blank" rel="noopener">${esc(n)} ↗</a>`).join(" ");
+const isBeauty = words => /deodorant|shampoo|conditioner|moisturi|serum|cream|lotion|body wash|shower|soap|lip|mascara|foundation|skin|hair|fragrance|perfume|balm|cleanser/.test(words);
+
 // ---------- Brand at a glance (hide with &glance=0) ----------
 const GLANCE = new URLSearchParams(location.search).get("glance") !== "0";
 const CATS = [
@@ -304,7 +316,7 @@ async function brandFacts(name) {
   const top = Array.isArray(cat.top_products) ? cat.top_products : [];
   const listings = [...top.map(p => ({ title: p.title, price: num(p.price), shop: p.source })), ...(pi.competitor_prices || []).map(p => ({ title: p.product, price: num(p.price), shop: p.retailer }))].filter(x => x.title);
   const prices = listings.map(x => x.price).filter(Boolean).sort((a, b) => a - b);
-  const shops = [...new Set(listings.map(x => x.shop).filter(x => x && !/do not use|test/i.test(x)))];
+  const shops = cleanShops(listings.map(x => x.shop));
   const reviews = num(cat.review_count) || 0, langs = w ? w.langs.length + 1 : 0;
   const titles = listings.map(x => x.title).join(" ").toLowerCase();
   const hit = CATS.map(c => [c, titles.split(c[0]).length - 1]).filter(x => x[1] > 0).sort((a, b) => b[1] - a[1])[0];
@@ -331,7 +343,7 @@ async function compareBrands(names) {
     ${row("UK price range", x => x.lo ? `${p(x.lo)} to ${p(x.hi)}` : `<span class="note">No listings came back yet. Refresh in a minute.</span>`)}
     ${row("Middle UK price", x => x.mid ? `<b>${p(x.mid)}</b>` : "–")}
     ${row("Rating", x => x.rating ? `${x.rating.toFixed(1)}★ from ${x.reviews.toLocaleString("en-GB")} reviews` : "–")}
-    ${row("Where it's sold", x => x.shops.length ? `${x.shops.length} sellers seen${x.channels.length ? `: ${esc(x.channels.join(", ").toLowerCase())}` : ""}` : "–")}
+    ${row("Sellers in listings", x => x.shops.length ? `${x.shops.length} sellers seen${x.channels.length ? `: ${esc(x.channels.join(", ").toLowerCase())}` : ""}` : "–")}
   </tbody></table></div>`;
 
   // A few plain findings, only from the rows above
@@ -344,7 +356,7 @@ async function compareBrands(names) {
   const rated = b.filter(x => x.rating);
   if (rated.length > 1) { const r = [...rated].sort((a, c) => c.rating - a.rating); if (r[0].rating - r[r.length - 1].rating >= 0.2) f.push(`<b>Shoppers:</b> ${esc(r[0].name)} rates best (${r[0].rating.toFixed(1)}★), ${esc(r[r.length - 1].name)} lowest (${r[r.length - 1].rating.toFixed(1)}★). The lower rated brand's reviews show what to fix.`); }
   const allCh = [...new Set(b.flatMap(x => x.channels))];
-  b.forEach(x => { const miss = allCh.filter(c => !x.channels.includes(c)); if (x.ok && miss.length) f.push(`<b>Where it's sold:</b> ${esc(x.name)} wasn't seen in ${esc(miss.join(", ").toLowerCase())}, where a rival was. Worth checking if that's a gap.`); });
+  b.forEach(x => { const miss = allCh.filter(c => !x.channels.includes(c)); if (x.ok && miss.length) f.push(`<b>Where it's sold:</b> ${esc(x.name)} wasn't seen in ${esc(miss.join(", ").toLowerCase())} in these listings, where a rival was. Google Shopping often misses the big chains, so check their sites before calling it a gap.`); });
 
   $("out").innerHTML = `<article class="card"><header><h2>${b.map(x => esc(x.name)).join(" vs ")}</h2></header>
     <p class="meta">UK prices and shops. Size and ownership are worldwide.</p>${table}
@@ -398,7 +410,7 @@ async function loadOpportunities(name) {
   const add = (lens, title, body, why) => opps.push({ lens, title, body, why });
 
   // 1. Be easy to buy
-  const shops = [...new Set(listings.map(x => x.shop).filter(x => x && !/do not use|test/i.test(x)))];
+  const shops = cleanShops(listings.map(x => x.shop));
   const lower = name.toLowerCase().replace(/[^a-z0-9]/g, "");
   const ownShop = shops.some(s => s.toLowerCase().replace(/[^a-z0-9]/g, "").includes(lower));
   const seen = CHANNELS.filter(([, re]) => shops.some(s => re.test(s))).map(([n]) => n);
@@ -409,11 +421,16 @@ async function loadOpportunities(name) {
   const fits = beauty ? ["Supermarkets", "Health and beauty chains", "Marketplaces", "Beauty specialists"]
              : food ? ["Supermarkets", "Marketplaces"] : ["Supermarkets", "Marketplaces"];
   const missing = CHANNELS.filter(([n]) => fits.includes(n) && !seen.includes(n));
-  if (shops.length) {
+  const chains = seen.some(n => n !== "Marketplaces");
+  if (shops.length && !chains) {
+    add("Sell more of what exists", "Find out where it's really stocked",
+      `These listings came from ${shops.slice(0, 4).join(", ")}${shops.length > 4 ? " and others" : ""}: marketplaces and small sellers, not the big chains. That doesn't mean the chains don't stock it, just that Google Shopping doesn't show them here. Use the shop links under the products to check. Where it is stocked, the job is staying on shelf and easy to spot. Where it isn't, that's a gap.`,
+      `Brands grow mainly by being easy to buy for more people (Byron Sharp, How Brands Grow). Resellers on eBay charging more than the shops can also be a sign of demand the brand isn't meeting directly.`);
+  } else if (shops.length) {
     add("Sell more of what exists", missing.length ? `Check the gaps in where it's sold` : `Sold widely, so keep the shelf`,
       `Seen at ${shops.length} sellers: ${shops.slice(0, 6).join(", ")}${shops.length > 6 ? " and more" : ""}. `
       + (seen.length ? `That covers ${seen.join(", ").toLowerCase()}. ` : "")
-      + (missing.length ? `Not seen in this sample: ${missing.map(([n, , eg]) => `${n.toLowerCase()} (like ${eg})`).join("; ")}. If that's not a deliberate choice, each one is a group of shoppers who can't easily buy it.` : `The job is staying in stock and easy to spot in each of them.`)
+      + (missing.length ? `Not seen in these listings: ${missing.map(([n, , eg]) => `${n.toLowerCase()} (like ${eg})`).join("; ")}. Check with the shop links under the products. If it really isn't there and that's not a choice, each one is a group of shoppers who can't easily buy it.` : `The job is staying in stock and easy to spot in each of them.`)
       + (ownShop ? " The brand also sells from its own site, so it owns some customer data." : " No own-brand shop in these listings, so the brand may not own its customer data."),
       `Brands grow mainly by being easy to buy for more people (Byron Sharp, How Brands Grow). Based on ${listings.length} listings, so a gap here means "not seen", not "not stocked".`);
   }
@@ -484,14 +501,18 @@ function priceSummary(pi, cat, top) {
   const cur = (String(pi.current_price || top[0]?.price || "£").match(/^[^0-9]*/) || ["£"])[0] || "£";
   const money = n => cur + n.toFixed(2);
   const mid = nums.length ? (nums.length % 2 ? nums[(nums.length - 1) / 2] : (nums[nums.length / 2 - 1] + nums[nums.length / 2]) / 2) : null;
-  const shops = [...new Set(listed.map(x => x.retailer || x.source).filter(Boolean))];
+  const shops = cleanShops(listed.map(x => x.retailer || x.source));
   const cells = [];
   if (pi.price_range) cells.push(["Price range", String(pi.price_range).replace(/\s*[–-]\s*/, " to ")]);
   else if (nums.length > 1) cells.push(["Price range", money(nums[0]) + " to " + money(nums[nums.length - 1])]);
   if (mid !== null && nums.length > 2) cells.push(["Middle price", money(mid) + ` (of ${nums.length} prices seen)`]);
   if (cat.review_average && cat.review_count) cells.push(["Rating", `${Number(cat.review_average).toFixed(1)}★ from ${Number(cat.review_count).toLocaleString("en-GB")} reviews`]);
-  if (shops.length) cells.push(["Sold by", shops.slice(0, 4).join(", ") + (shops.length > 4 ? ` and ${shops.length - 4} more` : "")]);
-  return cells.length ? `<div class="grid">${cells.map(([k, v]) => `<div class="fact"><small>${esc(k)}</small><b>${esc(v)}</b></div>`).join("")}</div>` : "";
+  if (shops.length) cells.push(["Sellers in these listings", shops.slice(0, 4).join(", ") + (shops.length > 4 ? ` and ${shops.length - 4} more` : "")]);
+  const packs = listed.some(x => /\bpack\b|multipack|\bx\s?\d|\d\s?x\b|bundle|case of/i.test(x.title || x.product || ""));
+  const big = shops.some(s => CHANNELS.slice(0, 2).some(([, re]) => re.test(s)));
+  const words = listed.map(x => x.title || x.product || "").join(" ").toLowerCase();
+  return cells.length ? `<div class="grid">${cells.map(([k, v]) => `<div class="fact"><small>${esc(k)}</small><b>${esc(v)}</b></div>`).join("")}</div>`
+    + `<p class="note">${packs ? "Prices include multipacks, so the top of the range isn't one jar or bottle. " : ""}${big ? "" : "None of the big chains came up in these listings. That's normal: Google Shopping shows whoever lists there, often small sellers and marketplaces, so it can't tell you if the supermarkets stock it. "}Check the big chains directly: ${checkLinks(document.getElementById("co-name")?.textContent || "", isBeauty(words))}</p>` : "";
 }
 
 // Brand data from Miru: product listings (Google Shopping) and news counts. Each names its source.
