@@ -253,6 +253,22 @@ footer { text-align:center; color:var(--muted); font-size:13px; padding:0 20px 4
 .cardtools button:hover { background:var(--c); }
 .pill.new { background:var(--sun); margin-left:6px; }
 .showhidden { border:0; background:none; color:var(--violet); font-weight:800; cursor:pointer; font-size:13px; margin-left:8px; }
+.remind { margin-top:14px; border-top:2px solid var(--ink); padding-top:14px; }
+.remind .rhead { display:flex; gap:10px; align-items:center; flex-wrap:wrap; }
+.remind .rhead b { font-size:16px; }
+.remind .rhead small { color:var(--muted); flex:1 1 260px; }
+.remind .rbtns { display:flex; gap:8px; flex-wrap:wrap; }
+.remind .rbtns .btn { padding:8px 14px; font-size:13px; }
+.remind .rbtns .btn.wa { background:#25d366; color:var(--ink); border:2px solid var(--ink); }
+.rpanel { margin-top:12px; background:#fff8f1; border:2px solid var(--ink); border-radius:14px; padding:12px 14px; }
+.rpanel label { display:flex; gap:10px; align-items:flex-start; padding:6px 0; font-size:14px; cursor:pointer; }
+.rpanel label input { width:18px; height:18px; margin-top:2px; accent-color:var(--ink); }
+.rpanel .row2 { display:flex; gap:8px; flex-wrap:wrap; align-items:center; margin-top:8px; }
+.rpanel .row2[hidden] { display:none; }
+.rpanel input[type=tel], .rpanel input[inputmode=numeric] { border:2px solid var(--ink); border-radius:999px; padding:7px 12px; font:inherit; font-size:14px; width:160px; }
+.rpanel .btn { padding:8px 14px; font-size:13px; }
+.rpanel .rmsg { font-size:13px; color:var(--muted); margin-top:6px; min-height:16px; }
+.ron { display:inline-flex; gap:6px; align-items:center; background:#d6f7ec; border:2px solid var(--ink); border-radius:999px; padding:4px 12px; font-size:13px; font-weight:800; }
 .answer { background:#fff3b0; border:2px solid var(--ink); border-radius:14px; padding:12px 14px; margin:0 0 12px; font-size:14px; }
 .answer b { font-size:15px; }
 .answer small { display:block; color:var(--muted); margin-top:4px; }
@@ -697,12 +713,14 @@ function hookHtml(slim = false) {
   return `<div class="hook${slim ? " slim" : ""}"><span class="hi">🌅</span><div><b>Want this every morning?</b><small>Miru sends weather, fuel and trains for ${esc(postcode)} to your WhatsApp at 7.30am.</small></div><a class="btn" href="${BRIEF_URL}" target="_blank" rel="noopener">Get it on WhatsApp ↗</a></div>`;
 }
 function shareModule(id) {
+  track("share:" + id);
   const link = `${location.origin}${location.pathname}#${id}?pc=${encodeURIComponent(postcode)}`;
   navigator.clipboard?.writeText(link).catch(() => {});
   toast("Link copied, with " + postcode + " filled in 🎉"); burst();
 }
 function openModule(id, tab = "try") {
   const m = MODULES.find(x => x.id === id);
+  track((tab === "build" ? "code:" : "open:") + id);
   $("dhead").style.setProperty("--c", m.c);
   $("dhead").style.background = m.c;
   $("dtitle").textContent = `${m.emo} ${m.name}`;
@@ -1027,6 +1045,9 @@ document.addEventListener("click", e => {
   const f = e.target.closest("[data-fuel]");
   if (f) { e.stopPropagation(); setFuel(f.dataset.fuel); return; }
   if (e.target.closest("[data-install]")) { installApp(); return; }
+  const out = e.target.closest("a[href]");
+  if (out && out.href.indexOf("miru.humanagency.co") > -1) track("whatsapp");
+  if (out && out.closest(".buildcta")) track("talk");
   if (e.target.closest("[data-td='bins']")) { goBins(); return; }
   const row = e.target.closest(".tdrow[data-open]");
   if (row && !e.target.closest("button,a")) { openModule(row.dataset.open); return; }
@@ -1185,7 +1206,9 @@ async function loadToday() {
   const OPEN = { wx: "weather", fuel: "fuel", train: "trains", bin: "" };
   el.innerHTML = `<div class="tdhead"><h2>Today in ${esc(pc)}</h2><span class="tddate">${esc(new Date().toLocaleDateString("en-GB", { weekday: "long", day: "numeric", month: "long" }))}</span>${installBtn()}</div>
     <div>${["wx", "fuel", "train", "bin"].map(k => `<div class="tdrow" id="td-${k}"${OPEN[k] ? ` data-open="${OPEN[k]}"` : ""}><span class="tdi">${ICON[k]}</span><span class="tdt muted">Checking…</span></div>`).join("")}</div>
-    <div class="tdchanges" id="tdChanges"></div>`;
+    <div class="tdchanges" id="tdChanges"></div>
+    <div class="remind" id="remind"></div>`;
+  renderRemind();
   const put = (k, html, muted) => { if (seq !== todaySeq) return; const r = document.getElementById("td-" + k); if (r) r.innerHTML = `<span class="tdi">${ICON[k]}</span><span class="tdt${muted ? " muted" : ""}">${html}</span>`; };
   const fuelLabel = fuelType === "diesel" ? "Diesel" : "Petrol";
   const tog = `<span class="ftog" role="group" aria-label="Fuel type">${["petrol", "diesel"].map(f => `<button type="button" data-fuel="${f}" aria-pressed="${fuelType === f}">${f[0].toUpperCase() + f.slice(1)}</button>`).join("")}</span>`;
@@ -1263,7 +1286,7 @@ function renderPlaces() {
     const label = (document.getElementById("plLabel").value || "").trim() || "Place " + (places.length + 1);
     if (!pc) return badPC();
     places = places.filter(p => p.pc !== pc).concat([{ label, pc }]).slice(-4);
-    LS.set(PLACES_KEY, places); renderPlaces(); toast("Saved " + label + " 📌");
+    LS.set(PLACES_KEY, places); renderPlaces(); toast("Saved " + label + " 📌"); track("place");
   };
 }
 
@@ -1276,28 +1299,181 @@ function toggleLayout(kind, id) {
     toast("Hidden. Use \"Show hidden\" to bring it back.");
   }
   LS.set(LAYOUT_KEY, layout); render();
+  track(kind + ":" + id);
 }
 
 // Install as an app (home screen)
 var installEvt = null;
 if (window.addEventListener) {
   window.addEventListener("beforeinstallprompt", e => { e.preventDefault(); installEvt = e; const b = document.getElementById("installBtn"); if (b) b.hidden = false; });
-  window.addEventListener("appinstalled", () => { installEvt = null; const b = document.getElementById("installBtn"); if (b) b.hidden = true; toast("Installed. Find it on your home screen 🎉"); });
+  window.addEventListener("appinstalled", () => { track("installed"); installEvt = null; const b = document.getElementById("installBtn"); if (b) b.hidden = true; toast("Installed. Find it on your home screen 🎉"); });
 }
 function isStandalone() { try { return window.matchMedia && window.matchMedia("(display-mode: standalone)").matches || navigator.standalone === true; } catch (e) { return false; } }
 function isIOS() { return /iphone|ipad|ipod/i.test(navigator.userAgent || ""); }
 function installBtn() { return isStandalone() ? "" : `<button class="btn ghost install" id="installBtn" type="button" data-install ${installEvt || isIOS() ? "" : "hidden"} style="padding:7px 14px;font-size:13px">📲 Add to home screen</button>`; }
 function installApp() {
+  track("install");
   if (installEvt) { installEvt.prompt(); installEvt.userChoice && installEvt.userChoice.finally(() => { installEvt = null; }); return; }
   if (isIOS()) return toast("On iPhone: tap Share, then Add to Home Screen");
   toast("Use your browser menu: Install app or Add to Home Screen");
 }
 if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js").catch(() => {});
 
+// ---------- Visitor stats: a random id in this browser, no cookies, nothing personal ----------
+var VID = (() => {
+  let v = LS.get("factory_vid", "");
+  if (!/^[a-z0-9]{8,40}$/.test(v)) {
+    let r = "";
+    try { r = Array.from(crypto.getRandomValues(new Uint8Array(16)), b => (b % 36).toString(36)).join(""); }
+    catch (e) { while (r.length < 16) r += Math.floor(Math.random() * 36).toString(36); }
+    v = r; LS.set("factory_vid", v);
+  }
+  return v;
+})();
+function track(e) {
+  try {
+    const body = JSON.stringify({ v: VID, e: String(e).toLowerCase().replace(/[^a-z0-9:-]/g, "").slice(0, 40) });
+    const url = `${API}/api/factory/hit`;
+    if (navigator.sendBeacon && navigator.sendBeacon(url, body)) return;
+    fetch(url, { method: "POST", body, mode: "no-cors", keepalive: true }).catch(() => {});
+  } catch (x) {}
+}
+
+// ---------- Reminders: bins the evening before, fuel drops. WhatsApp or notifications ----------
+const REMIND_KEY = "factory_remind";
+var remind = { open: "", wa: null, push: LS.get(REMIND_KEY, null) };
+const canPush = () => "serviceWorker" in navigator && typeof window.PushManager !== "undefined" && typeof window.Notification !== "undefined";
+function remindSummary() {
+  const on = [];
+  const add = (st, how) => { if (!st) return; if (st.bins && st.bins.on) on.push("bins " + how); if (st.fuel && st.fuel.on) on.push((st.fuel.fuel || "fuel") + " drops " + how); };
+  add(remind.wa, "on WhatsApp"); add(remind.push, "as notifications");
+  return on;
+}
+function renderRemind() {
+  const el = document.getElementById("remind"); if (!el) return;
+  const on = remindSummary();
+  const waOn = remind.wa && ((remind.wa.bins || {}).on || (remind.wa.fuel || {}).on);
+  const head = on.length
+    ? `<div class="rhead"><span class="ron">🔔 On: ${esc(on.join(", "))}</span><button class="showhidden" type="button" data-rch="${waOn ? "wa" : "push"}">Change</button></div>`
+    : `<div class="rhead"><b>🔔 Never miss bin day</b><small>A reminder the evening before collection, and a heads-up when fuel drops near ${esc(postcode)}.</small>
+        <div class="rbtns"><button class="btn wa" type="button" data-rch="wa">On WhatsApp</button>${canPush() ? `<button class="btn ghost" type="button" data-rch="push">As notifications</button>` : ""}</div></div>`;
+  el.innerHTML = head + `<div id="rPanel"></div>`;
+  el.querySelectorAll("[data-rch]").forEach(b => b.onclick = () => openRemind(b.dataset.rch));
+  if (remind.open) openRemind(remind.open, true);
+}
+async function openRemind(ch, quiet) {
+  remind.open = ch;
+  const box = document.getElementById("rPanel"); if (!box) return;
+  if (!quiet) track("remind:" + ch);
+  if (ch === "push" && isIOS() && !isStandalone()) {
+    box.innerHTML = `<div class="rpanel">On iPhone, notifications only work from the home screen app. Tap <b>Share</b>, then <b>Add to Home Screen</b>, open it from there and turn reminders on.<div class="row2"><button class="btn ghost" type="button" data-rclose>Close</button></div></div>`;
+    box.querySelector("[data-rclose]").onclick = closeRemind; return;
+  }
+  if (ch === "wa") {
+    box.innerHTML = `<div class="rpanel">Checking…</div>`;
+    let me = {};
+    try { me = await fetch(`${API}/api/auth/me`, { credentials: "include" }).then(r => r.json()); } catch (e) {}
+    if (!me.signed_in) return remindSignIn(box);
+    try { remind.wa = await fetch(`${API}/api/factory/me/reminders`, { credentials: "include" }).then(r => r.json()); } catch (e) {}
+  }
+  remindChoices(box, ch);
+}
+function closeRemind() { remind.open = ""; renderRemind(); }
+function remindSignIn(box) {
+  box.innerHTML = `<div class="rpanel"><b>First, your WhatsApp number</b><div class="rmsg" style="margin:2px 0 4px">We'll send a six-digit code to check it's you. It's only used for the reminders you pick.</div>
+    <div class="row2"><input type="tel" id="rPhone" placeholder="07700 900123" maxlength="16" aria-label="Your mobile number"><button class="btn pink" type="button" id="rSend">Send code</button></div>
+    <div class="row2" id="rCodeRow" hidden><input inputmode="numeric" id="rCode" placeholder="6-digit code" maxlength="6" aria-label="Code"><button class="btn pink" type="button" id="rVerify">Confirm</button></div>
+    <div class="rmsg" id="rMsg"></div><div class="row2"><button class="btn ghost" type="button" data-rclose>Not now</button></div></div>`;
+  const say = t => { box.querySelector("#rMsg").textContent = t; };
+  let phone = "";
+  box.querySelector("[data-rclose]").onclick = closeRemind;
+  box.querySelector("#rSend").onclick = async () => {
+    phone = box.querySelector("#rPhone").value.trim(); say("Sending…");
+    try {
+      const r = await fetch(`${API}/api/auth/request-code`, { method: "POST", credentials: "include", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ phone }) });
+      const d = await r.json().catch(() => ({}));
+      if (!r.ok) return say(d.error || "Could not send a code.");
+      box.querySelector("#rCodeRow").hidden = false; box.querySelector("#rCode").focus();
+      say("Code sent to " + (d.sent_to || "your WhatsApp") + ".");
+    } catch (e) { say("Could not send a code right now."); }
+  };
+  box.querySelector("#rVerify").onclick = async () => {
+    try {
+      const r = await fetch(`${API}/api/auth/verify`, { method: "POST", credentials: "include", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ phone, code: box.querySelector("#rCode").value.trim() }) });
+      const d = await r.json().catch(() => ({}));
+      if (!r.ok) return say(d.error || "That code didn't work.");
+      openRemind("wa", true);
+    } catch (e) { say("Could not check the code right now."); }
+  };
+}
+function remindChoices(box, ch) {
+  const cur = (ch === "wa" ? remind.wa : remind.push) || {};
+  const bin = savedBin();
+  const hasBin = !!(bin && bin.postcode === postcode);
+  const anyOn = !!((cur.bins && cur.bins.on) || (cur.fuel && cur.fuel.on));
+  const binsOn = !anyOn || !!(cur.bins && cur.bins.on), fuelOn = !anyOn || !!(cur.fuel && cur.fuel.on);   // nothing on yet: tick both
+  box.innerHTML = `<div class="rpanel"><b>${ch === "wa" ? "On WhatsApp" : "As notifications on this device"}</b>
+    <label><input type="checkbox" id="rBins" ${hasBin && binsOn ? "checked" : ""} ${hasBin ? "" : "disabled"}><span><b>Bins, the evening before</b><br><small class="muted">${hasBin ? "For " + esc(bin.label) : `First <button class="showhidden" type="button" data-td="bins" style="margin:0;padding:0">set your address</button>, then come back here.`}</small></span></label>
+    <label><input type="checkbox" id="rFuel" ${fuelOn ? "checked" : ""}><span><b>${fuelType === "diesel" ? "Diesel" : "Petrol"} drops near ${esc(postcode)}</b><br><small class="muted">When the cheapest price falls by 1p or more. Checked once a day.</small></span></label>
+    <div class="row2"><button class="btn" type="button" id="rSave">Save</button><button class="btn ghost" type="button" data-rclose>Close</button>${anyOn ? `<button class="showhidden" type="button" id="rOff">Turn all off</button>` : ""}</div>
+    <div class="rmsg" id="rMsg">${ch === "wa" ? "Reply STOP BINS, STOP FUEL or STOP REMINDERS on WhatsApp any time." : "You can turn these off here any time."}</div></div>`;
+  box.querySelector("[data-rclose]").onclick = closeRemind;
+  const say = t => { box.querySelector("#rMsg").textContent = t; };
+  const send = async (bins, fuel) => {
+    const body = {
+      bins: bins && hasBin ? { on: true, postcode, uprn: bin.uprn, label: bin.label } : { on: false },
+      fuel: fuel ? { on: true, postcode, fuel: fuelType } : { on: false },
+    };
+    say("Saving…");
+    try {
+      if (ch === "wa") {
+        const r = await fetch(`${API}/api/factory/me/reminders`, { method: "POST", credentials: "include", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
+        const d = await r.json().catch(() => ({}));
+        if (!r.ok) return say(d.error || "Could not save that.");
+        remind.wa = d;
+      } else {
+        const sub = await pushSubscription(bins || fuel);
+        if (sub) {
+          const r = await fetch(`${API}/api/factory/push/reminders`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(Object.assign({ subscription: sub }, body)) });
+          const d = await r.json().catch(() => ({}));
+          if (!r.ok) return say(d.error || "Could not save that.");
+          remind.push = d;
+        } else remind.push = null;
+        LS.set(REMIND_KEY, remind.push);
+      }
+      track("remind:" + ch + (bins ? "-bins" : "") + (fuel ? "-fuel" : "") + (!bins && !fuel ? "-off" : ""));
+      remind.open = ""; renderRemind();
+      toast(bins || fuel ? "Reminders on 🔔" : "Reminders off");
+    } catch (e) { say(e.message || "Something went wrong. Try again."); }
+  };
+  box.querySelector("#rSave").onclick = () => send(box.querySelector("#rBins").checked, box.querySelector("#rFuel").checked);
+  const off = box.querySelector("#rOff"); if (off) off.onclick = () => send(false, false);
+}
+function b64u8(b64) {
+  const s = atob((b64 + "=".repeat((4 - b64.length % 4) % 4)).replace(/-/g, "+").replace(/_/g, "/"));
+  return Uint8Array.from(s, c => c.charCodeAt(0));
+}
+async function pushSubscription(wanted) {
+  const reg = await navigator.serviceWorker.ready;
+  let sub = await reg.pushManager.getSubscription();
+  if (!wanted) return sub ? sub.toJSON() : null;
+  let key;
+  try { key = (await getJSON(`${API}/api/factory/push/key`)).key; }
+  catch (e) { throw new Error("Notifications aren't switched on yet. Try WhatsApp for now."); }
+  const perm = await Notification.requestPermission();
+  if (perm !== "granted") throw new Error("Notifications are blocked. Allow them for this site in your browser settings.");
+  if (!sub) sub = await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: b64u8(key) });
+  return sub.toJSON();
+}
+// If this person already has WhatsApp reminders, show them as on
+fetch(`${API}/api/factory/me/reminders`, { credentials: "include" }).then(r => r.ok ? r.json() : null).then(d => { if (d) { remind.wa = d; renderRemind(); } }).catch(() => {});
+
+
 const __firstVisit = (() => { try { return !localStorage.getItem(PC_KEY); } catch (e) { return true; } })();
 setPostcode(postcode);
 render();
 renderPlaces();
+track("view");
 if (__firstVisit) { const ob = document.getElementById("onboard"); if (ob) ob.hidden = false; }
 // Shared link: #cafes?pc=KT16%200DA opens that module with that postcode
 (function openFromLink() {
