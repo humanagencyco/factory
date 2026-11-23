@@ -1422,7 +1422,7 @@ async function loadToday() {
   const pc = postcode, seq = ++todaySeq;
   const ICON = { wx: "🌤️", fuel: "⛽", train: "🚆", bin: "🗑️" };
   const OPEN = { wx: "weather", fuel: "fuel", train: "trains", bin: "" };
-  el.innerHTML = `<div class="tdhead"><h2>Today in ${esc(pc)}</h2><span class="tddate">${esc(new Date().toLocaleDateString("en-GB", { weekday: "long", day: "numeric", month: "long" }))}</span><a class="bymiru" href="https://miru.humanagency.co/" target="_blank" rel="noopener" data-promo="miru">by Miru</a>${installBtn()}</div>
+  el.innerHTML = `<div class="tdhead"><h2>Today in ${esc(pc)}</h2><span class="tddate">${esc(new Date().toLocaleDateString("en-GB", { weekday: "long", day: "numeric", month: "long" }))}</span>${installBtn()}</div>
     <div>${["wx", "fuel", "train", "bin"].map(k => `<div class="tdrow" id="td-${k}"${OPEN[k] ? ` data-open="${OPEN[k]}"` : ""}><span class="tdi">${ICON[k]}</span><span class="tdt muted">Checking…</span></div>`).join("")}</div>
     <div class="tdchanges" id="tdChanges"></div>
     ${familyTip()}
