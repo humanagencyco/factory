@@ -240,12 +240,15 @@ async function loadGlance(name) {
   const reasons = [];
   if (reviews) reasons.push(`${reviews.toLocaleString("en-GB")} reviews on UK shopping listings`);
   if (w) reasons.push(`a Wikipedia page in ${langs} language${langs > 1 ? "s" : ""} worldwide`);
-  const size = (langs >= 15 || reviews >= 20000) ? "Big, known around the world" : (langs >= 5 || reviews >= 2000) ? "Mid-sized, known in several countries" : (reviews || langs) ? "Smaller or newer brand" : "";
+  const size = (langs >= 15 && reviews >= 5000) || langs >= 25 ? "Big, known around the world"
+    : (reviews >= 20000 && langs < 8) ? "Popular with shoppers, less known worldwide"
+    : (langs >= 5 || reviews >= 2000) ? "Mid-sized, known in several countries"
+    : (reviews || langs) ? "Smaller or newer brand" : "";
   if (size) cards.push(["How big · UK and worldwide", size, `Based on ${reasons.join(" and ")}. A rough guide, not sales.`]);
 
   // Who owns it
   if (w && (w.owner || w.origin || w.since)) { const extra = [w.owner && w.origin ? `From ${w.origin}` : "", w.since && (w.owner || w.origin) ? `Since ${w.since}` : ""].filter(Boolean).join(". ");
-    cards.push(["Who's behind it", w.owner ? `Owned by ${w.owner}` : (w.origin ? `From ${w.origin}` : `Since ${w.since}`), (extra ? extra + ". " : "") + "Source: Wikidata."]); }
+    cards.push(["Who's behind it", w.owner ? `Owned by ${w.owner}` : (w.origin ? `From ${w.origin}` : `Started in ${w.since}`), (extra ? extra + ". " : "") + "Source: Wikidata."]); }
 
   // Where popular
   if (w && w.views.length) {
