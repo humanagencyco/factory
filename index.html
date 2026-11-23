@@ -348,6 +348,11 @@ body.back .stepsmore { display:none; }
 .tst { font-size:12px; font-weight:800; border:2px solid var(--ink); border-radius:999px; padding:2px 9px; white-space:nowrap; }
 .tst-ok { background:#d6f7ec; } .tst-late { background:#ffd9a8; } .tst-x { background:#ffd6e5; }
 .tfields.tsetup { display:grid; grid-template-columns:1fr 1fr; gap:10px; margin:8px 0; }
+.bizf { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+.bizf label { display:flex; flex-direction:column; gap:4px; font-size:13px; font-weight:800; }
+.bizf input { border:2px solid var(--ink); border-radius:12px; padding:8px 10px; font:inherit; font-size:14px; font-weight:600; width:100%; box-sizing:border-box; min-width:0; }
+.bizf label { min-width:0; }
+@media (max-width:600px) { .bizf { grid-template-columns:1fr; } }
 .remind { margin-top:14px; border-top:2px solid var(--ink); padding-top:14px; }
 .remind .rhead { display:flex; gap:10px; align-items:center; flex-wrap:wrap; }
 .remind .rhead b { font-size:16px; }
@@ -488,6 +493,7 @@ const MODULES = [
   { id:"mps", type:"near", emo:"🏛️", name:"MPs & councillors", desc:"Your MP and local councillors, with contact links.", status:"ready", c:"#d9ecff", pkg:"@humanagency/councillors", repo:"github.com/humanagencyco/councillors" },
   { id:"cafes", type:"near", emo:"☕", name:"Cafés & chai", desc:"Independent cafés, with notes from people who've been.", status:"ready", c:"#ffe8c2", pkg:"@humanagency/places-cafes", repo:"github.com/humanagencyco/places-cafes" },
   { id:"trains", type:"near", emo:"🚆", name:"Train times", desc:"Next departures from your nearest station.", status:"beta", c:"#d6f7ec", pkg:"@humanagency/train-times", repo:"github.com/humanagencyco/train-times" },
+  { id:"bizcheck", type:"near", emo:"🏪", name:"Is your business easy to find?", desc:"Free check for local businesses: website, Google, Instagram, Facebook, TikTok. We can fix it for you.", status:"ready", c:"#fff0d6", pkg:"", repo:"" },
   { id:"track", type:"near", emo:"🚉", name:"Track your train", desc:"Pick two stations. See the next trains there and back.", status:"ready", c:"#e2f0ff", pkg:"", repo:"" },
   { id:"pharmacy", type:"near", emo:"💊", name:"Pharmacies open now", desc:"Open pharmacies nearby, with phone numbers.", status:"beta", c:"#efe2ff", pkg:"@humanagency/pharmacy-finder", repo:"github.com/humanagencyco/pharmacy-finder" },
   { id:"schools", type:"near", emo:"🏫", name:"Nearest schools", desc:"Schools near your postcode, with Ofsted and contact details.", status:"beta", c:"#fff0d6", pkg:"@humanagency/school-digest", repo:"github.com/humanagencyco/school-digest" },
@@ -569,6 +575,7 @@ async function loadTeasers() {
   const pc = postcode;
   const line = (txt, ok = true) => `<span class="tz ${ok ? "tz-ok" : "tz-no"}">${txt}</span>`;
   const jobs = {
+    bizcheck: async () => line("Free, sent within 24 hours"),
     track: async () => {
       const j = myTrains();
       if (!j) return line("Set your two stations", false);
@@ -873,7 +880,7 @@ function openModule(id, tab = "try") {
   $("dtitle").textContent = `${m.emo} ${m.name}`;
   $("dtitle").dataset.id = m.id;
   $("dsub").textContent = `${LABEL[m.status]} · ${m.desc}`;
-  $("p-try").innerHTML = tryPanel(m) + (m.type === "near" ? hookHtml(true) : "");
+  $("p-try").innerHTML = tryPanel(m) + (m.type === "near" && m.id !== "bizcheck" ? hookHtml(true) : "");
   $("p-take").innerHTML = takePanel(m);
   $("p-build").innerHTML = buildPanel(m);
   wireTry(m);
@@ -895,6 +902,7 @@ document.addEventListener("keydown", e => { if (e.key==="Escape") closeDrawer();
 function tryPanel(m) {
   if (["pubs","trains","schools"].includes(m.id)) return `<div class="box"><div class="row"><input id="tIn" placeholder="Postcode" maxlength="8" value="${postcode}"><button class="btn pink" id="tGo">Check</button></div><div id="tOut" style="margin-top:10px"></div></div>`;
   if (m.id === "track") return trackPanel();
+  if (m.id === "bizcheck") return bizPanel();
   if (m.id === "company") return `<div class="box"><div class="row"><input id="tIn" placeholder="Company or brand, e.g. Tesco" maxlength="60" style="text-transform:none"><button class="btn pink" id="tGo">Check</button></div><div id="tOut" style="margin-top:10px"><div class="sample">Who they are, how they're doing, what people say, and who's hiring. From <b>Intel</b>, our company research tool.</div></div></div>`;
   if (m.id === "vehicle") return `<div class="box"><div class="row"><input id="tIn" placeholder="Registration, e.g. AB12 CDE" maxlength="10"><button class="btn pink" id="tGo">Check</button></div><div id="tOut" style="margin-top:10px"></div></div>`;
   if (m.type === "topic") return `<div class="box"><b>No postcode needed.</b><p style="margin:6px 0 10px;color:var(--muted)">This is for everyone.</p><a class="btn pink" href="${esc(m.link)}" target="_blank" rel="noopener" style="text-decoration:none">Open ${esc(m.name)} ↗</a></div>`;
@@ -1071,6 +1079,7 @@ async function wireLive(m) {
 function wireTry(m) {
   if (["pubs","trains","schools"].includes(m.id)) return wireLive(m);
   if (m.id === "track") return wireTrack();
+  if (m.id === "bizcheck") return wireBiz();
   if (m.id === "company") {
     const go = $("tGo"), out = $("tOut");
     const intelUrl = n => `${INTEL}/brand/intelligence?name=${encodeURIComponent(n)}`;
@@ -1656,11 +1665,63 @@ function familyTip() {
     { k: "intel", html: `🔎 Meeting a company this week? <button class="showhidden" type="button" data-open-mod="company" data-promo="intel">Check them in seconds</button> with Intel.` },
     { k: "ai", html: `🎓 New to AI, or want to use it better? <a href="${AILEARN}/" target="_blank" rel="noopener" data-promo="ai">Plain-English guides</a>, a few minutes each.` },
     { k: "miru", html: `📲 Want this without opening the page? <a href="${BRIEF_URL}" target="_blank" rel="noopener" data-promo="miru">Miru sends it to WhatsApp</a> at 7.30am.` },
+    { k: "biz", html: `🏪 Run a local business? <button class="showhidden" type="button" data-open-mod="bizcheck" data-promo="bizcheck">See how easy you are to find</button>, free.` },
     { k: "talk", html: `🛠️ Want a tool like this for your business or community? <a href="https://humanagency.co/" target="_blank" rel="noopener" data-promo="talk">We build them.</a>` },
   ];
   const d = new Date(), day = Math.floor((d - new Date(d.getFullYear(), 0, 0)) / 864e5);
   const t = tips[day % tips.length];
   return `<div class="ftip" data-tip="${t.k}">${t.html}</div>`;
+}
+
+// ---------- Is your business easy to find? A free check, done by a person, with a quick automatic look first ----------
+function bizPanel() {
+  return `<div class="box" id="bizBox">
+    <b>Free check for local businesses</b>
+    <p class="muted" style="margin:4px 0 10px;font-size:14px">We look at your website, Google profile, Instagram, Facebook and TikTok, then send you a short report with three easy fixes. If you'd like, we can do them for you.</p>
+    <div class="bizf">
+      <label>Business name<input id="bzName" maxlength="100" placeholder="e.g. Ben's Ice Cream" style="text-transform:none"></label>
+      <label>Postcode<input id="bzPc" maxlength="10" value="${esc(postcode)}"></label>
+      <label><span>Website <small class="muted">(if you have one)</small></span><input id="bzWeb" maxlength="200" placeholder="e.g. bensicecream.co.uk" style="text-transform:none"></label>
+      <label>Your WhatsApp or email<input id="bzContact" maxlength="120" placeholder="So we can send your report" style="text-transform:none"></label>
+      <label><span>Your name <small class="muted">(optional)</small></span><input id="bzWho" maxlength="60" style="text-transform:none"></label>
+    </div>
+    <div class="row" style="gap:8px;margin-top:6px"><button class="btn pink" type="button" id="bzGo">Check my business</button></div>
+    <div class="muted" style="font-size:12px;margin-top:8px">We only use your details to send this report. No mailing lists.</div>
+    <div id="bzMsg" style="color:#c0392b;font-size:13px;min-height:16px;margin-top:6px"></div>
+  </div>`;
+}
+function bizResult(w) {
+  if (!w) return `<div class="result"><div><b>No website yet</b><small>That's common, and one of the easiest things to fix. We'll cover it in your report.</small></div></div>`;
+  if (w.error) return `<div class="result"><div><b>We couldn't open your website</b><small>${esc(w.error)} We'll look at it by hand.</small></div></div>`;
+  const tick = (ok, yes, no) => `<div class="result"><div><b>${ok ? "✅" : "⚠️"} ${esc(ok ? yes : no)}</b></div></div>`;
+  const s = w.social || [];
+  const name = { instagram: "Instagram", facebook: "Facebook", tiktok: "TikTok", google: "Google profile", x: "X", linkedin: "LinkedIn", youtube: "YouTube" };
+  const missing = ["instagram", "facebook", "tiktok", "google"].filter(k => !s.includes(k)).map(k => name[k]);
+  return tick(w.loads, "Your website opens", "Your website didn't open properly")
+    + tick(w.secure, "It's secure (https)", "It isn't secure (no https), so browsers may warn people")
+    + tick(w.phone_friendly, "It's set up for phones", "It may not work well on phones")
+    + tick(missing.length === 0, "It links to your social pages", s.length ? `Links found: ${s.map(k => name[k] || k).join(", ")}. Not linked: ${missing.join(", ")}` : "No links to Instagram, Facebook, TikTok or Google found");
+}
+function wireBiz() {
+  const box = document.getElementById("bizBox"); if (!box) return;
+  const msg = t => { document.getElementById("bzMsg").textContent = t; };
+  document.getElementById("bzGo").onclick = async () => {
+    const v = id => document.getElementById(id).value.trim();
+    const body = { business: v("bzName"), postcode: v("bzPc"), website: v("bzWeb"), contact: v("bzContact"), name: v("bzWho") };
+    if (body.business.length < 2) return msg("Tell us the business name.");
+    if (!body.contact) return msg("Add your WhatsApp number or email so we can send the report.");
+    msg(""); const btn = document.getElementById("bzGo"); btn.disabled = true; btn.textContent = body.website ? "Checking your website…" : "Sending…";
+    try {
+      const r = await fetch(`${API}/api/factory/business-check`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
+      const d = await r.json().catch(() => ({}));
+      if (!r.ok) { btn.disabled = false; btn.textContent = "Check my business"; return msg(d.error || "Couldn't send that. Please try again."); }
+      track("biz:sent");
+      box.innerHTML = `<b>Thanks, ${esc(body.business)} is in. 🎉</b>
+        <p class="muted" style="margin:4px 0 10px;font-size:14px">Here's a quick first look. We'll check your Google profile and social pages by hand and send your full report to ${esc(body.contact)} within 24 hours.</p>
+        ${bizResult(d.website_check)}
+        <div class="sample">Want us to fix things for you? Just reply to the report.</div>`;
+    } catch (e) { btn.disabled = false; btn.textContent = "Check my business"; msg("Couldn't send that right now. Please try again."); }
+  };
 }
 
 // ---------- Track your train: two stations, next trains both ways. That's it. ----------
