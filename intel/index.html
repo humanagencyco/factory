@@ -53,6 +53,12 @@ ul.facts{margin:0;padding-left:20px}ul.facts li{margin:4px 0}
 .links a{border:2px solid var(--ink);border-radius:999px;padding:6px 12px;text-decoration:none;background:#fff;color:var(--ink);font-size:14px}
 .sources{font-size:13px;color:var(--muted);margin-top:18px}
 .examples{font-size:14px;color:var(--muted);margin:10px 0 0}.examples a{color:var(--ink);font-weight:800}
+.vs{width:100%;border-collapse:separate;border-spacing:0;border:2px solid var(--ink);border-radius:16px;overflow:hidden;background:var(--paper);font-size:14px}
+.vs th,.vs td{padding:10px 12px;text-align:left;vertical-align:top;border-bottom:1px solid #0002}
+.vs thead th{font-size:17px;font-weight:900;background:var(--sun)}
+.vs tbody th{color:var(--muted);font-size:12px;font-weight:800;text-transform:uppercase;letter-spacing:.04em;width:150px}
+.vs tr:last-child th,.vs tr:last-child td{border-bottom:0}
+.vs-wrap{overflow-x:auto;margin:0 0 16px}
 .state{padding:30px;text-align:center;color:var(--muted);border:2px dashed var(--ink);border-radius:18px;margin:26px 0;background:#fff}
 footer{color:var(--muted);font-size:13px;padding:30px 0 50px;text-align:center}
 @media (max-width:640px){.card h2{font-size:24px}.search{flex-direction:column;border-radius:20px}}
@@ -69,7 +75,7 @@ footer{color:var(--muted);font-size:13px;padding:30px 0 50px;text-align:center}
       <input id="q" type="search" placeholder="A company or brand, like Tesco or Glossier" aria-label="Company or brand name" autocomplete="off">
       <button class="btn" type="submit">Search</button>
     </form>
-    <p class="examples">Try a company: <a href="?q=Tesco">Tesco</a>, <a href="?q=Ikea">Ikea</a>. Or a brand: <a href="?q=Glossier">Glossier</a>, <a href="?q=Dove">Dove</a>, <a href="?q=Marmite">Marmite</a>.</p>
+    <p class="examples">Try a company: <a href="?q=Tesco">Tesco</a>, <a href="?q=Ikea">Ikea</a>. Or a brand: <a href="?q=Glossier">Glossier</a>, <a href="?q=Dove">Dove</a>, <a href="?q=Marmite">Marmite</a>. Or compare brands: <a href="?q=Dove vs Nivea vs Sure">Dove vs Nivea vs Sure</a>.</p>
     <div class="results" id="suggest" aria-live="polite"></div>
   </section>
   <main id="out" aria-live="polite"></main>
@@ -288,6 +294,61 @@ async function loadGlance(name) {
 }
 const money2 = n => "£" + n.toFixed(2);
 
+// ---------- Brand vs brand (type "Dove vs Nivea vs Sure") ----------
+async function brandFacts(name) {
+  const [d, w] = await Promise.all([brandData(name).catch(() => null), wikiBrand(name).catch(() => null)]);
+  const cat = (d && d.catalog_intelligence) || {}, pi = (d && d.pricing_intelligence) || {};
+  const top = Array.isArray(cat.top_products) ? cat.top_products : [];
+  const listings = [...top.map(p => ({ title: p.title, price: num(p.price), shop: p.source })), ...(pi.competitor_prices || []).map(p => ({ title: p.product, price: num(p.price), shop: p.retailer }))].filter(x => x.title);
+  const prices = listings.map(x => x.price).filter(Boolean).sort((a, b) => a - b);
+  const shops = [...new Set(listings.map(x => x.shop).filter(x => x && !/do not use|test/i.test(x)))];
+  const reviews = num(cat.review_count) || 0, langs = w ? w.langs.length + 1 : 0;
+  const titles = listings.map(x => x.title).join(" ").toLowerCase();
+  const hit = CATS.map(c => [c, titles.split(c[0]).length - 1]).filter(x => x[1] > 0).sort((a, b) => b[1] - a[1])[0];
+  return {
+    name, ok: listings.length >= 2,
+    size: (langs >= 15 && reviews >= 5000) || langs >= 25 ? "Big, known worldwide" : (reviews >= 20000 && langs < 8) ? "Popular with shoppers" : (langs >= 5 || reviews >= 2000) ? "Mid-sized" : (reviews || langs) ? "Smaller or newer" : "Not enough data",
+    owner: w && (w.listed ? "Listed company" : w.owner ? w.owner : w.origin ? `From ${w.origin}` : ""),
+    what: hit ? `${hit[0][2]}, mainly ${hit[0][1].toLowerCase()}` : "",
+    lo: prices[0], hi: prices[prices.length - 1], mid: median(prices), n: prices.length,
+    rating: num(cat.review_average), reviews,
+    shops, channels: CHANNELS.filter(([, re]) => shops.some(s => re.test(s))).map(([n]) => n),
+  };
+}
+
+async function compareBrands(names) {
+  $("out").innerHTML = `<div class="state">Comparing ${names.map(esc).join(", ")}…</div>`;
+  const b = await Promise.all(names.map(brandFacts));
+  const p = n => n ? money2(n) : "–";
+  const row = (label, f) => `<tr><th>${label}</th>${b.map(x => `<td>${f(x)}</td>`).join("")}</tr>`;
+  const table = `<div class="vs-wrap"><table class="vs"><thead><tr><th></th>${b.map(x => `<th><a href="?q=${encodeURIComponent(x.name)}">${esc(x.name)}</a></th>`).join("")}</tr></thead><tbody>
+    ${row("How big", x => esc(x.size))}
+    ${row("Who's behind it", x => esc(x.owner || "–"))}
+    ${row("What it sells", x => esc(x.what || "–"))}
+    ${row("UK price range", x => x.lo ? `${p(x.lo)} to ${p(x.hi)}` : "–")}
+    ${row("Middle UK price", x => x.mid ? `<b>${p(x.mid)}</b>` : "–")}
+    ${row("Rating", x => x.rating ? `${x.rating.toFixed(1)}★ from ${x.reviews.toLocaleString("en-GB")} reviews` : "–")}
+    ${row("Where it's sold", x => x.shops.length ? `${x.shops.length} sellers seen${x.channels.length ? `: ${esc(x.channels.join(", ").toLowerCase())}` : ""}` : "–")}
+  </tbody></table></div>`;
+
+  // A few plain findings, only from the rows above
+  const f = [], ok = b.filter(x => x.ok && x.mid);
+  if (ok.length > 1) {
+    const s = [...ok].sort((a, c) => a.mid - c.mid), cheap = s[0], dear = s[s.length - 1];
+    if (dear.mid > cheap.mid * 1.15) f.push(`<b>Price:</b> ${esc(dear.name)}'s middle UK price (${p(dear.mid)}) is ${Math.round(100 * (dear.mid / cheap.mid - 1))}% higher than ${esc(cheap.name)}'s (${p(cheap.mid)}). Pack sizes differ, so check like for like before acting.`);
+    else f.push(`<b>Price:</b> all ${ok.length} sit at a similar middle UK price, so the fight is about where they're sold and how well they're known, not price.`);
+  }
+  const rated = b.filter(x => x.rating);
+  if (rated.length > 1) { const r = [...rated].sort((a, c) => c.rating - a.rating); if (r[0].rating - r[r.length - 1].rating >= 0.2) f.push(`<b>Shoppers:</b> ${esc(r[0].name)} rates best (${r[0].rating.toFixed(1)}★), ${esc(r[r.length - 1].name)} lowest (${r[r.length - 1].rating.toFixed(1)}★). The lower rated brand's reviews show what to fix.`); }
+  const allCh = [...new Set(b.flatMap(x => x.channels))];
+  b.forEach(x => { const miss = allCh.filter(c => !x.channels.includes(c)); if (x.ok && miss.length) f.push(`<b>Where it's sold:</b> ${esc(x.name)} wasn't seen in ${esc(miss.join(", ").toLowerCase())}, where a rival was. Worth checking if that's a gap.`); });
+
+  $("out").innerHTML = `<article class="card"><header><h2>${b.map(x => esc(x.name)).join(" vs ")}</h2></header>
+    <p class="meta">UK prices and shops. Size and ownership are worldwide.</p>${table}
+    ${f.length ? `<h3>What stands out</h3><ul class="facts">${f.map(x => `<li>${x}</li>`).join("")}</ul>` : ""}
+    <p class="sources">Sources: Google Shopping UK listings (about 10 per brand), Wikipedia and Wikidata, live. A quick guide, not sales or market share. Click a brand name for its full page.</p></article>`;
+}
+
 // ---------- Brand: commercial opportunities ----------
 // Lenses, each tied to a well known way of looking at brand growth:
 //  1. Be easy to buy: physical availability (Byron Sharp, How Brands Grow, 2010)
@@ -488,6 +549,8 @@ async function showCompany(name) {
 async function search(q) {
   q = q.trim();
   if (q.length < 2) return;
+  const vs = q.split(/\s+(?:vs\.?|versus|v)\s+|\s*,\s*/i).map(x => x.trim()).filter(x => x.length > 1);
+  if (vs.length > 1) { try { history.replaceState(null, "", "?q=" + encodeURIComponent(q)); } catch (_) {} $("suggest").innerHTML = ""; return compareBrands(vs.slice(0, 3)); }
   try { history.replaceState(null, "", "?q=" + encodeURIComponent(q)); } catch (_) {}
   $("suggest").innerHTML = "";
   try {
