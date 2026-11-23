@@ -371,6 +371,8 @@ body.back .stepsmore { display:none; }
 .aiact { display:block; text-align:left; border:2px solid var(--ink); background:#fff; border-radius:14px; padding:10px 12px; font:inherit; cursor:pointer; color:var(--ink); text-decoration:none; box-shadow:3px 3px 0 var(--ink); }
 .aiact b { display:block; font-size:15px; } .aiact span { font-size:13px; color:var(--muted); }
 .aiact:hover { background:#fff3b0; }
+.prices { margin:6px 0 8px; padding-left:18px; font-size:13px; }
+.prices li { margin:0 0 6px; }
 .remind { margin-top:14px; border-top:2px solid var(--ink); padding-top:14px; }
 .remind .rhead { display:flex; gap:10px; align-items:center; flex-wrap:wrap; }
 .remind .rhead b { font-size:16px; }
@@ -511,8 +513,8 @@ const MODULES = [
   { id:"mps", type:"near", emo:"🏛️", name:"MPs & councillors", desc:"Your MP and local councillors, with contact links.", status:"ready", c:"#d9ecff", pkg:"@humanagency/councillors", repo:"github.com/humanagencyco/councillors" },
   { id:"cafes", type:"near", emo:"☕", name:"Cafés & chai", desc:"Independent cafés, with notes from people who've been.", status:"ready", c:"#ffe8c2", pkg:"@humanagency/places-cafes", repo:"github.com/humanagencyco/places-cafes" },
   { id:"trains", type:"near", emo:"🚆", name:"Train times", desc:"Next departures from your nearest station.", status:"beta", c:"#d6f7ec", pkg:"@humanagency/train-times", repo:"github.com/humanagencyco/train-times" },
-  { id:"bizcheck", type:"near", emo:"🏪", name:"Is your business easy to find?", desc:"Free instant check: Google Maps, reviews, your website, and whether AI assistants like ChatGPT can find you.", status:"ready", c:"#fff0d6", pkg:"", repo:"" },
-  { id:"aibiz", type:"near", emo:"🤖", name:"AI for your business", desc:"What ChatGPT, Claude and Copilot could do for a small business, and help to set it up.", status:"ready", c:"#efe2ff", pkg:"", repo:"" },
+  { id:"bizcheck", type:"near", emo:"🏪", name:"Is your business easy to find?", desc:"Free instant check: your Google Maps listing, reviews, website, and whether AI assistants can read your site.", status:"ready", c:"#fff0d6", pkg:"", repo:"" },
+  { id:"aibiz", type:"near", emo:"🤖", name:"AI for your business", desc:"What ChatGPT, Claude and Copilot could do for a small business, and help to set it up, from £149.", status:"ready", c:"#efe2ff", pkg:"", repo:"" },
   { id:"track", type:"near", emo:"🚉", name:"Track your train", desc:"Pick two stations. See the next trains there and back.", status:"ready", c:"#e2f0ff", pkg:"", repo:"" },
   { id:"pharmacy", type:"near", emo:"💊", name:"Pharmacies open now", desc:"Open pharmacies nearby, with phone numbers.", status:"beta", c:"#efe2ff", pkg:"@humanagency/pharmacy-finder", repo:"github.com/humanagencyco/pharmacy-finder" },
   { id:"schools", type:"near", emo:"🏫", name:"Nearest schools", desc:"Schools near your postcode, with Ofsted and contact details.", status:"beta", c:"#fff0d6", pkg:"@humanagency/school-digest", repo:"github.com/humanagencyco/school-digest" },
@@ -595,7 +597,7 @@ async function loadTeasers() {
   const line = (txt, ok = true) => `<span class="tz ${ok ? "tz-ok" : "tz-no"}">${txt}</span>`;
   const jobs = {
     bizcheck: async () => line("Free, instant, no sign-up"),
-    aibiz: async () => line("Ideas for your business, free"),
+    aibiz: async () => line("Free ideas · setup from £149"),
     track: async () => {
       const j = myTrains();
       if (!j) return line("Set your two stations", false);
@@ -1687,7 +1689,7 @@ function familyTip() {
     { k: "intel", html: `🔎 Meeting a company this week? <button class="showhidden" type="button" data-open-mod="company" data-promo="intel">Check them in seconds</button> with Intel.` },
     { k: "ai", html: `🎓 New to AI, or want to use it better? <a href="${AILEARN}/" target="_blank" rel="noopener" data-promo="ai">Plain-English guides</a>, a few minutes each.` },
     { k: "miru", html: `📲 Want this without opening the page? <a href="${BRIEF_URL}" target="_blank" rel="noopener" data-promo="miru">Miru sends it to WhatsApp</a> at 7.30am.` },
-    { k: "aibiz", html: `🤖 Can ChatGPT find your business? <button class="showhidden" type="button" data-open-mod="bizcheck" data-promo="bizcheck">Check in seconds</button>, or see <button class="showhidden" type="button" data-open-mod="aibiz" data-promo="aibiz">what AI could do for you</button>.` },
+    { k: "aibiz", html: `🤖 Run a small business? See <button class="showhidden" type="button" data-open-mod="aibiz" data-promo="aibiz">what AI could do for you</button>, or <button class="showhidden" type="button" data-open-mod="bizcheck" data-promo="bizcheck">check how you look online</button>.` },
     { k: "biz", html: `🏪 Run a local business? <button class="showhidden" type="button" data-open-mod="bizcheck" data-promo="bizcheck">See how easy you are to find</button>, free.` },
     { k: "talk", html: `🛠️ Want a tool like this for your business or community? <a href="https://humanagency.co/" target="_blank" rel="noopener" data-promo="talk">We build them.</a>` },
   ];
@@ -1697,10 +1699,16 @@ function familyTip() {
 }
 
 // ---------- Is your business easy to find? Instant check first, help offered after ----------
+// Prices: kept in one place so the cards always agree
+const PRICES = `<ul class="prices">
+  <li><b>Get Found</b>, one-off: we claim and fix your Google profile, set up a review QR code, sort AI access and your business details on your website, then re-run this check. <b>From £249</b></li>
+  <li><b>AI Starter</b>, 90 minutes one-to-one: set up ChatGPT, Claude or Copilot with ready-made prompts for your business. <b>£149</b></li>
+  <li><b>Stay Found</b>, monthly care: a monthly check, draft replies to your reviews and a Google post each week. <b>From £49 a month</b></li>
+</ul>`;
 function bizPanel() {
   return `<div class="box" id="bizBox">
     <b>Free instant check for local businesses</b>
-    <p class="muted" style="margin:4px 0 10px;font-size:14px">See how you look on Google Maps, your website and social pages, and whether ChatGPT, Claude and Copilot can find you. With the three fixes that matter most. No sign-up.</p>
+    <p class="muted" style="margin:4px 0 10px;font-size:14px">See your Google Maps listing, your website and social links, and whether AI assistants like ChatGPT and Claude are allowed to read your site. With your top fixes. No sign-up.</p>
     <div class="bizf">
       <label>Business name<input id="bzName" maxlength="100" placeholder="e.g. Ben's Ice Cream" style="text-transform:none"></label>
       <label>Postcode<input id="bzPc" maxlength="10" value="${esc(postcode)}"></label>
@@ -1717,25 +1725,25 @@ function bizResult(d) {
   if (g && g.found) {
     const stars = g.rating ? `${esc(String(g.rating))}★ from ${esc(String(g.reviews))} review${g.reviews === 1 ? "" : "s"}` : "No reviews yet";
     h += row(true, `On Google Maps as ${esc(g.name)}`, `${stars}${g.maps_url ? ` · <a href="${esc(g.maps_url)}" target="_blank" rel="noopener">see listing</a>` : ""}`);
-    h += row((g.reviews || 0) >= 20, (g.reviews || 0) >= 20 ? "Plenty of reviews" : "Not many reviews yet");
+    h += row((g.reviews || 0) >= 20, (g.reviews || 0) >= 20 ? "20 or more Google reviews" : "Fewer than 20 Google reviews");
     h += row(!!g.hours, g.hours ? "Opening hours on Google" : "No opening hours on Google");
   } else if (g && g.skipped) {
-    h += row(null, "Google check is busy today", "We'll check your Google listing by hand if you ask us to.");
+    h += row(null, "We couldn't check Google today", "We've hit today's limit. Try again tomorrow, or ask us to check by hand.");
   } else if (g) {
-    h += row(false, "Not found on Google Maps", g.nearest ? `The closest match was ${esc(g.nearest)}.` : "People searching for you may not find you.");
+    h += row(false, "We couldn't find you on Google Maps", g.nearest ? `The closest match was ${esc(g.nearest)}. If that's not you, you may not have a listing yet.` : "Try the exact name on your sign. If it's still missing, you may not have a listing yet.");
   }
   if (w && w.loads) {
     h += row(true, "Your website opens", esc(w.url));
     h += row(!!w.phone_friendly, w.phone_friendly ? "Works on phones" : "May not work well on phones");
-    h += row(!!w.secure, w.secure ? "Secure (https)" : "Not secure (no https)");
+    h += row(!!w.secure, w.secure ? "Secure (https)" : "No https, so browsers show \"Not secure\"");
     const s = (w.social || []).filter(k => ["instagram", "facebook", "tiktok"].includes(k));
     const nm = { instagram: "Instagram", facebook: "Facebook", tiktok: "TikTok" };
     h += row(s.length > 0, s.length ? `Links to ${s.map(k => nm[k]).join(", ")}` : "No links to Instagram, Facebook or TikTok");
     const blocked = w.ai_blocked || [];
     h += `<div class="subhead" style="margin-top:10px">Can AI assistants find you?</div>`
-      + row(!blocked.length, blocked.length ? `Your website blocks ${esc(blocked.join(", "))}` : "AI assistants are allowed to read your website", blocked.length ? "They can't recommend what they can't read." : "")
-      + row(!!w.schema, w.schema ? "Business details in a standard format" : "No business details in a standard format", w.schema ? "" : "Name, address, hours and what you do, written so Google and AI can read them.")
-      + row(!!w.llms_txt, w.llms_txt ? "Has an llms.txt summary for AI" : "No llms.txt summary for AI", w.llms_txt ? "" : "A short plain-text file that helps ChatGPT, Claude and others describe you.");
+      + row(!blocked.length, blocked.length ? `Your website blocks ${esc(blocked.join(", "))}` : "AI assistants are allowed to read your website", blocked.length ? "Your robots.txt file tells them not to read your site." : "")
+      + row(!!w.schema, w.schema ? "Business details in a standard format" : "No business details in a standard format", w.schema ? "" : "Name, address, hours and what you do, in a format (schema.org) search engines and AI tools can read.")
+      + row(null, w.llms_txt ? "Has an llms.txt file" : "No llms.txt file", "Optional. A newer idea that AI tools don't reliably use yet, so it doesn't count towards your score.");
   } else if (w) {
     h += row(false, "Your website didn't open", esc(w.url || ""));
   } else {
@@ -1749,7 +1757,8 @@ function bizResult(d) {
 }
 function bizHelp(body, scan) {
   return `<div class="bzhelp" id="bzHelp"><b>Want us to fix these for you?</b>
-    <p class="muted" style="margin:2px 0 8px;font-size:13px">We'll get in touch within 24 hours with what it would take. No obligation, no mailing lists.</p>
+    ${PRICES}
+    <p class="muted" style="margin:2px 0 8px;font-size:13px">We'll get in touch within 24 hours and agree a fixed price before any work starts. No obligation, no mailing lists.</p>
     <div class="bizf">
       <label>Your WhatsApp or email<input id="bzContact" maxlength="120" style="text-transform:none"></label>
       <label><span>Your name <small class="muted">(optional)</small></span><input id="bzWho" maxlength="60" style="text-transform:none"></label>
@@ -1804,13 +1813,13 @@ const AI_TYPES = [["cafe", "☕ Café or restaurant"], ["shop", "🛍️ Shop"],
 function aiPanel() {
   return `<div class="box" id="aiBox">
     <b>AI for your business, in plain English</b>
-    <p class="muted" style="margin:4px 0 8px;font-size:14px">Tools like ChatGPT, Claude and Copilot can take hours of admin off your week. And more customers now ask them "where's a good café near me?", so it helps if they can find you.</p>
+    <p class="muted" style="margin:4px 0 8px;font-size:14px">Tools like ChatGPT, Claude and Copilot can help with everyday admin: replies, posts, quotes and paperwork. Some can also search the web when people ask for recommendations, so it helps if they're allowed to read your website.</p>
     <div class="subhead">What could it do for you?</div>
     <div class="aitypes">${AI_TYPES.map(([k, l]) => `<button type="button" data-aitype="${k}">${l}</button>`).join("")}</div>
     <div id="aiIdeas"></div>
     <div class="aiacts">
       <a class="aiact" href="${AILEARN}/" target="_blank" rel="noopener" data-promo="ai"><b>🎓 Learn the basics</b><span>Short guides and a jargon buster on AI Learning</span></a>
-      <button class="aiact" type="button" data-open-mod="bizcheck"><b>🔎 Can AI find you?</b><span>Free check of Google, your website and AI assistants</span></button>
+      <button class="aiact" type="button" data-open-mod="bizcheck"><b>🔎 Check your business</b><span>Free check of your Google listing, website and AI access</span></button>
       <button class="aiact" type="button" id="aiHelpBtn"><b>🛠️ Help me set it up</b><span>We'll show you what's worth doing, and do it with you</span></button>
     </div>
     <div id="aiHelp"></div>
@@ -1827,7 +1836,8 @@ function wireAi() {
     track("biz:ai-help");
     const h = document.getElementById("aiHelp");
     h.innerHTML = `<div class="bzhelp"><b>Help me set up AI</b>
-      <p class="muted" style="margin:2px 0 8px;font-size:13px">Tell us a little and we'll be in touch within 24 hours. No obligation, no mailing lists.</p>
+      ${PRICES}
+      <p class="muted" style="margin:2px 0 8px;font-size:13px">Tell us a little and we'll be in touch within 24 hours, with a fixed price agreed before any work starts. No obligation, no mailing lists.</p>
       <div class="bizf">
         <label>Business name<input id="aiBiz" maxlength="100" style="text-transform:none"></label>
         <label>Your WhatsApp or email<input id="aiContact" maxlength="120" style="text-transform:none"></label>
