@@ -238,7 +238,7 @@ async function loadOpportunities(name) {
     const mid = prices.length % 2 ? prices[(prices.length - 1) / 2] : (prices[prices.length / 2 - 1] + prices[prices.length / 2]) / 2;
     const lo = prices[0], hi = prices[prices.length - 1], stretch = hi / mid;
     if (stretch >= 3) add("Sell more of what exists", "Move buyers up the price ladder",
-      `Most listings sit around ${money(mid)}, but the range reaches ${money(hi)}. The higher priced items (bigger sizes, sets, specialist lines) are where margin is. Bundles, gift sets and bigger packs give everyday buyers a reason to trade up, especially at Christmas.`,
+      `Most listings sit around ${money(mid)}, but the range reaches ${money(hi)}. Higher priced items (bigger sizes, sets, specialist lines) usually carry more margin. Bundles, gift sets and bigger packs give everyday buyers a reason to trade up, especially at Christmas.`,
       `Price ladder thinking: how far a brand can go upmarket matters as much as its size (Bain, "Your Brand's Best Strategy", Harvard Business Review, 1997). Based on ${prices.length} prices seen.`);
     else if (stretch < 1.6 && hi < 3 * lo) add("Improve or add products", "Room for a premium line",
       `Prices are tightly grouped, from ${money(lo)} to ${money(hi)}, middle ${money(mid)}. There's no clear top tier, so a premium version or a bigger value pack could earn more from the same buyers.`,
@@ -278,7 +278,7 @@ async function loadOpportunities(name) {
   const heads = Array.isArray(ai.sample_headlines) ? ai.sample_headlines : [];
   const about = headlinesAboutBrand(heads, name);
   if (heads.length && about < Math.ceil(heads.length / 2))
-    unknowns.push(`How often the brand comes to mind. Only ${about} of ${heads.length} sample headlines are about the brand, so the news count can't be used for "${name}".`);
+    unknowns.push(`How often the brand comes to mind. ${about ? `Only ${about}` : "None"} of the ${heads.length} sample headlines ${about === 1 ? "is" : "are"} about the brand, so the news count can't be used for "${name}".`);
   else if (heads.length) add("Reach new buyers", "Use the press attention",
     `${ai.mentions_30d} articles in the last 30 days, and the sample headlines are about the brand. Coverage helps people think of the brand when they shop.`,
     `Brands also grow by being easy to think of (Byron Sharp). NewsAPI count, not a measure of tone.`);
