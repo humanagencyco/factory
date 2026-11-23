@@ -850,17 +850,14 @@ function render() {
   loadPersonal();  // sign-in and "your place" sit at the top of every section
   const pcq = encodeURIComponent(postcode);
   const official = [
+    ["🗑️", "Missed bin", "Report it to your council by the next day or two (England)", "https://www.gov.uk/missed-bin-collection"],
     ["🚧", "Report a pothole", "See and report potholes near you", `https://www.fixmystreet.com/around?pc=${pcq}`],
     ["🏫", "School reports", "Ofsted reports for any school", "https://reports.ofsted.gov.uk/"],
     ["🩺", "GP and dentist", "Find and register with a GP near you", `https://www.nhs.uk/service-search/find-a-gp/results?postcode=${pcq}`],
     ["🔧", "MOT history", "Check any vehicle's MOT record", "https://www.gov.uk/check-mot-history"],
     ["🧾", "Council tax", "Band and bills for your home", "https://www.gov.uk/council-tax-bands"],
   ];
-  const binHtml = `<div class="sec" id="sec-bins"><h2>🗑️ Bin day <span>Your council and collection days for ${esc(postcode)}.</span></h2><div class="bin-card" id="binCard"><button class="bin-btn" onclick="binFind()">Find my bin day</button></div>
-    <div class="bin-card bin-missed"><p class="bin-note"><b>Bin missed?</b> Report it to your council. GOV.UK takes your postcode and sends you to your council's own form.</p>
-      <p class="bin-note">Wait until the end of your collection day first, and report it quickly: most councils only accept reports for 1 to 3 days. Leave the bin out where it was.</p>
-      <a class="bin-btn" href="https://www.gov.uk/missed-bin-collection" target="_blank" rel="noopener">Report a missed bin ↗</a>
-      <p class="sources">England only. In Scotland, Wales or Northern Ireland, contact your council directly.</p></div></div>`;
+  const binHtml = `<div class="sec" id="sec-bins"><h2>🗑️ Bin day <span>Your council and collection days for ${esc(postcode)}.</span></h2><div class="bin-card" id="binCard"><button class="bin-btn" onclick="binFind()">Find my bin day</button></div></div>`;
   const areaHtml = `<div class="sec" id="sec-area"><h2>🧭 Your area <span>Flood warnings, street crime and reported potholes near ${esc(postcode)}.</span></h2><div class="areacard" id="areaCard">Checking your area…</div></div>`;
   const linksHtml = `<div class="sec" id="sec-official"><h2>🔗 Official sources <span>Not on this page yet? Here's where to go for ${esc(postcode)}.</span></h2>
     <div class="offgrid">${official.map(([e, t, d, u]) => `<a class="offcard" href="${u}" target="_blank" rel="noopener"><span class="offe">${e}</span><b>${t}</b><small>${d}</small><span class="offgo">Open ↗</span></a>`).join("")}</div></div>`;
