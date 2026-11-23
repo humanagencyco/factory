@@ -253,6 +253,34 @@ footer { text-align:center; color:var(--muted); font-size:13px; padding:0 20px 4
 .cardtools button:hover { background:var(--c); }
 .pill.new { background:var(--sun); margin-left:6px; }
 .showhidden { border:0; background:none; color:var(--violet); font-weight:800; cursor:pointer; font-size:13px; margin-left:8px; }
+/* Returning visitors: compact top so "Today" shows without scrolling */
+body.back .hero { padding:14px 20px 16px; }
+body.back .blob { opacity:.3; }
+body.back .kicker, body.back .lede, body.back .steps { display:none; }
+body.back h1 { font-size:clamp(22px,3.4vw,30px); margin:4px 0 0; }
+body.back h1 br { display:none; }
+body.back .try { margin-top:10px; padding:4px; box-shadow:4px 4px 0 var(--ink); }
+body.back .try input { padding:8px 12px; font-size:15px; }
+body.back .try .btn { padding:9px 16px; }
+body.back .pcnote { margin-top:8px; font-size:0; }
+body.back .pcnote .sharebtn { font-size:13px; }
+@media (max-width:700px) {
+  body.back .try { flex-direction:row; border-radius:999px; }
+  body.back .try input { text-align:left; }
+  body.back .try .btn { padding:9px 14px; font-size:13px; white-space:nowrap; }
+}
+body.back .places { margin-top:6px; }
+body.back .today { margin-top:6px; }
+body.back .onboard { display:none; }
+/* First visit on a phone: the three steps as one slim row */
+@media (max-width:700px) {
+  .steps { grid-template-columns:repeat(3,1fr) !important; gap:8px; margin-top:-30px; }
+  .step { padding:10px; box-shadow:3px 3px 0 var(--ink); text-align:center; }
+  .step .n { width:26px; height:26px; margin:0 auto 4px; font-size:13px; }
+  .step h3 { font-size:15px; margin:0; }
+  .step p { display:none; }
+  .hero { padding:28px 16px 48px; }
+}
 .remind { margin-top:14px; border-top:2px solid var(--ink); padding-top:14px; }
 .remind .rhead { display:flex; gap:10px; align-items:center; flex-wrap:wrap; }
 .remind .rhead b { font-size:16px; }
@@ -1470,6 +1498,7 @@ fetch(`${API}/api/factory/me/reminders`, { credentials: "include" }).then(r => r
 
 
 const __firstVisit = (() => { try { return !localStorage.getItem(PC_KEY); } catch (e) { return true; } })();
+if (!__firstVisit && document.body && document.body.classList) document.body.classList.add("back");
 setPostcode(postcode);
 render();
 renderPlaces();
