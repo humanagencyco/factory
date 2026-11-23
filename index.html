@@ -345,6 +345,9 @@ body.back .stepsmore { display:none; }
 .ffgrid b { display:block; font-size:16px; margin-bottom:3px; }
 .ffgrid span { font-size:13px; color:var(--muted); }
 @media (max-width:800px) { .ffgrid { grid-template-columns:1fr; } .family { gap:10px; font-size:12px; } }
+.tst { font-size:12px; font-weight:800; border:2px solid var(--ink); border-radius:999px; padding:2px 9px; white-space:nowrap; }
+.tst-ok { background:#d6f7ec; } .tst-late { background:#ffd9a8; } .tst-x { background:#ffd6e5; }
+.tfields.tsetup { display:grid; grid-template-columns:1fr 1fr; gap:10px; margin:8px 0; }
 .remind { margin-top:14px; border-top:2px solid var(--ink); padding-top:14px; }
 .remind .rhead { display:flex; gap:10px; align-items:center; flex-wrap:wrap; }
 .remind .rhead b { font-size:16px; }
@@ -485,6 +488,7 @@ const MODULES = [
   { id:"mps", type:"near", emo:"🏛️", name:"MPs & councillors", desc:"Your MP and local councillors, with contact links.", status:"ready", c:"#d9ecff", pkg:"@humanagency/councillors", repo:"github.com/humanagencyco/councillors" },
   { id:"cafes", type:"near", emo:"☕", name:"Cafés & chai", desc:"Independent cafés, with notes from people who've been.", status:"ready", c:"#ffe8c2", pkg:"@humanagency/places-cafes", repo:"github.com/humanagencyco/places-cafes" },
   { id:"trains", type:"near", emo:"🚆", name:"Train times", desc:"Next departures from your nearest station.", status:"beta", c:"#d6f7ec", pkg:"@humanagency/train-times", repo:"github.com/humanagencyco/train-times" },
+  { id:"track", type:"near", emo:"🚉", name:"Track your train", desc:"Pick two stations. See the next trains there and back.", status:"ready", c:"#e2f0ff", pkg:"", repo:"" },
   { id:"pharmacy", type:"near", emo:"💊", name:"Pharmacies open now", desc:"Open pharmacies nearby, with phone numbers.", status:"beta", c:"#efe2ff", pkg:"@humanagency/pharmacy-finder", repo:"github.com/humanagencyco/pharmacy-finder" },
   { id:"schools", type:"near", emo:"🏫", name:"Nearest schools", desc:"Schools near your postcode, with Ofsted and contact details.", status:"beta", c:"#fff0d6", pkg:"@humanagency/school-digest", repo:"github.com/humanagencyco/school-digest" },
   { id:"expenses", type:"personal", emo:"💷", name:"Expense tracker", desc:"Receipts sorted by category and month.", status:"beta", c:"#e4f6ff", pkg:"@humanagency/expense-tracker", repo:"github.com/humanagencyco/expense-tracker" },
@@ -565,6 +569,14 @@ async function loadTeasers() {
   const pc = postcode;
   const line = (txt, ok = true) => `<span class="tz ${ok ? "tz-ok" : "tz-no"}">${txt}</span>`;
   const jobs = {
+    track: async () => {
+      const j = myTrains();
+      if (!j) return line("Set your two stations", false);
+      const r = await trainLeg(j.from, j.to);
+      const t = r.trains[0];
+      if (!t) return line(`${esc(shortStation(j.from.name))} → ${esc(shortStation(j.to.name))}: none in the next hour`, false);
+      return line(`${esc(shortStation(j.from.name))} → ${esc(shortStation(j.to.name))} ${esc(t.scheduled)} ${t.cancelled ? "cancelled" : t.late_min ? "+" + t.late_min : "on time"}`, !t.cancelled);
+    },
     weather: async () => {
       const place = await getJSON(`https://api.postcodes.io/postcodes/${encodeURIComponent(pc)}`);
       const w = await getJSON(`https://api.open-meteo.com/v1/forecast?latitude=${place.result.latitude.toFixed(3)}&longitude=${place.result.longitude.toFixed(3)}&current=temperature_2m,weather_code&timezone=auto`);
@@ -882,6 +894,7 @@ document.addEventListener("keydown", e => { if (e.key==="Escape") closeDrawer();
 
 function tryPanel(m) {
   if (["pubs","trains","schools"].includes(m.id)) return `<div class="box"><div class="row"><input id="tIn" placeholder="Postcode" maxlength="8" value="${postcode}"><button class="btn pink" id="tGo">Check</button></div><div id="tOut" style="margin-top:10px"></div></div>`;
+  if (m.id === "track") return trackPanel();
   if (m.id === "company") return `<div class="box"><div class="row"><input id="tIn" placeholder="Company or brand, e.g. Tesco" maxlength="60" style="text-transform:none"><button class="btn pink" id="tGo">Check</button></div><div id="tOut" style="margin-top:10px"><div class="sample">Who they are, how they're doing, what people say, and who's hiring. From <b>Intel</b>, our company research tool.</div></div></div>`;
   if (m.id === "vehicle") return `<div class="box"><div class="row"><input id="tIn" placeholder="Registration, e.g. AB12 CDE" maxlength="10"><button class="btn pink" id="tGo">Check</button></div><div id="tOut" style="margin-top:10px"></div></div>`;
   if (m.type === "topic") return `<div class="box"><b>No postcode needed.</b><p style="margin:6px 0 10px;color:var(--muted)">This is for everyone.</p><a class="btn pink" href="${esc(m.link)}" target="_blank" rel="noopener" style="text-decoration:none">Open ${esc(m.name)} ↗</a></div>`;
@@ -1041,7 +1054,7 @@ async function wireLive(m) {
           + `<div class="result"><div><b>${esc(near.name)}</b><small>${near.distance_km} km away</small></div></div>`
           + `<div class="subhead">Next trains${depStation && depStation.name !== near.name ? " from " + esc(depStation.name) : ""}</div>` + trainRows
           + `<div class="sample">Live from the National Rail feed</div>`
-          + `<div class="tdcta" style="margin-top:12px"><button class="tdbtn" type="button" data-trains-setup data-close-drawer>🚆 Track my trains</button><small class="muted">Pin your regular journey or a trip to the Today box.</small></div>`);
+          + `<div class="tdcta" style="margin-top:12px"><button class="tdbtn" type="button" data-open-mod="track">🚆 Track your train</button><small class="muted">Pick two stations and see the trains both ways.</small></div>`);
       }
       if (m.id === "schools") {
         const d = await getJSON(`${API}/api/factory/schools-near?postcode=${encodeURIComponent(pc)}`);
@@ -1057,6 +1070,7 @@ async function wireLive(m) {
 }
 function wireTry(m) {
   if (["pubs","trains","schools"].includes(m.id)) return wireLive(m);
+  if (m.id === "track") return wireTrack();
   if (m.id === "company") {
     const go = $("tGo"), out = $("tOut");
     const intelUrl = n => `${INTEL}/brand/intelligence?name=${encodeURIComponent(n)}`;
@@ -1202,14 +1216,6 @@ document.addEventListener("click", e => {
   if (pr) track("promo:" + pr.dataset.promo);
   const om = e.target.closest("[data-open-mod]");
   if (om) { openModule(om.dataset.openMod); return; }
-  const ts = e.target.closest("[data-trains-setup]");
-  if (ts) {
-    if (ts.hasAttribute("data-close-drawer")) {
-      closeDrawer();
-      const t = document.getElementById("today"); if (t && t.scrollIntoView) t.scrollIntoView({ behavior: "smooth", block: "start" });
-    }
-    openTrainSetup(); return;
-  }
   const hw = e.target.closest("[data-how]");
   if (hw) {
     e.preventDefault(); track("how");
@@ -1377,7 +1383,7 @@ async function loadToday() {
   const el = document.getElementById("today"); if (!el) return;
   const pc = postcode, seq = ++todaySeq;
   const ICON = { wx: "🌤️", fuel: "⛽", train: "🚆", bin: "🗑️" };
-  const OPEN = { wx: "weather", fuel: "fuel", train: anyTrains() ? "" : "trains", bin: "" };
+  const OPEN = { wx: "weather", fuel: "fuel", train: "trains", bin: "" };
   el.innerHTML = `<div class="tdhead"><h2>Today in ${esc(pc)}</h2><span class="tddate">${esc(new Date().toLocaleDateString("en-GB", { weekday: "long", day: "numeric", month: "long" }))}</span><a class="bymiru" href="https://miru.humanagency.co/" target="_blank" rel="noopener" data-promo="miru">by Miru</a>${installBtn()}</div>
     <div>${["wx", "fuel", "train", "bin"].map(k => `<div class="tdrow" id="td-${k}"${OPEN[k] ? ` data-open="${OPEN[k]}"` : ""}><span class="tdi">${ICON[k]}</span><span class="tdt muted">Checking…</span></div>`).join("")}</div>
     <div class="tdchanges" id="tdChanges"></div>
@@ -1395,9 +1401,8 @@ async function loadToday() {
     put("fuel", c ? `<b>Cheapest ${fuelLabel.toLowerCase()} ${c.price_p}p</b> at ${esc(shortBrand(c.brand))}, ${c.distance_mi} mi away. ${tog}` : `No ${fuelLabel.toLowerCase()} prices nearby. ${tog}`);
     return c;
   }).catch(() => { put("fuel", `Fuel prices aren't available right now. ${tog}`, true); return null; });
-  const setTrains = `<div class="tdcta"><button class="tdbtn" type="button" data-trains-setup>🚆 Track my trains</button><small class="muted">Your regular journey or a trip today, live both ways.</small></div>`;
-  if (anyTrains()) loadMyTrains(put);
-  else todayTrain(pc).then(r => {
+  const setTrains = "";
+  todayTrain(pc).then(r => {
     if (!r.next) return put("train", `No more trains listed from ${esc(r.st.name || "your nearest station")} right now.${setTrains}`, true);
     const { t, lb } = r.next;
     put("train", `<b>Leave by ${hhmm(lb.at)}</b> for the ${esc(t.scheduled)} to ${esc(t.destination)} from ${esc(r.st.name)}${/^\d/.test(t.expected || "") ? ` (running late, expected ${esc(t.expected)})` : ""}. About ${lb.mins} min ${lb.how === "walk" ? "walk" : "drive"}.${setTrains}`);
@@ -1532,7 +1537,7 @@ function renderRemind() {
   const waOn = remind.wa && ((remind.wa.bins || {}).on || (remind.wa.fuel || {}).on || (remind.wa.trains || {}).on);
   const head = on.length
     ? `<div class="rhead"><span class="ron">🔔 On: ${esc(on.join(", "))}</span><button class="showhidden" type="button" data-rch="${waOn ? "wa" : "push"}">Change</button></div>`
-    : `<div class="rhead"><b>🔔 Never miss bin day</b><small>A reminder the evening before collection, a heads-up when fuel drops near ${esc(postcode)}, and an alert if your train is late.</small>
+    : `<div class="rhead"><b>🔔 Never miss bin day</b><small>A reminder the evening before collectionand a heads-up when fuel drops near ${esc(postcode)}.</small>
         <div class="rbtns"><button class="btn wa" type="button" data-rch="wa">On WhatsApp</button>${canPush() ? `<button class="btn ghost" type="button" data-rch="push">As notifications</button>` : ""}</div></div>`;
   el.innerHTML = head + `<div id="rPanel"></div>`;
   el.querySelectorAll("[data-rch]").forEach(b => b.onclick = () => openRemind(b.dataset.rch));
@@ -1589,15 +1594,12 @@ function remindChoices(box, ch) {
   const hasBin = !!(bin && bin.postcode === postcode);
   const anyOn = !!((cur.bins && cur.bins.on) || (cur.fuel && cur.fuel.on) || (cur.trains && cur.trains.on));
   const binsOn = !anyOn || !!(cur.bins && cur.bins.on), fuelOn = !anyOn || !!(cur.fuel && cur.fuel.on);   // nothing on yet: tick them
-  const j = myTrains(), hasUsual = !!(j && (j.out || j.back));
-  const trainsOn = !anyOn || !!(cur.trains && cur.trains.on);
-  const usualTxt = j ? [j.out && `${j.out} ${shortStation(j.from.name)} → ${shortStation(j.to.name)}`, j.back && `${j.back} back`].filter(Boolean).join(", ") : "";
+  const j = null, hasUsual = false;
   box.innerHTML = `<div class="rpanel"><b>${ch === "wa" ? "On WhatsApp" : "As notifications on this device"}</b>
     <label><input type="checkbox" id="rBins" ${hasBin && binsOn ? "checked" : ""} ${hasBin ? "" : "disabled"}><span><b>Bins, the evening before</b><br><small class="muted">${hasBin ? "For " + esc(bin.label) : `First <button class="showhidden" type="button" data-td="bins" style="margin:0;padding:0">set your address</button>, then come back here.`}</small></span></label>
-    <label><input type="checkbox" id="rTrains" ${hasUsual && trainsOn ? "checked" : ""} ${hasUsual ? "" : "disabled"}><span><b>My trains, if late or cancelled</b><br><small class="muted">${hasUsual ? esc(usualTxt) + ". Weekdays, in the hour before it leaves." : `First <button class="showhidden" type="button" data-trains-setup style="margin:0;padding:0">track your regular trains</button> with a usual time, then come back here.`}</small></span></label>
     <label><input type="checkbox" id="rFuel" ${fuelOn ? "checked" : ""}><span><b>${fuelType === "diesel" ? "Diesel" : "Petrol"} drops near ${esc(postcode)}</b><br><small class="muted">When the cheapest price falls by 1p or more. Checked once a day.</small></span></label>
     <div class="row2"><button class="btn" type="button" id="rSave">Save</button><button class="btn ghost" type="button" data-rclose>Close</button>${anyOn ? `<button class="showhidden" type="button" id="rOff">Turn all off</button>` : ""}</div>
-    <div class="rmsg" id="rMsg">${ch === "wa" ? "Reply STOP BINS, STOP FUEL, STOP TRAINS or STOP REMINDERS on WhatsApp any time." : "You can turn these off here any time."}</div></div>`;
+    <div class="rmsg" id="rMsg">${ch === "wa" ? "Reply STOP BINS, STOP FUEL or STOP REMINDERS on WhatsApp any time." : "You can turn these off here any time."}</div></div>`;
   box.querySelector("[data-rclose]").onclick = closeRemind;
   const say = t => { box.querySelector("#rMsg").textContent = t; };
   const send = async (bins, fuel, trains) => {
@@ -1628,7 +1630,7 @@ function remindChoices(box, ch) {
       toast(bins || fuel || trains ? "Reminders on 🔔" : "Reminders off");
     } catch (e) { say(e.message || "Something went wrong. Try again."); }
   };
-  box.querySelector("#rSave").onclick = () => send(box.querySelector("#rBins").checked, box.querySelector("#rFuel").checked, box.querySelector("#rTrains").checked);
+  box.querySelector("#rSave").onclick = () => send(box.querySelector("#rBins").checked, box.querySelector("#rFuel").checked, false);
   const off = box.querySelector("#rOff"); if (off) off.onclick = () => send(false, false, false);
 }
 function b64u8(b64) {
@@ -1661,77 +1663,70 @@ function familyTip() {
   return `<div class="ftip" data-tip="${t.k}">${t.html}</div>`;
 }
 
-// ---------- My trains: a saved journey out and back, at a glance ----------
+// ---------- Track your train: two stations, next trains both ways. That's it. ----------
 const TRAINS_KEY = "factory_trains";
-var myTrainsCfg = LS.get(TRAINS_KEY, null);   // {from:{crs,name}, to:{crs,name}, out:"07:42", back:"17:48"}
+var myTrainsCfg = LS.get(TRAINS_KEY, null);   // {from:{crs,name}, to:{crs,name}}
 const myTrains = () => myTrainsCfg && myTrainsCfg.from && myTrainsCfg.to ? myTrainsCfg : null;
-const TRIP_KEY = "factory_trip";
-const todayIso = () => { const d = new Date(); return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0"); };
-var tripCfg = LS.get(TRIP_KEY, null);          // {from, to, back:bool, date:"YYYY-MM-DD"}: shows today only
-const myTrip = () => tripCfg && tripCfg.from && tripCfg.to && tripCfg.date === todayIso() ? tripCfg : null;
-const anyTrains = () => !!(myTrains() || myTrip());
 const shortStation = n => String(n || "").replace(/^London /, "");
-function trainChip(t) {
-  const late = Number(t.late_min || 0);
-  const cls = t.cancelled ? "tc-x" : late >= 5 ? "tc-late" : late > 0 ? "tc-slight" : "tc-ok";
-  const note = t.cancelled ? "cancelled" : late > 0 ? `+${late}` : "on time";
-  const plat = t.platform ? ` · P${esc(t.platform)}` : "";
-  return `<span class="tchip ${cls}" title="${esc(t.scheduled)} ${esc(t.expected || "")}"><b>${esc(t.scheduled)}</b> ${note}${plat}</span>`;
-}
 async function trainLeg(frm, to) {
   const d = await getJSON(`${API}/api/train/departures?crs=${encodeURIComponent(frm.crs)}&calling_at=${encodeURIComponent(to.crs)}`);
   return { trains: (d.trains || []).filter(t => { const at = atToday(t.scheduled); return !at || at >= Date.now() - 120e3; }), filtered: d.filtered !== false };
 }
-async function loadMyTrains(put) {
-  const j = myTrains(), trip = myTrip();
-  if (!j && !trip) return;
-  let legs = [];
-  if (j) { legs = [[j.from, j.to, j.out], [j.to, j.from, j.back]]; if (new Date().getHours() >= 12) legs.reverse(); }   // afternoon: the way home first
-  if (trip) legs = [[trip.from, trip.to, "", "Trip today"]].concat(trip.back ? [[trip.to, trip.from, "", "Trip back"]] : []).concat(legs);
-  const rows = await Promise.all(legs.map(async ([a, b, usual, tag]) => {
-    try {
-      const r = await trainLeg(a, b);
-      const mine = usual ? r.trains.find(t => t.scheduled === usual) : null;
-      const chips = r.trains.slice(0, 3).map(trainChip).join("") || `<span class="muted">No trains listed right now</span>`;
-      const yours = mine && !r.trains.slice(0, 3).includes(mine) ? ` <span class="muted">· yours</span> ${trainChip(mine)}` : "";
-      return `<div class="tleg"><span class="troute">${tag ? `<em class="ttag">${esc(tag)}</em> ` : ""}${esc(shortStation(a.name))} → ${esc(shortStation(b.name))}</span><span class="tchips">${chips}${yours}</span>${r.filtered ? "" : `<small class="muted">All trains from ${esc(shortStation(a.name))}, the route filter isn't working right now.</small>`}</div>`;
-    } catch (e) {
-      return `<div class="tleg"><span class="troute">${esc(shortStation(a.name))} → ${esc(shortStation(b.name))}</span><span class="muted">Not available right now</span></div>`;
-    }
-  }));
-  put("train", rows.join("") + `<div class="tedit"><button class="showhidden" type="button" data-trains-setup>${j ? "Edit or add a trip" : "Track my regular trains"}</button></div>`);
+function trackRows(r, a) {
+  if (!r.trains.length) return `<div class="sample">No trains listed in the next hour or so.</div>`;
+  return r.trains.slice(0, 6).map(t => {
+    const late = Number(t.late_min || 0);
+    const st = t.cancelled ? `<span class="tst tst-x">Cancelled</span>` : late > 0 ? `<span class="tst tst-late">${late} min late, exp ${esc(t.expected_at || "")}</span>` : `<span class="tst tst-ok">On time</span>`;
+    return `<div class="result"><div><b>${esc(t.scheduled)}</b> <small>to ${esc(t.destination)}${t.platform ? ` · platform ${esc(t.platform)}` : ""}</small></div>${st}</div>`;
+  }).join("") + (r.filtered ? "" : `<div class="sample">Showing all trains from ${esc(shortStation(a.name))}: the route filter isn't working right now.</div>`);
 }
-function openTripSetup(row) {
-  track("trains:trip");
-  const t = myTrip() || {};
+function trackPanel() {
+  const j = myTrains();
+  if (!j) return `<div class="box" id="trackBox">${trackForm({})}</div>`;
+  return `<div class="box" id="trackBox"><div class="sample">Loading live trains…</div></div>`;
+}
+function trackForm(j) {
   const val = s => s ? esc(s.name) : "";
-  row.innerHTML = `<span class="tdi">🚆</span><div class="tdt tsetup">
-    <b>Another trip, today</b> <small class="muted">Cleared at midnight.</small>
-    <div class="tfields">
-      <label>From<input id="tsFrom" placeholder="e.g. Longcross" value="${val(t.from)}" data-crs="${t.from ? esc(t.from.crs) : ""}" autocomplete="off"><span class="tlist" id="tsFromL"></span></label>
-      <label>To<input id="tsTo" placeholder="e.g. Reading" value="${val(t.to)}" data-crs="${t.to ? esc(t.to.crs) : ""}" autocomplete="off"><span class="tlist" id="tsToL"></span></label>
+  return `<b>Your two stations</b>
+    <div class="tfields tsetup">
+      <label>From<input id="tsFrom" placeholder="e.g. Longcross" value="${val(j.from)}" data-crs="${j.from ? esc(j.from.crs) : ""}" autocomplete="off"><span class="tlist" id="tsFromL"></span></label>
+      <label>To<input id="tsTo" placeholder="e.g. Waterloo" value="${val(j.to)}" data-crs="${j.to ? esc(j.to.crs) : ""}" autocomplete="off"><span class="tlist" id="tsToL"></span></label>
     </div>
-    <label class="tcheck"><input type="checkbox" id="tsBackChk" ${t.back ? "checked" : ""}> Coming back today too</label>
-    <div class="row2"><button class="btn" type="button" id="tsSave">Show my trip</button><button class="btn ghost" type="button" id="tsCancel">Cancel</button>${myTrip() ? `<button class="showhidden" type="button" id="tsRemove">Remove trip</button>` : ""}</div>
-    <div class="rmsg" id="tsMsg"></div></div>`;
-  stationPicker(document.getElementById("tsFrom"), document.getElementById("tsFromL"));
-  stationPicker(document.getElementById("tsTo"), document.getElementById("tsToL"));
-  document.getElementById("tsCancel").onclick = () => loadToday();
-  const rm = document.getElementById("tsRemove");
-  if (rm) rm.onclick = () => { tripCfg = null; LS.set(TRIP_KEY, null); loadToday(); };
-  document.getElementById("tsSave").onclick = () => {
-    const f = document.getElementById("tsFrom"), to = document.getElementById("tsTo");
-    const msg = x => { document.getElementById("tsMsg").textContent = x; };
-    if (!f.dataset.crs) return msg("Pick your From station from the list.");
-    if (!to.dataset.crs) return msg("Pick your To station from the list.");
-    if (f.dataset.crs === to.dataset.crs) return msg("From and To need to be different stations.");
-    tripCfg = { from: { crs: f.dataset.crs, name: f.value }, to: { crs: to.dataset.crs, name: to.value }, back: document.getElementById("tsBackChk").checked, date: todayIso() };
-    LS.set(TRIP_KEY, tripCfg);
-    track("trains:trip-saved");
-    toast("Tracking your trip today 🚆");
-    loadToday();
-  };
-  document.getElementById("tsFrom").focus();
+    <div class="row" style="gap:8px"><button class="btn pink" type="button" id="tsSave">Show trains</button>${myTrains() ? `<button class="btn ghost" type="button" id="tsCancel">Cancel</button>` : ""}</div>
+    <div class="rmsg" id="tsMsg" style="color:#c0392b;font-size:13px;min-height:16px;margin-top:6px"></div>`;
+}
+async function wireTrack() {
+  const box = document.getElementById("trackBox"); if (!box) return;
+  const j = myTrains();
+  if (!j || box.dataset.edit) {
+    if (!box.querySelector("#tsFrom")) box.innerHTML = trackForm(j || {});
+    stationPicker(document.getElementById("tsFrom"), document.getElementById("tsFromL"));
+    stationPicker(document.getElementById("tsTo"), document.getElementById("tsToL"));
+    const c = document.getElementById("tsCancel"); if (c) c.onclick = () => { delete box.dataset.edit; wireTrack(); };
+    document.getElementById("tsSave").onclick = () => {
+      const f = document.getElementById("tsFrom"), t = document.getElementById("tsTo");
+      const msg = x => { document.getElementById("tsMsg").textContent = x; };
+      if (!f.dataset.crs) return msg("Pick your From station from the list.");
+      if (!t.dataset.crs) return msg("Pick your To station from the list.");
+      if (f.dataset.crs === t.dataset.crs) return msg("Pick two different stations.");
+      myTrainsCfg = { from: { crs: f.dataset.crs, name: f.value }, to: { crs: t.dataset.crs, name: t.value } };
+      LS.set(TRAINS_KEY, myTrainsCfg); track("trains:saved");
+      delete box.dataset.edit; wireTrack(); loadTeasers();
+    };
+    document.getElementById("tsFrom").focus();
+    return;
+  }
+  box.innerHTML = `<div class="sample">Loading live trains…</div>`;
+  const legs = [[j.from, j.to], [j.to, j.from]];
+  if (new Date().getHours() >= 12) legs.reverse();      // afternoon: the way home first
+  const parts = await Promise.all(legs.map(async ([a, b]) => {
+    let body;
+    try { body = trackRows(await trainLeg(a, b), a); } catch (e) { body = `<div class="sample">Not available right now.</div>`; }
+    return `<div class="subhead">${esc(shortStation(a.name))} → ${esc(shortStation(b.name))}</div>${body}`;
+  }));
+  if (!document.body.contains(box)) return;
+  box.innerHTML = parts.join("") + `<div class="row" style="justify-content:space-between;margin-top:10px"><span class="sample" style="margin:0">Live from the National Rail feed</span><button class="showhidden" type="button" id="tsEdit">Change stations</button></div>`;
+  document.getElementById("tsEdit").onclick = () => { box.dataset.edit = "1"; box.innerHTML = trackForm(j); wireTrack(); };
 }
 function stationPicker(input, list, onPick) {
   let timer = 0, seq = 0;
@@ -1751,56 +1746,6 @@ function stationPicker(input, list, onPick) {
       } catch (e) { list.innerHTML = `<span class="muted">Station search isn't available right now</span>`; }
     }, 250);
   });
-}
-function openTrainSetup(kind) {
-  const row = document.getElementById("td-train"); if (!row) return;
-  if (!kind) {
-    track("trains:setup");
-    row.removeAttribute("data-open");
-    row.innerHTML = `<span class="tdi">🚆</span><div class="tdt tsetup"><b>Track my trains</b> <small class="muted">Which journey?</small>
-      <div class="tpick">
-        <button type="button" data-tkind="regular"><b>My regular journey</b><small>Like your commute. Saved, shown both ways every day${myTrains() ? ` (now ${esc(shortStation(myTrains().from.name))} ↔ ${esc(shortStation(myTrains().to.name))})` : ""}. You can get alerts if it's late.</small></button>
-        <button type="button" data-tkind="trip"><b>Another trip</b><small>A one-off journey today. Shown until midnight, then it clears itself.</small></button>
-      </div>
-      <div class="row2"><button class="btn ghost" type="button" id="tsCancel">Cancel</button></div></div>`;
-    row.querySelectorAll("[data-tkind]").forEach(b => b.onclick = () => openTrainSetup(b.dataset.tkind));
-    document.getElementById("tsCancel").onclick = () => loadToday();
-    return;
-  }
-  if (kind === "trip") return openTripSetup(row);
-  const j = myTrains() || {};
-  const val = s => s ? esc(s.name) : "";
-  row.removeAttribute("data-open");
-  row.innerHTML = `<span class="tdi">🚆</span><div class="tdt tsetup">
-    <b>My regular journey</b> <small class="muted">We'll show it both ways.</small>
-    <div class="tfields">
-      <label>From<input id="tsFrom" placeholder="e.g. Longcross" value="${val(j.from)}" data-crs="${j.from ? esc(j.from.crs) : ""}" autocomplete="off"><span class="tlist" id="tsFromL"></span></label>
-      <label>To<input id="tsTo" placeholder="e.g. Waterloo" value="${val(j.to)}" data-crs="${j.to ? esc(j.to.crs) : ""}" autocomplete="off"><span class="tlist" id="tsToL"></span></label>
-      <label><span>Usual train out <small class="muted">(optional)</small></span><input id="tsOut" type="time" value="${esc(j.out || "")}"></label>
-      <label><span>Usual train back <small class="muted">(optional)</small></span><input id="tsBack" type="time" value="${esc(j.back || "")}"></label>
-    </div>
-    <small class="muted">Usual times are the timetable times, like 07:42. Add them to get an alert if that train is late or cancelled.</small>
-    <div class="row2"><button class="btn" type="button" id="tsSave">Save</button><button class="btn ghost" type="button" id="tsCancel">Cancel</button>${myTrains() ? `<button class="showhidden" type="button" id="tsRemove">Remove</button>` : ""}</div>
-    <div class="rmsg" id="tsMsg"></div></div>`;
-  stationPicker(document.getElementById("tsFrom"), document.getElementById("tsFromL"));
-  stationPicker(document.getElementById("tsTo"), document.getElementById("tsToL"));
-  document.getElementById("tsCancel").onclick = () => loadToday();
-  const rm = document.getElementById("tsRemove");
-  if (rm) rm.onclick = () => { myTrainsCfg = null; LS.set(TRAINS_KEY, null); loadToday(); };
-  document.getElementById("tsSave").onclick = () => {
-    const f = document.getElementById("tsFrom"), t = document.getElementById("tsTo");
-    const msg = x => { document.getElementById("tsMsg").textContent = x; };
-    if (!f.dataset.crs) return msg("Pick your From station from the list.");
-    if (!t.dataset.crs) return msg("Pick your To station from the list.");
-    if (f.dataset.crs === t.dataset.crs) return msg("From and To need to be different stations.");
-    myTrainsCfg = { from: { crs: f.dataset.crs, name: f.value }, to: { crs: t.dataset.crs, name: t.value },
-                    out: document.getElementById("tsOut").value || "", back: document.getElementById("tsBack").value || "" };
-    LS.set(TRAINS_KEY, myTrainsCfg);
-    track("trains:saved");
-    toast("Saved your trains 🚆");
-    loadToday();
-  };
-  document.getElementById("tsFrom").focus();
 }
 
 // If this person already has WhatsApp reminders, show them as on
