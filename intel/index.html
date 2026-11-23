@@ -40,6 +40,10 @@ h1 span{background:linear-gradient(90deg,var(--pink),var(--violet),var(--sky));-
 .fact{border:2px solid var(--ink);border-radius:16px;padding:12px 14px;background:var(--paper)}
 .fact small{display:block;color:var(--muted);font-weight:800;font-size:11px;text-transform:uppercase;letter-spacing:.06em}
 .fact b{font-size:15px}
+.opp{border:2px solid var(--ink);border-radius:16px;padding:12px 14px;background:var(--paper);margin:0 0 10px}
+.opp b{display:block;font-size:15px;margin:0 0 4px}
+.opp .why{color:var(--muted);font-size:13px;margin:6px 0 0}
+.opp .lens{display:inline-block;font-size:11px;font-weight:900;border:2px solid var(--ink);border-radius:999px;padding:1px 8px;margin:0 0 6px}
 h3{font-size:16px;font-weight:900;margin:18px 0 8px}
 ul.facts{margin:0;padding-left:20px}ul.facts li{margin:4px 0}
 .links{display:flex;gap:8px;flex-wrap:wrap}
@@ -74,6 +78,11 @@ const LIST = v => { if (Array.isArray(v)) return v; if (!v) return []; try { ret
 const OBJ = v => { if (v && typeof v === "object") return v; try { return JSON.parse(v) || {}; } catch (e) { return {}; } };
 const LABEL = { ready: "Researched", pending: "Researching…", enriching: "Researching…", failed: "Could not research", stale: "Updated earlier" };
 const when = d => { if (!d) return ""; const x = new Date(d); return isNaN(x) ? "" : x.toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" }); };
+
+const cache = {};
+const once = (url) => (cache[url] ||= getJSON(url));
+const brandData = n => once(`${API}/api/brand/intelligence?name=${encodeURIComponent(n)}`);
+const hiringData = n => once(`${API}/api/hiring-signals?name=${encodeURIComponent(n)}`);
 
 async function getJSON(url) {
   const r = await fetch(url);
@@ -115,10 +124,11 @@ function renderCompany(c) {
         <div><b>${esc(c.display_name)}</b><p class="note">Logo from the company's own website domain.</p></div>
       </div>
       <h3>Products seen online</h3><div id="products"><p class="note">Looking up product listings…</p></div>
+      <h3>Commercial opportunities for the brand</h3><div id="opps"><p class="note">Reading the listings for opportunities…</p></div>
       <h3>In the news</h3><div id="news"><p class="note">Counting recent coverage…</p></div>
       <h3>Christmas adverts</h3><p class="note">Not checked yet. <a href="https://www.youtube.com/results?search_query=${encodeURIComponent(c.display_name + ' Christmas advert')}" target="_blank" rel="noopener">Search YouTube for ${esc(c.display_name)} Christmas adverts ↗</a> (unchecked results).</p>
       <h3>AI use</h3><div id="aiuse"><p class="note">Working out how they use AI…</p></div>
-      <h3>SWOT analysis</h3><div id="swot"><p class="note">Working out a SWOT…</p></div>
+      <h3>Company SWOT</h3><div id="swot"><p class="note">Working out a SWOT…</p></div>
       ${links.length ? `<h3>Find them online</h3><div class="links">${links.join("")}</div>` : ""}
       <h3>Hiring</h3><div id="hiring">Checking job adverts…</div>
       ${sources.length ? `<p class="sources">Sources: ${sources.map(u => `<a href="${esc(u)}" target="_blank" rel="noopener">${esc(u.replace(/^https?:\/\//, "").split("/").slice(0, 2).join("/"))}</a>`).join(", ")}</p>` : ""}`;
@@ -144,13 +154,141 @@ async function loadAnalysis(name) {
     const d = await getJSON(`${API}/api/company/${encodeURIComponent(name.toLowerCase().replace(/\s+/g, "-"))}/analysis`);
     const label = `<p class="label">${esc(d.label)}</p>`;
     ai.innerHTML = label + (d.ai_use && d.ai_use.length ? `<ul class="facts">${analysisItems(d.ai_use)}</ul>` : `<p class="note">No clear AI use found in the facts we have.</p>`);
-    const q = d.swot || {};
+    const q = { ...(d.swot || {}) };
+    let dropped = 0;
+    const h = await hiringData(name).catch(() => null);
+    if (h && !hiringLooksOwn(h, name)) {
+      for (const k of Object.keys(q)) {
+        const keep = (q[k] || []).filter(x => !/\b(job|jobs|hiring|hire|roles?|adverts?|recruit\w*|vacanc\w*)\b/i.test((x.point || "") + " " + (x.evidence || "")));
+        dropped += (q[k] || []).length - keep.length; q[k] = keep;
+      }
+    }
     const box = (t, k) => `<div class="fact"><small>${t}</small>${(q[k] && q[k].length) ? `<ul class="facts">${analysisItems(q[k])}</ul>` : `<b>Nothing clear from the facts</b>`}</div>`;
-    sw.innerHTML = label + `<div class="grid">${box("Strengths", "strengths")}${box("Weaknesses", "weaknesses")}${box("Opportunities", "opportunities")}${box("Threats", "threats")}</div>`;
+    sw.innerHTML = label + `<div class="grid">${box("Strengths", "strengths")}${box("Weaknesses", "weaknesses")}${box("Opportunities", "opportunities")}${box("Threats", "threats")}</div>`
+      + (dropped ? `<p class="note">${dropped} point${dropped > 1 ? "s" : ""} left out because ${dropped > 1 ? "they rest" : "it rests"} on job adverts that look like they belong to other organisations with the same name.</p>` : "");
   } catch (e) {
     ai.innerHTML = `<p class="note">AI analysis not available right now.</p>`;
     sw.innerHTML = `<p class="note">SWOT not available right now.</p>`;
   }
+}
+
+// ---------- Brand: commercial opportunities ----------
+// Lenses, each tied to a well known way of looking at brand growth:
+//  1. Be easy to buy: physical availability (Byron Sharp, How Brands Grow, 2010)
+//  2. Price ladder: how premium the brand can go (Bain, "Your Brand's Best Strategy", HBR 1997)
+//  3. Where growth comes from: sell more of what exists, reach new buyers, improve the range (Ansoff, "Strategies for Diversification", HBR 1957)
+// Every point shows the evidence it rests on. Nothing here is a sales or market share figure.
+const CHANNELS = [
+  ["Supermarkets", /tesco|sainsbury|asda|morrisons|waitrose|ocado|co-?op|aldi|lidl|iceland|marks|m&s/i, "Tesco, Sainsbury's, Asda"],
+  ["Health and beauty chains", /boots|superdrug|savers|lloyds ?pharmacy|chemist|pharmacy/i, "Boots, Superdrug"],
+  ["Marketplaces", /amazon|ebay|onbuy/i, "Amazon"],
+  ["Beauty specialists", /lookfantastic|cult ?beauty|space ?nk|sephora|feelunique|notino|beauty ?bay|harvey ?nichols|selfridges|john ?lewis|liberty/i, "LookFantastic, Sephora, John Lewis"],
+];
+const JOBWORDS = /^(store|shop|retail|customer|sales|team|assistant|manager|supervisor|delivery|warehouse|driver|pharmacy|bank|express|extra|brand|marketing|uk|ltd|limited|plc|group)$/i;
+
+function hiringLooksOwn(h, name) {
+  const roles = (h && h.sample_roles) || [];
+  if (!roles.length) return true;
+  const re = new RegExp("\\b" + name.replace(/[.*+?^${}()|[\]\\]/g, "\\$&") + "\\s+([A-Z][a-z]+)", "");
+  const other = roles.filter(r => { const m = String(r.title || "").match(re); return m && !JOBWORDS.test(m[1]); }).length;
+  return other < Math.ceil(roles.length / 2);
+}
+function headlinesAboutBrand(heads, name) {
+  // The brand name written with its capital letter, not just the word
+  const re = new RegExp("\\b" + name.replace(/[.*+?^${}()|[\]\\]/g, "\\$&") + "\\b");
+  return heads.filter(t => re.test(t)).length;
+}
+const num = v => { const n = parseFloat(String(v ?? "").replace(/[^0-9.]/g, "")); return n > 0 ? n : null; };
+
+async function loadOpportunities(name) {
+  const el = document.getElementById("opps");
+  if (!el) return;
+  let d, h;
+  try { d = await brandData(name); } catch (e) { el.innerHTML = `<p class="note">Not available right now.</p>`; return; }
+  try { h = await hiringData(name); } catch (_) { h = null; }
+  const cat = d.catalog_intelligence || {}, pi = d.pricing_intelligence || {}, ai = d.ai_visibility || {};
+  const top = Array.isArray(cat.top_products) ? cat.top_products : [];
+  const comp = Array.isArray(pi.competitor_prices) ? pi.competitor_prices : [];
+  const listings = [...top.map(p => ({ title: p.title, price: num(p.price), shop: p.source, rating: num(p.rating), reviews: num(p.reviews) })),
+                    ...comp.map(p => ({ title: p.product, price: num(p.price), shop: p.retailer }))].filter(x => x.title);
+  if (listings.length < 3) { el.innerHTML = `<p class="note">Not enough product listings to read opportunities from. This works best for consumer brands sold in shops.</p>`; return; }
+  const cur = (String(pi.current_price || top[0]?.price || "£").match(/^[^0-9]*/) || ["£"])[0] || "£";
+  const money = n => cur + n.toFixed(2);
+  const opps = [], unknowns = [];
+  const add = (lens, title, body, why) => opps.push({ lens, title, body, why });
+
+  // 1. Be easy to buy
+  const shops = [...new Set(listings.map(x => x.shop).filter(Boolean))];
+  const lower = name.toLowerCase().replace(/[^a-z0-9]/g, "");
+  const ownShop = shops.some(s => s.toLowerCase().replace(/[^a-z0-9]/g, "").includes(lower));
+  const seen = CHANNELS.filter(([, re]) => shops.some(s => re.test(s))).map(([n]) => n);
+  const missing = CHANNELS.filter(([n]) => !seen.includes(n));
+  if (shops.length) {
+    add("Sell more of what exists", missing.length ? `Check the gaps in where it's sold` : `Sold widely, so keep the shelf`,
+      `Seen at ${shops.length} sellers: ${shops.slice(0, 6).join(", ")}${shops.length > 6 ? " and more" : ""}. `
+      + (seen.length ? `That covers ${seen.join(", ").toLowerCase()}. ` : "")
+      + (missing.length ? `Not seen in this sample: ${missing.map(([n, , eg]) => `${n.toLowerCase()} (like ${eg})`).join("; ")}. If that's not a deliberate choice, each one is a group of shoppers who can't easily buy it.` : `The job is staying in stock and easy to spot in each of them.`)
+      + (ownShop ? " The brand also sells from its own site, so it owns some customer data." : " No own-brand shop in these listings, so the brand may not own its customer data."),
+      `Brands grow mainly by being easy to buy for more people (Byron Sharp, How Brands Grow). Based on ${listings.length} listings, so a gap here means "not seen", not "not stocked".`);
+  }
+
+  // 2. Price ladder
+  const prices = [...new Set(listings.map(x => x.price).filter(Boolean))].sort((a, b) => a - b);
+  if (prices.length >= 3) {
+    const mid = prices.length % 2 ? prices[(prices.length - 1) / 2] : (prices[prices.length / 2 - 1] + prices[prices.length / 2]) / 2;
+    const lo = prices[0], hi = prices[prices.length - 1], stretch = hi / mid;
+    if (stretch >= 3) add("Sell more of what exists", "Move buyers up the price ladder",
+      `Most listings sit around ${money(mid)}, but the range reaches ${money(hi)}. The higher priced items (bigger sizes, sets, specialist lines) are where margin is. Bundles, gift sets and bigger packs give everyday buyers a reason to trade up, especially at Christmas.`,
+      `Price ladder thinking: how far a brand can go upmarket matters as much as its size (Bain, "Your Brand's Best Strategy", Harvard Business Review, 1997). Based on ${prices.length} prices seen.`);
+    else if (stretch < 1.6 && hi < 3 * lo) add("Improve or add products", "Room for a premium line",
+      `Prices are tightly grouped, from ${money(lo)} to ${money(hi)}, middle ${money(mid)}. There's no clear top tier, so a premium version or a bigger value pack could earn more from the same buyers.`,
+      `Price ladder thinking (Bain, "Your Brand's Best Strategy", HBR 1997). Based on ${prices.length} prices seen.`);
+    else add("Sell more of what exists", "Price ladder looks balanced",
+      `Entry at ${money(lo)}, middle ${money(mid)}, top ${money(hi)}. The ladder has steps, so growth is more likely to come from reach than from price.`,
+      `Based on ${prices.length} prices seen.`);
+  }
+
+  // Same product priced differently by different sellers
+  const key = t => String(t).toLowerCase().replace(/[^a-z0-9 ]/g, "").split(/\s+/).slice(0, 5).join(" ");
+  const groups = {};
+  listings.filter(x => x.price && x.shop).forEach(x => (groups[key(x.title)] ||= []).push(x));
+  const spread = Object.values(groups).filter(g => g.length > 1).map(g => { const ps = g.map(x => x.price); return { g, lo: Math.min(...ps), hi: Math.max(...ps) }; }).filter(x => x.hi > x.lo * 1.2).sort((a, b) => b.hi / b.lo - a.hi / a.lo)[0];
+  if (spread) {
+    const cheap = spread.g.find(x => x.price === spread.lo), dear = spread.g.find(x => x.price === spread.hi);
+    add("Sell more of what exists", "Same product, different prices",
+      `"${spread.g[0].title}" is ${money(spread.lo)} at ${cheap.shop} and ${money(spread.hi)} at ${dear.shop}. Gaps like this train shoppers to wait for the cheaper seller and can upset retail partners.`,
+      `Based on listings with matching names. Sizes or pack counts may differ, so check before acting.`);
+  }
+
+  // 3. What buyers say
+  const rated = top.map(p => ({ t: p.title, r: num(p.rating), n: num(p.reviews), shop: p.source })).filter(x => x.r);
+  if (rated.length >= 2) {
+    const hero = [...rated].sort((a, b) => (b.n || 0) - (a.n || 0))[0];
+    const weak = [...rated].sort((a, b) => a.r - b.r)[0];
+    const avg = num(cat.review_average) || rated.reduce((s, x) => s + x.r, 0) / rated.length;
+    if (weak.r <= avg - 0.3 || weak.r < 4.2) add("Improve or add products", "Fix the weakest product",
+      `"${weak.t}" is rated ${weak.r}★, below the brand's ${avg.toFixed(1)}★ average. Reading its low reviews is the cheapest product research there is: they say what to change.`,
+      `Based on Google Shopping ratings. Ratings come from different retailers.`);
+    if (hero && hero.n) add("Reach new buyers", "Lead with the product people already trust",
+      `"${hero.t}" has the most reviews in this sample (${Number(hero.n).toLocaleString("en-GB")}, ${hero.r}★). That's the product to put in front of new buyers, in ads, sampling and new channels.`,
+      `Products with lots of reviews lower the risk for first time buyers. Based on Google Shopping listings.`);
+  }
+
+  // Being thought of: can we measure it?
+  const heads = Array.isArray(ai.sample_headlines) ? ai.sample_headlines : [];
+  const about = headlinesAboutBrand(heads, name);
+  if (heads.length && about < Math.ceil(heads.length / 2))
+    unknowns.push(`How often the brand comes to mind. Only ${about} of ${heads.length} sample headlines are about the brand, so the news count can't be used for "${name}".`);
+  else if (heads.length) add("Reach new buyers", "Use the press attention",
+    `${ai.mentions_30d} articles in the last 30 days, and the sample headlines are about the brand. Coverage helps people think of the brand when they shop.`,
+    `Brands also grow by being easy to think of (Byron Sharp). NewsAPI count, not a measure of tone.`);
+  if (h && !hiringLooksOwn(h, name)) unknowns.push(`What the brand is investing in. The job adverts found mostly belong to other organisations with the same name.`);
+  unknowns.push("Sales, market share and how many shops really stock it. That needs retail data (Kantar, NielsenIQ or the retailers' own data).");
+
+  el.innerHTML = `<p class="label">Worked out from live listings using set rules, not written by AI</p>`
+    + opps.map(o => `<div class="opp"><span class="lens">${esc(o.lens)}</span><b>${esc(o.title)}</b>${esc(o.body)}<p class="why">${esc(o.why)}</p></div>`).join("")
+    + `<p class="note"><b>Can't tell from public data:</b></p><ul class="facts">${unknowns.map(u => `<li>${esc(u)}</li>`).join("")}</ul>`
+    + `<p class="sources">Lenses: physical and mental availability (Byron Sharp, How Brands Grow, 2010); price ladder (Bain, "Your Brand's Best Strategy", HBR 1997); sources of growth (Igor Ansoff, "Strategies for Diversification", HBR 1957). Data: Google Shopping listings, NewsAPI, Adzuna, live.</p>`;
 }
 
 // Price and review summary from the Google Shopping listings (same data the brand dashboard used)
@@ -175,7 +313,7 @@ async function loadBrand(name) {
   const pr = document.getElementById("products"), nw = document.getElementById("news");
   if (!pr || !nw) return;
   try {
-    const d = await getJSON(`${API}/api/brand/intelligence?name=${encodeURIComponent(name)}`);
+    const d = await brandData(name);
     const cat = d.catalog_intelligence || {};
     const top = Array.isArray(cat.top_products) ? cat.top_products : [];
     pr.innerHTML = top.length
@@ -200,7 +338,7 @@ async function loadHiring(name) {
   const el = document.getElementById("hiring");
   if (!el) return;
   try {
-    const d = await getJSON(`${API}/api/hiring-signals?name=${encodeURIComponent(name)}`);
+    const d = await hiringData(name);
     const o = d.overview || {};
     el.innerHTML = `<div class="grid">
         <div class="fact"><small>Open roles found</small><b>${esc(o.total_open_roles ?? "0")}</b></div>
@@ -219,7 +357,7 @@ async function showCompany(name) {
   try {
     const c = await getJSON(`${API}/api/company/${encodeURIComponent(name.toLowerCase().replace(/\s+/g, "-"))}`);
     $("out").innerHTML = renderCompany(c);
-    if (c.status === "ready") { loadHiring(c.display_name); loadAnalysis(c.display_name); loadBrand(c.display_name); }
+    if (c.status === "ready") { loadHiring(c.display_name); loadAnalysis(c.display_name); loadBrand(c.display_name); loadOpportunities(c.display_name); }
   } catch (e) {
     $("out").innerHTML = `<div class="state">Could not load ${esc(name)}. ${esc(e.message || "")}</div>`;
   }
