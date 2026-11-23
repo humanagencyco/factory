@@ -373,6 +373,8 @@ body.back .stepsmore { display:none; }
 .aiact:hover { background:#fff3b0; }
 .prices { margin:6px 0 8px; padding-left:18px; font-size:13px; }
 .prices li { margin:0 0 6px; }
+.tnudge { background:#fff3b0; border:2px solid var(--ink); border-radius:12px; padding:8px 12px; font-size:14px; margin-bottom:10px; }
+.tnudge button { font-size:14px; padding:0; margin:0; }
 .remind { margin-top:14px; border-top:2px solid var(--ink); padding-top:14px; }
 .remind .rhead { display:flex; gap:10px; align-items:center; flex-wrap:wrap; }
 .remind .rhead b { font-size:16px; }
@@ -1882,6 +1884,19 @@ function trackRows(r, a) {
     return `<div class="result"><div><b>${esc(t.scheduled)}</b> <small>to ${esc(t.destination)}${t.platform ? ` · platform ${esc(t.platform)}` : ""}</small></div>${st}</div>`;
   }).join("") + (r.filtered ? "" : `<div class="sample">Showing all trains from ${esc(shortStation(a.name))}: the route filter isn't working right now.</div>`);
 }
+// If the postcode you're looking at is near a different station, say so and offer a one-tap switch.
+async function nearerStation(j) {
+  try {
+    const n = await getJSON(`${API}/api/train/nearest-by-postcode?postcode=${encodeURIComponent(postcode)}`);
+    const list = (n.stations && n.stations.length ? n.stations : [n]).filter(s => s.crs && !/^Z/.test(s.crs));   // Z codes are DLR/Tube, not in the rail feed
+    const near = list[0];
+    if (!near || near.crs === j.from.crs || near.crs === j.to.crs) return "";
+    const keep = j.to.crs !== near.crs ? "to" : "from";
+    const other = keep === "to" ? j.to : j.from;
+    return `<div class="tnudge">📍 This is your saved journey. The nearest station to ${esc(postcode)} is <b>${esc(near.name)}</b>.
+      <button class="showhidden" type="button" id="tsSwap" data-crs="${esc(near.crs)}" data-name="${esc(near.name)}" data-keep="${keep}">Use ${esc(shortStation(near.name))} ↔ ${esc(shortStation(other.name))}</button></div>`;
+  } catch (e) { return ""; }
+}
 function trackPanel() {
   const j = myTrains();
   if (!j) return `<div class="box" id="trackBox">${trackForm({})}</div>`;
@@ -1927,8 +1942,14 @@ async function wireTrack() {
     return `<div class="subhead">${esc(shortStation(a.name))} → ${esc(shortStation(b.name))}</div>${body}`;
   }));
   if (!document.body.contains(box)) return;
-  box.innerHTML = parts.join("") + `<div class="row" style="justify-content:space-between;margin-top:10px"><span class="sample" style="margin:0">Live from the National Rail feed</span><button class="showhidden" type="button" id="tsEdit">Change stations</button></div>`;
+  const nudge = await nearerStation(j);
+  box.innerHTML = nudge + parts.join("") + `<div class="row" style="justify-content:space-between;margin-top:10px"><span class="sample" style="margin:0">Live from the National Rail feed</span><button class="showhidden" type="button" id="tsEdit">Change stations</button></div>`;
   document.getElementById("tsEdit").onclick = () => { box.dataset.edit = "1"; box.innerHTML = trackForm(j); wireTrack(); };
+  const sw = document.getElementById("tsSwap");
+  if (sw) sw.onclick = () => {
+    myTrainsCfg = { from: { crs: sw.dataset.crs, name: sw.dataset.name }, to: sw.dataset.keep === "to" ? j.to : j.from };
+    LS.set(TRAINS_KEY, myTrainsCfg); track("trains:swap"); wireTrack(); loadTeasers();
+  };
 }
 function stationPicker(input, list, onPick) {
   let timer = 0, seq = 0;
