@@ -1820,13 +1820,13 @@ const AI_IDEAS = {
 };
 // Where "Learn the basics" goes on AI Learning, for each type of business
 const AI_LEARN = {
-  none:   ["/guide.html", "🎓 Where do I start?", "A two-minute plan for you, on AI Learning"],
-  cafe:   ["/compare.html", "🎓 Which AI tool should I use?", "Compare ChatGPT, Claude, Gemini and more for menus, reviews and posts"],
-  shop:   ["/use-cases.html", "🎓 How shops use AI", "Retail examples, and when AI is and isn't worth it"],
-  salon:  ["/compare.html", "🎓 Which AI tool should I use?", "Compare ChatGPT, Claude, Gemini and more for reminders, reviews and captions"],
-  trades: ["/use-cases.html", "🎓 When AI helps, and when it doesn't", "A quick checklist before you hand a job to AI"],
-  office: ["/compare.html", "🎓 Which AI tool fits your office?", "Compare ChatGPT, Claude, Gemini and more, side by side"],
-  other:  ["/guide.html", "🎓 Where do I start?", "A two-minute plan for your business, on AI Learning"],
+  none:   ["/for-you.html", "🎓 Learn the basics", "What AI can do for your kind of business, with prompts to copy"],
+  cafe:   ["/for-you.html#cafe", "🎓 AI for cafés and restaurants", "What it can do, and prompts for menus, reviews and rotas"],
+  shop:   ["/for-you.html#shop", "🎓 AI for shops", "What it can do, and prompts for products, sales and posts"],
+  salon:  ["/for-you.html#salon", "🎓 AI for salons", "What it can do, and prompts for reminders, aftercare and captions"],
+  trades: ["/for-you.html#trades", "🎓 AI for trades", "What it can do, and prompts for quotes, replies and write-ups"],
+  office: ["/for-you.html#office", "🎓 AI for offices", "What it can do, and prompts for emails, summaries and spreadsheets"],
+  other:  ["/for-you.html", "🎓 Learn the basics", "Pick the closest type of business or role, with prompts to copy"],
 };
 function aiLearnLink(k) {
   const [path, title, sub] = AI_LEARN[k] || AI_LEARN.none;
