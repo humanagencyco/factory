@@ -353,6 +353,15 @@ body.back .stepsmore { display:none; }
 .bizf input { border:2px solid var(--ink); border-radius:12px; padding:8px 10px; font:inherit; font-size:14px; font-weight:600; width:100%; box-sizing:border-box; min-width:0; }
 .bizf label { min-width:0; }
 @media (max-width:600px) { .bizf { grid-template-columns:1fr; } }
+.bizscore { display:flex; gap:14px; align-items:center; margin:12px 0 6px; padding:12px; border:2px solid var(--ink); border-radius:14px; background:#fff8e6; }
+.bzs-n { font-size:34px; font-weight:900; line-height:1; }
+.bzs-n small { font-size:16px; color:var(--muted); }
+.bizscore > div:last-child { flex:1; }
+.bzbar { height:10px; border:2px solid var(--ink); border-radius:999px; background:#fff; margin-top:6px; overflow:hidden; }
+.bzbar i { display:block; height:100%; background:var(--mint, #2fd1a4); }
+.bzfix { margin:4px 0 0; padding-left:20px; font-size:14px; }
+.bzfix li { margin:0 0 6px; }
+.bzhelp { margin-top:14px; padding:12px; border:2px dashed var(--ink); border-radius:14px; background:#fff; }
 .remind { margin-top:14px; border-top:2px solid var(--ink); padding-top:14px; }
 .remind .rhead { display:flex; gap:10px; align-items:center; flex-wrap:wrap; }
 .remind .rhead b { font-size:16px; }
@@ -493,7 +502,7 @@ const MODULES = [
   { id:"mps", type:"near", emo:"🏛️", name:"MPs & councillors", desc:"Your MP and local councillors, with contact links.", status:"ready", c:"#d9ecff", pkg:"@humanagency/councillors", repo:"github.com/humanagencyco/councillors" },
   { id:"cafes", type:"near", emo:"☕", name:"Cafés & chai", desc:"Independent cafés, with notes from people who've been.", status:"ready", c:"#ffe8c2", pkg:"@humanagency/places-cafes", repo:"github.com/humanagencyco/places-cafes" },
   { id:"trains", type:"near", emo:"🚆", name:"Train times", desc:"Next departures from your nearest station.", status:"beta", c:"#d6f7ec", pkg:"@humanagency/train-times", repo:"github.com/humanagencyco/train-times" },
-  { id:"bizcheck", type:"near", emo:"🏪", name:"Is your business easy to find?", desc:"Free check for local businesses: website, Google, Instagram, Facebook, TikTok. We can fix it for you.", status:"ready", c:"#fff0d6", pkg:"", repo:"" },
+  { id:"bizcheck", type:"near", emo:"🏪", name:"Is your business easy to find?", desc:"Free instant check: Google Maps, reviews, website and social links, with your top fixes.", status:"ready", c:"#fff0d6", pkg:"", repo:"" },
   { id:"track", type:"near", emo:"🚉", name:"Track your train", desc:"Pick two stations. See the next trains there and back.", status:"ready", c:"#e2f0ff", pkg:"", repo:"" },
   { id:"pharmacy", type:"near", emo:"💊", name:"Pharmacies open now", desc:"Open pharmacies nearby, with phone numbers.", status:"beta", c:"#efe2ff", pkg:"@humanagency/pharmacy-finder", repo:"github.com/humanagencyco/pharmacy-finder" },
   { id:"schools", type:"near", emo:"🏫", name:"Nearest schools", desc:"Schools near your postcode, with Ofsted and contact details.", status:"beta", c:"#fff0d6", pkg:"@humanagency/school-digest", repo:"github.com/humanagencyco/school-digest" },
@@ -575,7 +584,7 @@ async function loadTeasers() {
   const pc = postcode;
   const line = (txt, ok = true) => `<span class="tz ${ok ? "tz-ok" : "tz-no"}">${txt}</span>`;
   const jobs = {
-    bizcheck: async () => line("Free, sent within 24 hours"),
+    bizcheck: async () => line("Free, instant, no sign-up"),
     track: async () => {
       const j = myTrains();
       if (!j) return line("Set your two stations", false);
@@ -1673,54 +1682,93 @@ function familyTip() {
   return `<div class="ftip" data-tip="${t.k}">${t.html}</div>`;
 }
 
-// ---------- Is your business easy to find? A free check, done by a person, with a quick automatic look first ----------
+// ---------- Is your business easy to find? Instant check first, help offered after ----------
 function bizPanel() {
   return `<div class="box" id="bizBox">
-    <b>Free check for local businesses</b>
-    <p class="muted" style="margin:4px 0 10px;font-size:14px">We look at your website, Google profile, Instagram, Facebook and TikTok, then send you a short report with three easy fixes. If you'd like, we can do them for you.</p>
+    <b>Free instant check for local businesses</b>
+    <p class="muted" style="margin:4px 0 10px;font-size:14px">See how you look on Google Maps, your website and social pages, with the three fixes that matter most. No sign-up.</p>
     <div class="bizf">
       <label>Business name<input id="bzName" maxlength="100" placeholder="e.g. Ben's Ice Cream" style="text-transform:none"></label>
       <label>Postcode<input id="bzPc" maxlength="10" value="${esc(postcode)}"></label>
-      <label><span>Website <small class="muted">(if you have one)</small></span><input id="bzWeb" maxlength="200" placeholder="e.g. bensicecream.co.uk" style="text-transform:none"></label>
-      <label>Your WhatsApp or email<input id="bzContact" maxlength="120" placeholder="So we can send your report" style="text-transform:none"></label>
-      <label><span>Your name <small class="muted">(optional)</small></span><input id="bzWho" maxlength="60" style="text-transform:none"></label>
+      <label style="grid-column:1/-1"><span>Website <small class="muted">(optional, we'll look for it)</small></span><input id="bzWeb" maxlength="200" placeholder="e.g. bensicecream.co.uk" style="text-transform:none"></label>
     </div>
-    <div class="row" style="gap:8px;margin-top:6px"><button class="btn pink" type="button" id="bzGo">Check my business</button></div>
-    <div class="muted" style="font-size:12px;margin-top:8px">We only use your details to send this report. No mailing lists.</div>
+    <div class="row" style="gap:8px;margin-top:8px"><button class="btn pink" type="button" id="bzGo">Check my business</button></div>
     <div id="bzMsg" style="color:#c0392b;font-size:13px;min-height:16px;margin-top:6px"></div>
   </div>`;
 }
-function bizResult(w) {
-  if (!w) return `<div class="result"><div><b>No website yet</b><small>That's common, and one of the easiest things to fix. We'll cover it in your report.</small></div></div>`;
-  if (w.error) return `<div class="result"><div><b>We couldn't open your website</b><small>${esc(w.error)} We'll look at it by hand.</small></div></div>`;
-  const tick = (ok, yes, no) => `<div class="result"><div><b>${ok ? "✅" : "⚠️"} ${esc(ok ? yes : no)}</b></div></div>`;
-  const s = w.social || [];
-  const name = { instagram: "Instagram", facebook: "Facebook", tiktok: "TikTok", google: "Google profile", x: "X", linkedin: "LinkedIn", youtube: "YouTube" };
-  const missing = ["instagram", "facebook", "tiktok", "google"].filter(k => !s.includes(k)).map(k => name[k]);
-  return tick(w.loads, "Your website opens", "Your website didn't open properly")
-    + tick(w.secure, "It's secure (https)", "It isn't secure (no https), so browsers may warn people")
-    + tick(w.phone_friendly, "It's set up for phones", "It may not work well on phones")
-    + tick(missing.length === 0, "It links to your social pages", s.length ? `Links found: ${s.map(k => name[k] || k).join(", ")}. Not linked: ${missing.join(", ")}` : "No links to Instagram, Facebook, TikTok or Google found");
+function bizResult(d) {
+  const g = d.google, w = d.website;
+  const row = (ok, title, note) => `<div class="result"><div><b>${ok === null ? "➖" : ok ? "✅" : "⚠️"} ${title}</b>${note ? `<small>${note}</small>` : ""}</div></div>`;
+  let h = "";
+  if (g && g.found) {
+    const stars = g.rating ? `${esc(String(g.rating))}★ from ${esc(String(g.reviews))} review${g.reviews === 1 ? "" : "s"}` : "No reviews yet";
+    h += row(true, `On Google Maps as ${esc(g.name)}`, `${stars}${g.maps_url ? ` · <a href="${esc(g.maps_url)}" target="_blank" rel="noopener">see listing</a>` : ""}`);
+    h += row((g.reviews || 0) >= 20, (g.reviews || 0) >= 20 ? "Plenty of reviews" : "Not many reviews yet");
+    h += row(!!g.hours, g.hours ? "Opening hours on Google" : "No opening hours on Google");
+  } else if (g && g.skipped) {
+    h += row(null, "Google check is busy today", "We'll check your Google listing by hand if you ask us to.");
+  } else if (g) {
+    h += row(false, "Not found on Google Maps", g.nearest ? `The closest match was ${esc(g.nearest)}.` : "People searching for you may not find you.");
+  }
+  if (w && w.loads) {
+    h += row(true, "Your website opens", esc(w.url));
+    h += row(!!w.phone_friendly, w.phone_friendly ? "Works on phones" : "May not work well on phones");
+    h += row(!!w.secure, w.secure ? "Secure (https)" : "Not secure (no https)");
+    const s = (w.social || []).filter(k => ["instagram", "facebook", "tiktok"].includes(k));
+    const nm = { instagram: "Instagram", facebook: "Facebook", tiktok: "TikTok" };
+    h += row(s.length > 0, s.length ? `Links to ${s.map(k => nm[k]).join(", ")}` : "No links to Instagram, Facebook or TikTok");
+  } else if (w) {
+    h += row(false, "Your website didn't open", esc(w.url || ""));
+  } else {
+    h += row(false, "No website found");
+  }
+  const pct = d.out_of ? Math.round(100 * d.score / d.out_of) : 0;
+  const verdict = pct >= 80 ? "Easy to find 👏" : pct >= 50 ? "Findable, with gaps" : "Hard to find";
+  return `<div class="bizscore"><div class="bzs-n">${d.score}<small>/${d.out_of}</small></div><div><b>${verdict}</b><div class="bzbar"><i style="width:${pct}%"></i></div></div></div>
+    ${h}
+    ${d.fixes && d.fixes.length ? `<div class="subhead" style="margin-top:12px">Your top ${d.fixes.length === 1 ? "fix" : d.fixes.length + " fixes"}</div><ol class="bzfix">${d.fixes.map(f => `<li>${esc(f)}</li>`).join("")}</ol>` : `<div class="sample">Nothing big to fix. Nice work.</div>`}`;
+}
+function bizHelp(body, scan) {
+  return `<div class="bzhelp" id="bzHelp"><b>Want us to fix these for you?</b>
+    <p class="muted" style="margin:2px 0 8px;font-size:13px">We'll get in touch within 24 hours with what it would take. No obligation, no mailing lists.</p>
+    <div class="bizf">
+      <label>Your WhatsApp or email<input id="bzContact" maxlength="120" style="text-transform:none"></label>
+      <label><span>Your name <small class="muted">(optional)</small></span><input id="bzWho" maxlength="60" style="text-transform:none"></label>
+    </div>
+    <div class="row" style="gap:8px;margin-top:8px"><button class="btn" type="button" id="bzAsk">Yes, help me</button></div>
+    <div id="bzMsg2" style="color:#c0392b;font-size:13px;min-height:16px;margin-top:6px"></div></div>`;
 }
 function wireBiz() {
   const box = document.getElementById("bizBox"); if (!box) return;
   const msg = t => { document.getElementById("bzMsg").textContent = t; };
+  const v = id => document.getElementById(id).value.trim();
   document.getElementById("bzGo").onclick = async () => {
-    const v = id => document.getElementById(id).value.trim();
-    const body = { business: v("bzName"), postcode: v("bzPc"), website: v("bzWeb"), contact: v("bzContact"), name: v("bzWho") };
+    const body = { business: v("bzName"), postcode: v("bzPc"), website: v("bzWeb") };
     if (body.business.length < 2) return msg("Tell us the business name.");
-    if (!body.contact) return msg("Add your WhatsApp number or email so we can send the report.");
-    msg(""); const btn = document.getElementById("bzGo"); btn.disabled = true; btn.textContent = body.website ? "Checking your website…" : "Sending…";
+    msg(""); const btn = document.getElementById("bzGo"); btn.disabled = true; btn.textContent = "Checking Google and your website…";
     try {
-      const r = await fetch(`${API}/api/factory/business-check`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
+      const r = await fetch(`${API}/api/factory/business-scan`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
       const d = await r.json().catch(() => ({}));
-      if (!r.ok) { btn.disabled = false; btn.textContent = "Check my business"; return msg(d.error || "Couldn't send that. Please try again."); }
-      track("biz:sent");
-      box.innerHTML = `<b>Thanks, ${esc(body.business)} is in. 🎉</b>
-        <p class="muted" style="margin:4px 0 10px;font-size:14px">Here's a quick first look. We'll check your Google profile and social pages by hand and send your full report to ${esc(body.contact)} within 24 hours.</p>
-        ${bizResult(d.website_check)}
-        <div class="sample">Want us to fix things for you? Just reply to the report.</div>`;
-    } catch (e) { btn.disabled = false; btn.textContent = "Check my business"; msg("Couldn't send that right now. Please try again."); }
+      if (!r.ok) { btn.disabled = false; btn.textContent = "Check my business"; return msg(d.error || "Couldn't run the check. Please try again."); }
+      track("biz:scan");
+      box.innerHTML = `<b>${esc(body.business)}</b> <small class="muted">${esc(body.postcode)}</small>${bizResult(d)}${bizHelp(body, d)}
+        <div class="row" style="margin-top:8px"><button class="showhidden" type="button" id="bzAgain">Check another business</button></div>`;
+      document.getElementById("bzAgain").onclick = () => { box.outerHTML = bizPanel(); wireBiz(); };
+      document.getElementById("bzAsk").onclick = async () => {
+        const m2 = t => { document.getElementById("bzMsg2").textContent = t; };
+        const contact = v("bzContact");
+        if (!contact) return m2("Add your WhatsApp number or email.");
+        const b2 = document.getElementById("bzAsk"); b2.disabled = true; b2.textContent = "Sending…";
+        try {
+          const r2 = await fetch(`${API}/api/factory/business-check`, { method: "POST", headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(Object.assign({}, body, { contact, name: v("bzWho"), scan: d })) });
+          const d2 = await r2.json().catch(() => ({}));
+          if (!r2.ok) { b2.disabled = false; b2.textContent = "Yes, help me"; return m2(d2.error || "Couldn't send that. Please try again."); }
+          track("biz:sent");
+          document.getElementById("bzHelp").innerHTML = `<b>Thanks, we'll be in touch within 24 hours. 🎉</b><p class="muted" style="margin:4px 0 0;font-size:13px">We'll send it to ${esc(contact)}.</p>`;
+        } catch (e) { b2.disabled = false; b2.textContent = "Yes, help me"; m2("Couldn't send that right now. Please try again."); }
+      };
+    } catch (e) { btn.disabled = false; btn.textContent = "Check my business"; msg("Couldn't run the check right now. Please try again."); }
   };
 }
 
