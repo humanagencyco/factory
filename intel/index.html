@@ -91,7 +91,10 @@ const LABEL = { ready: "Researched", pending: "Researching…", enriching: "Rese
 const when = d => { if (!d) return ""; const x = new Date(d); return isNaN(x) ? "" : x.toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" }); };
 
 const cache = {};
-const once = (url) => (cache[url] ||= getJSON(url));
+// Fetch once per page; if it fails, wait and try once more, and don't keep the failure
+const once = (url) => (cache[url] ||= getJSON(url)
+  .catch(() => new Promise(r => setTimeout(r, 1500)).then(() => getJSON(url)))
+  .catch(e => { delete cache[url]; throw e; }));
 const brandData = n => once(`${API}/api/brand/intelligence?name=${encodeURIComponent(n)}`);
 const hiringData = n => once(`${API}/api/hiring-signals?name=${encodeURIComponent(n)}`);
 
