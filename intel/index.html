@@ -168,7 +168,11 @@ function renderCompany(c) {
   } else if (status === "failed") {
     body = `<div class="state">We couldn't research ${esc(c.display_name)} just now. <br>Try again later.</div>`;
   } else {
-    body = `<div class="state">We're researching ${esc(c.display_name)} now. Refresh this page in a minute.</div>`;
+    body = `<div class="state" id="waiting"><b>We're researching ${esc(c.display_name)} for you now.</b><br>
+      This usually takes a minute or two. Keep this page open and it'll fill in by itself when it's ready.<br>
+      Or copy the link and come back later: the research carries on without you.
+      <div class="share no-print" style="justify-content:center;margin:14px 0 0"><button class="chip" type="button" id="waitCopy">Copy link</button><span class="share-msg" id="waitMsg" aria-live="polite"></span></div>
+      <p class="note" id="waitTime"></p></div>`;
   }
   return `<article class="card" aria-labelledby="co-name">
     ${printHead()}
@@ -627,17 +631,58 @@ async function loadHiring(name) {
   }
 }
 
+// While a new company is being researched, check back in the background and fill the page in when it's done.
+// Every 5 seconds for the first 2 minutes, then every 20 seconds, for up to 15 minutes.
+let lookup = 0;
+const baseTitle = document.title;
+const companyURL = n => `${API}/api/company/${encodeURIComponent(n.toLowerCase().replace(/\s+/g, "-"))}`;
+async function waitForResearch(name, id) {
+  const start = Date.now();
+  const copy = $("waitCopy");
+  if (copy) copy.onclick = async () => {
+    try { await navigator.clipboard.writeText(location.href); $("waitMsg").textContent = "Link copied"; }
+    catch (_) { $("waitMsg").textContent = "Copy this link: " + location.href; }
+  };
+  while (id === lookup) {
+    const gone = Date.now() - start;
+    if (gone > 15 * 60000) {
+      const w = $("waiting");
+      if (w) w.innerHTML = `<b>This is taking longer than usual.</b><br>The research is still running. Come back to this link later, or try again in a while.`;
+      return;
+    }
+    const t = $("waitTime");
+    if (t) t.textContent = gone < 10000 ? "Checking…" : `Still researching, ${Math.round(gone / 60000) ? Math.round(gone / 60000) + " min" : Math.round(gone / 1000) + " sec"} so far.`;
+    await new Promise(r => setTimeout(r, gone < 120000 ? 5000 : 20000));
+    if (id !== lookup) return;
+    let c;
+    try { c = await getJSON(companyURL(name)); } catch (_) { continue; }
+    if (id !== lookup) return;
+    if (c.status !== "pending" && c.status !== "enriching") {
+      if (document.hidden) document.title = (c.status === "ready" ? "✓ " : "") + `${c.display_name} ${c.status === "ready" ? "is ready" : "couldn't be researched"} | Intel`;
+      return render(c);
+    }
+  }
+}
+document.addEventListener("visibilitychange", () => { if (!document.hidden && document.title !== baseTitle && !document.title.includes(" | Intel | ")) document.title = baseTitle; });
+
+function render(c) {
+  $("out").innerHTML = renderCompany(c);
+  if (c.status === "pending" || c.status === "enriching") return waitForResearch(c.display_name, lookup);
+  if (c.status === "ready") {
+    const n = c.display_name;
+    pageReady = Promise.allSettled([loadHiring(n), loadAnalysis(n), loadBrand(n), loadOpportunities(n), GLANCE ? loadGlance(n) : null]);
+    wireShare(n);
+  }
+}
+
 async function showCompany(name) {
+  const id = ++lookup;
   $("out").innerHTML = `<div class="state">Looking up ${esc(name)}…</div>`;
   try {
-    const c = await getJSON(`${API}/api/company/${encodeURIComponent(name.toLowerCase().replace(/\s+/g, "-"))}`);
+    const c = await getJSON(companyURL(name));
+    if (id !== lookup) return;
     setQ(c.display_name);
-    $("out").innerHTML = renderCompany(c);
-    if (c.status === "ready") {
-      const n = c.display_name;
-      pageReady = Promise.allSettled([loadHiring(n), loadAnalysis(n), loadBrand(n), loadOpportunities(n), GLANCE ? loadGlance(n) : null]);
-      wireShare(n);
-    }
+    render(c);
   } catch (e) {
     $("out").innerHTML = `<div class="state">Could not load ${esc(name)}. ${esc(e.message || "")}</div>`;
   }
