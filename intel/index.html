@@ -209,10 +209,11 @@ async function wikiBrand(name) {
     const e = await getJSON(`https://www.wikidata.org/wiki/Special:EntityData/${qid}.json`);
     const c = e.entities[qid].claims || {};
     const ids = k => (c[k] || []).map(x => x.mainsnak.datavalue?.value?.id).filter(Boolean);
-    const want = [...ids("P127"), ...ids("P495")];
+    const want = [...ids("P127"), ...ids("P495"), ...ids("P31"), ...ids("P452")];
     let labels = {};
     if (want.length) { const r = await getJSON(`https://www.wikidata.org/w/api.php?action=wbgetentities&props=labels&languages=en&format=json&origin=*&ids=${want.join("|")}`); labels = Object.fromEntries(want.map(i => [i, r.entities[i]?.labels?.en?.value])); }
     out.listed = !!(c.P414 && c.P414.length);
+    out.retailer = [...ids("P31"), ...ids("P452")].some(i => /retail|supermarket|chain store|department store|grocer|shop/i.test(labels[i] || ""));
     out.owner = out.listed ? null : ids("P127").map(i => labels[i]).filter(Boolean)[0];
     out.origin = ids("P495").map(i => labels[i]).filter(Boolean)[0];
     out.since = ((c.P571 || [])[0]?.mainsnak.datavalue?.value?.time || "").slice(1, 5);
@@ -263,7 +264,8 @@ async function loadGlance(name) {
   const hits = CATS.map(c => [c, titles.split(c[0]).length - 1]).filter(x => x[1] > 0).sort((a, b) => b[1] - a[1]);
   const groups = new Set(hits.map(x => x[0][2]));
   const found = hits[0];
-  if (groups.size >= 3) cards.push(["Which segment · UK prices", "Sells across many categories", `Its listings cover ${[...groups].slice(0, 4).join(", ").toLowerCase()}, so it's more of a retailer or house brand than a single product brand.`]);
+  if (w && w.retailer) cards.push(["Which segment", "A retailer", "It sells many brands, including its own label, so there is no single product segment. Source: Wikidata."]);
+  else if (groups.size >= 3) cards.push(["Which segment · UK prices", "Sells across many categories", `Its listings cover ${[...groups].slice(0, 4).join(", ").toLowerCase()}, so it's more of a retailer or house brand than a single product brand.`]);
   else if (found) {
     const [[kw, label, group]] = found;
     const mine = median(listPrices(d || {}));
