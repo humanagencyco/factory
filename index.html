@@ -514,7 +514,7 @@ const MODULES = [
   { id:"cafes", type:"near", emo:"☕", name:"Cafés & chai", desc:"Independent cafés, with notes from people who've been.", status:"ready", c:"#ffe8c2", pkg:"@humanagency/places-cafes", repo:"github.com/humanagencyco/places-cafes" },
   { id:"trains", type:"near", emo:"🚆", name:"Train times", desc:"Next departures from your nearest station.", status:"beta", c:"#d6f7ec", pkg:"@humanagency/train-times", repo:"github.com/humanagencyco/train-times" },
   { id:"bizcheck", type:"near", emo:"🏪", name:"Is your business easy to find?", desc:"Free instant check: your Google Maps listing, reviews, website, and whether AI assistants can read your site.", status:"ready", c:"#fff0d6", pkg:"", repo:"" },
-  { id:"aibiz", type:"near", emo:"🤖", name:"AI for your business", desc:"What ChatGPT, Claude and Copilot could do for a small business, and help to set it up, from £149.", status:"ready", c:"#efe2ff", pkg:"", repo:"" },
+  { id:"aibiz", type:"near", emo:"🤖", name:"AI for your business", desc:"What ChatGPT, Claude and Copilot could do for a small business, and help to set it up.", status:"ready", c:"#efe2ff", pkg:"", repo:"" },
   { id:"track", type:"near", emo:"🚉", name:"Track your train", desc:"Pick two stations. See the next trains there and back.", status:"ready", c:"#e2f0ff", pkg:"", repo:"" },
   { id:"pharmacy", type:"near", emo:"💊", name:"Pharmacies open now", desc:"Open pharmacies nearby, with phone numbers.", status:"beta", c:"#efe2ff", pkg:"@humanagency/pharmacy-finder", repo:"github.com/humanagencyco/pharmacy-finder" },
   { id:"schools", type:"near", emo:"🏫", name:"Nearest schools", desc:"Schools near your postcode, with Ofsted and contact details.", status:"beta", c:"#fff0d6", pkg:"@humanagency/school-digest", repo:"github.com/humanagencyco/school-digest" },
@@ -597,7 +597,7 @@ async function loadTeasers() {
   const line = (txt, ok = true) => `<span class="tz ${ok ? "tz-ok" : "tz-no"}">${txt}</span>`;
   const jobs = {
     bizcheck: async () => line("Free, instant, no sign-up"),
-    aibiz: async () => line("Free ideas · setup from £149"),
+    aibiz: async () => line("Free ideas for your business"),
     track: async () => {
       const j = myTrains();
       if (!j) return line("Set your two stations", false);
@@ -1756,7 +1756,8 @@ function bizResult(d) {
     ${d.fixes && d.fixes.length ? `<div class="subhead" style="margin-top:12px">Your top ${d.fixes.length === 1 ? "fix" : d.fixes.length + " fixes"}</div><ol class="bzfix">${d.fixes.map(f => `<li>${esc(f)}</li>`).join("")}</ol>` : `<div class="sample">Nothing big to fix. Nice work.</div>`}`;
 }
 function bizHelp(body, scan) {
-  return `<div class="bzhelp" id="bzHelp"><b>Want us to fix these for you?</b>
+  return `<div class="bzhelp" id="bzHelp"><b>Happy to do these yourself? Great, the fixes are above.</b>
+    <p class="muted" style="margin:2px 0 8px;font-size:13px">Rather we did them for you? Here's what it costs.</p>
     ${PRICES}
     <p class="muted" style="margin:2px 0 8px;font-size:13px">We'll get in touch within 24 hours and agree a fixed price before any work starts. No obligation, no mailing lists.</p>
     <div class="bizf">
