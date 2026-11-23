@@ -362,6 +362,15 @@ body.back .stepsmore { display:none; }
 .bzfix { margin:4px 0 0; padding-left:20px; font-size:14px; }
 .bzfix li { margin:0 0 6px; }
 .bzhelp { margin-top:14px; padding:12px; border:2px dashed var(--ink); border-radius:14px; background:#fff; }
+.aitypes { display:flex; flex-wrap:wrap; gap:6px; margin:6px 0; }
+.aitypes button { border:2px solid var(--ink); background:#fff; border-radius:999px; padding:5px 12px; font:inherit; font-size:13px; font-weight:700; cursor:pointer; color:var(--ink); }
+.aitypes button.on { background:var(--ink); color:#fff; }
+.aiideas { margin:6px 0 10px; padding-left:20px; font-size:14px; }
+.aiideas li { margin:0 0 5px; }
+.aiacts { display:grid; gap:8px; margin-top:12px; }
+.aiact { display:block; text-align:left; border:2px solid var(--ink); background:#fff; border-radius:14px; padding:10px 12px; font:inherit; cursor:pointer; color:var(--ink); text-decoration:none; box-shadow:3px 3px 0 var(--ink); }
+.aiact b { display:block; font-size:15px; } .aiact span { font-size:13px; color:var(--muted); }
+.aiact:hover { background:#fff3b0; }
 .remind { margin-top:14px; border-top:2px solid var(--ink); padding-top:14px; }
 .remind .rhead { display:flex; gap:10px; align-items:center; flex-wrap:wrap; }
 .remind .rhead b { font-size:16px; }
@@ -502,7 +511,8 @@ const MODULES = [
   { id:"mps", type:"near", emo:"🏛️", name:"MPs & councillors", desc:"Your MP and local councillors, with contact links.", status:"ready", c:"#d9ecff", pkg:"@humanagency/councillors", repo:"github.com/humanagencyco/councillors" },
   { id:"cafes", type:"near", emo:"☕", name:"Cafés & chai", desc:"Independent cafés, with notes from people who've been.", status:"ready", c:"#ffe8c2", pkg:"@humanagency/places-cafes", repo:"github.com/humanagencyco/places-cafes" },
   { id:"trains", type:"near", emo:"🚆", name:"Train times", desc:"Next departures from your nearest station.", status:"beta", c:"#d6f7ec", pkg:"@humanagency/train-times", repo:"github.com/humanagencyco/train-times" },
-  { id:"bizcheck", type:"near", emo:"🏪", name:"Is your business easy to find?", desc:"Free instant check: Google Maps, reviews, website and social links, with your top fixes.", status:"ready", c:"#fff0d6", pkg:"", repo:"" },
+  { id:"bizcheck", type:"near", emo:"🏪", name:"Is your business easy to find?", desc:"Free instant check: Google Maps, reviews, your website, and whether AI assistants like ChatGPT can find you.", status:"ready", c:"#fff0d6", pkg:"", repo:"" },
+  { id:"aibiz", type:"near", emo:"🤖", name:"AI for your business", desc:"What ChatGPT, Claude and Copilot could do for a small business, and help to set it up.", status:"ready", c:"#efe2ff", pkg:"", repo:"" },
   { id:"track", type:"near", emo:"🚉", name:"Track your train", desc:"Pick two stations. See the next trains there and back.", status:"ready", c:"#e2f0ff", pkg:"", repo:"" },
   { id:"pharmacy", type:"near", emo:"💊", name:"Pharmacies open now", desc:"Open pharmacies nearby, with phone numbers.", status:"beta", c:"#efe2ff", pkg:"@humanagency/pharmacy-finder", repo:"github.com/humanagencyco/pharmacy-finder" },
   { id:"schools", type:"near", emo:"🏫", name:"Nearest schools", desc:"Schools near your postcode, with Ofsted and contact details.", status:"beta", c:"#fff0d6", pkg:"@humanagency/school-digest", repo:"github.com/humanagencyco/school-digest" },
@@ -585,6 +595,7 @@ async function loadTeasers() {
   const line = (txt, ok = true) => `<span class="tz ${ok ? "tz-ok" : "tz-no"}">${txt}</span>`;
   const jobs = {
     bizcheck: async () => line("Free, instant, no sign-up"),
+    aibiz: async () => line("Ideas for your business, free"),
     track: async () => {
       const j = myTrains();
       if (!j) return line("Set your two stations", false);
@@ -889,7 +900,7 @@ function openModule(id, tab = "try") {
   $("dtitle").textContent = `${m.emo} ${m.name}`;
   $("dtitle").dataset.id = m.id;
   $("dsub").textContent = `${LABEL[m.status]} · ${m.desc}`;
-  $("p-try").innerHTML = tryPanel(m) + (m.type === "near" && m.id !== "bizcheck" ? hookHtml(true) : "");
+  $("p-try").innerHTML = tryPanel(m) + (m.type === "near" && m.id !== "bizcheck" && m.id !== "aibiz" ? hookHtml(true) : "");
   $("p-take").innerHTML = takePanel(m);
   $("p-build").innerHTML = buildPanel(m);
   wireTry(m);
@@ -912,6 +923,7 @@ function tryPanel(m) {
   if (["pubs","trains","schools"].includes(m.id)) return `<div class="box"><div class="row"><input id="tIn" placeholder="Postcode" maxlength="8" value="${postcode}"><button class="btn pink" id="tGo">Check</button></div><div id="tOut" style="margin-top:10px"></div></div>`;
   if (m.id === "track") return trackPanel();
   if (m.id === "bizcheck") return bizPanel();
+  if (m.id === "aibiz") return aiPanel();
   if (m.id === "company") return `<div class="box"><div class="row"><input id="tIn" placeholder="Company or brand, e.g. Tesco" maxlength="60" style="text-transform:none"><button class="btn pink" id="tGo">Check</button></div><div id="tOut" style="margin-top:10px"><div class="sample">Who they are, how they're doing, what people say, and who's hiring. From <b>Intel</b>, our company research tool.</div></div></div>`;
   if (m.id === "vehicle") return `<div class="box"><div class="row"><input id="tIn" placeholder="Registration, e.g. AB12 CDE" maxlength="10"><button class="btn pink" id="tGo">Check</button></div><div id="tOut" style="margin-top:10px"></div></div>`;
   if (m.type === "topic") return `<div class="box"><b>No postcode needed.</b><p style="margin:6px 0 10px;color:var(--muted)">This is for everyone.</p><a class="btn pink" href="${esc(m.link)}" target="_blank" rel="noopener" style="text-decoration:none">Open ${esc(m.name)} ↗</a></div>`;
@@ -1089,6 +1101,7 @@ function wireTry(m) {
   if (["pubs","trains","schools"].includes(m.id)) return wireLive(m);
   if (m.id === "track") return wireTrack();
   if (m.id === "bizcheck") return wireBiz();
+  if (m.id === "aibiz") return wireAi();
   if (m.id === "company") {
     const go = $("tGo"), out = $("tOut");
     const intelUrl = n => `${INTEL}/brand/intelligence?name=${encodeURIComponent(n)}`;
@@ -1674,6 +1687,7 @@ function familyTip() {
     { k: "intel", html: `🔎 Meeting a company this week? <button class="showhidden" type="button" data-open-mod="company" data-promo="intel">Check them in seconds</button> with Intel.` },
     { k: "ai", html: `🎓 New to AI, or want to use it better? <a href="${AILEARN}/" target="_blank" rel="noopener" data-promo="ai">Plain-English guides</a>, a few minutes each.` },
     { k: "miru", html: `📲 Want this without opening the page? <a href="${BRIEF_URL}" target="_blank" rel="noopener" data-promo="miru">Miru sends it to WhatsApp</a> at 7.30am.` },
+    { k: "aibiz", html: `🤖 Can ChatGPT find your business? <button class="showhidden" type="button" data-open-mod="bizcheck" data-promo="bizcheck">Check in seconds</button>, or see <button class="showhidden" type="button" data-open-mod="aibiz" data-promo="aibiz">what AI could do for you</button>.` },
     { k: "biz", html: `🏪 Run a local business? <button class="showhidden" type="button" data-open-mod="bizcheck" data-promo="bizcheck">See how easy you are to find</button>, free.` },
     { k: "talk", html: `🛠️ Want a tool like this for your business or community? <a href="https://humanagency.co/" target="_blank" rel="noopener" data-promo="talk">We build them.</a>` },
   ];
@@ -1686,7 +1700,7 @@ function familyTip() {
 function bizPanel() {
   return `<div class="box" id="bizBox">
     <b>Free instant check for local businesses</b>
-    <p class="muted" style="margin:4px 0 10px;font-size:14px">See how you look on Google Maps, your website and social pages, with the three fixes that matter most. No sign-up.</p>
+    <p class="muted" style="margin:4px 0 10px;font-size:14px">See how you look on Google Maps, your website and social pages, and whether ChatGPT, Claude and Copilot can find you. With the three fixes that matter most. No sign-up.</p>
     <div class="bizf">
       <label>Business name<input id="bzName" maxlength="100" placeholder="e.g. Ben's Ice Cream" style="text-transform:none"></label>
       <label>Postcode<input id="bzPc" maxlength="10" value="${esc(postcode)}"></label>
@@ -1717,6 +1731,11 @@ function bizResult(d) {
     const s = (w.social || []).filter(k => ["instagram", "facebook", "tiktok"].includes(k));
     const nm = { instagram: "Instagram", facebook: "Facebook", tiktok: "TikTok" };
     h += row(s.length > 0, s.length ? `Links to ${s.map(k => nm[k]).join(", ")}` : "No links to Instagram, Facebook or TikTok");
+    const blocked = w.ai_blocked || [];
+    h += `<div class="subhead" style="margin-top:10px">Can AI assistants find you?</div>`
+      + row(!blocked.length, blocked.length ? `Your website blocks ${esc(blocked.join(", "))}` : "AI assistants are allowed to read your website", blocked.length ? "They can't recommend what they can't read." : "")
+      + row(!!w.schema, w.schema ? "Business details in a standard format" : "No business details in a standard format", w.schema ? "" : "Name, address, hours and what you do, written so Google and AI can read them.")
+      + row(!!w.llms_txt, w.llms_txt ? "Has an llms.txt summary for AI" : "No llms.txt summary for AI", w.llms_txt ? "" : "A short plain-text file that helps ChatGPT, Claude and others describe you.");
   } else if (w) {
     h += row(false, "Your website didn't open", esc(w.url || ""));
   } else {
@@ -1769,6 +1788,69 @@ function wireBiz() {
         } catch (e) { b2.disabled = false; b2.textContent = "Yes, help me"; m2("Couldn't send that right now. Please try again."); }
       };
     } catch (e) { btn.disabled = false; btn.textContent = "Check my business"; msg("Couldn't run the check right now. Please try again."); }
+  };
+}
+
+// ---------- AI for your business: a short primer, ideas by type of business, and help to set it up ----------
+const AI_IDEAS = {
+  cafe: ["Write menu descriptions and specials-board wording in seconds", "Reply to Google reviews in your own voice", "Plan stock orders and rotas from last month's sales", "Turn your photos into Instagram posts with captions"],
+  shop: ["Write product descriptions and shelf labels", "Answer common customer questions on WhatsApp or your website", "Spot your best and worst sellers from a till export", "Plan a week of social posts in one go"],
+  salon: ["Send booking reminders and follow-ups", "Write aftercare instructions for each treatment", "Reply to reviews quickly and kindly", "Write before-and-after captions for social"],
+  trades: ["Turn a voice note into a tidy quote or invoice", "Write up jobs with photos for customers", "Reply to enquiries fast, even when you're on a job", "Keep checklists for paperwork and certificates"],
+  office: ["Draft emails and proposals", "Summarise meetings and long documents (Copilot does this inside Microsoft 365)", "Write the FAQs for your website", "Tidy up and explain spreadsheets"],
+  other: ["Draft emails, posts and letters", "Summarise long documents", "Answer customer questions faster", "Brainstorm ideas and plans"],
+};
+const AI_TYPES = [["cafe", "☕ Café or restaurant"], ["shop", "🛍️ Shop"], ["salon", "💇 Salon or beauty"], ["trades", "🔧 Trades"], ["office", "💼 Office or services"], ["other", "✨ Something else"]];
+function aiPanel() {
+  return `<div class="box" id="aiBox">
+    <b>AI for your business, in plain English</b>
+    <p class="muted" style="margin:4px 0 8px;font-size:14px">Tools like ChatGPT, Claude and Copilot can take hours of admin off your week. And more customers now ask them "where's a good café near me?", so it helps if they can find you.</p>
+    <div class="subhead">What could it do for you?</div>
+    <div class="aitypes">${AI_TYPES.map(([k, l]) => `<button type="button" data-aitype="${k}">${l}</button>`).join("")}</div>
+    <div id="aiIdeas"></div>
+    <div class="aiacts">
+      <a class="aiact" href="${AILEARN}/" target="_blank" rel="noopener" data-promo="ai"><b>🎓 Learn the basics</b><span>Short guides and a jargon buster on AI Learning</span></a>
+      <button class="aiact" type="button" data-open-mod="bizcheck"><b>🔎 Can AI find you?</b><span>Free check of Google, your website and AI assistants</span></button>
+      <button class="aiact" type="button" id="aiHelpBtn"><b>🛠️ Help me set it up</b><span>We'll show you what's worth doing, and do it with you</span></button>
+    </div>
+    <div id="aiHelp"></div>
+  </div>`;
+}
+function wireAi() {
+  const box = document.getElementById("aiBox"); if (!box) return;
+  box.querySelectorAll("[data-aitype]").forEach(b => b.onclick = () => {
+    box.querySelectorAll("[data-aitype]").forEach(x => x.classList.toggle("on", x === b));
+    track("biz:ai-" + b.dataset.aitype);
+    document.getElementById("aiIdeas").innerHTML = `<ul class="aiideas">${AI_IDEAS[b.dataset.aitype].map(i => `<li>${esc(i)}</li>`).join("")}</ul>`;
+  });
+  document.getElementById("aiHelpBtn").onclick = () => {
+    track("biz:ai-help");
+    const h = document.getElementById("aiHelp");
+    h.innerHTML = `<div class="bzhelp"><b>Help me set up AI</b>
+      <p class="muted" style="margin:2px 0 8px;font-size:13px">Tell us a little and we'll be in touch within 24 hours. No obligation, no mailing lists.</p>
+      <div class="bizf">
+        <label>Business name<input id="aiBiz" maxlength="100" style="text-transform:none"></label>
+        <label>Your WhatsApp or email<input id="aiContact" maxlength="120" style="text-transform:none"></label>
+        <label style="grid-column:1/-1"><span>What would help most? <small class="muted">(optional)</small></span><input id="aiWhat" maxlength="120" placeholder="e.g. replying to reviews, quotes, social posts" style="text-transform:none"></label>
+      </div>
+      <div class="row" style="gap:8px;margin-top:8px"><button class="btn" type="button" id="aiSend">Send</button></div>
+      <div id="aiMsg" style="color:#c0392b;font-size:13px;min-height:16px;margin-top:6px"></div></div>`;
+    document.getElementById("aiSend").onclick = async () => {
+      const v = id => document.getElementById(id).value.trim();
+      const m = t => { document.getElementById("aiMsg").textContent = t; };
+      if (v("aiBiz").length < 2) return m("Tell us the business name.");
+      if (!v("aiContact")) return m("Add your WhatsApp number or email.");
+      const btn = document.getElementById("aiSend"); btn.disabled = true; btn.textContent = "Sending…";
+      try {
+        const r = await fetch(`${API}/api/factory/business-check`, { method: "POST", headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ business: v("aiBiz"), postcode, contact: v("aiContact"), name: v("aiWhat") ? "Wants: " + v("aiWhat") : "", interest: "ai-setup" }) });
+        const d = await r.json().catch(() => ({}));
+        if (!r.ok) { btn.disabled = false; btn.textContent = "Send"; return m(d.error || "Couldn't send that. Please try again."); }
+        track("biz:ai-sent");
+        h.innerHTML = `<div class="bzhelp"><b>Thanks, we'll be in touch within 24 hours. 🎉</b></div>`;
+      } catch (e) { btn.disabled = false; btn.textContent = "Send"; m("Couldn't send that right now. Please try again."); }
+    };
+    document.getElementById("aiBiz").focus();
   };
 }
 
