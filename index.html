@@ -323,6 +323,10 @@ body.back .stepsmore { display:none; }
 .tcheck { flex-direction:row !important; align-items:center; gap:8px !important; font-weight:700 !important; margin:4px 0; }
 .tcheck input { width:16px; height:16px; }
 @media (max-width:600px) { .tpick { grid-template-columns:1fr; } }
+.tdcta { display:flex; align-items:center; gap:10px; flex-wrap:wrap; margin-top:8px; }
+.tdbtn { border:2px solid var(--ink); border-radius:999px; background:var(--sun); color:var(--ink); font:inherit; font-size:14px; font-weight:800; padding:6px 14px; cursor:pointer; box-shadow:3px 3px 0 var(--ink); }
+.tdbtn:hover { transform:translate(-1px,-1px); box-shadow:4px 4px 0 var(--ink); }
+.tdcta small { font-size:13px; }
 .remind { margin-top:14px; border-top:2px solid var(--ink); padding-top:14px; }
 .remind .rhead { display:flex; gap:10px; align-items:center; flex-wrap:wrap; }
 .remind .rhead b { font-size:16px; }
@@ -1006,7 +1010,8 @@ async function wireLive(m) {
         show(ans + `<div class="subhead">Nearest station</div>`
           + `<div class="result"><div><b>${esc(near.name)}</b><small>${near.distance_km} km away</small></div></div>`
           + `<div class="subhead">Next trains${depStation && depStation.name !== near.name ? " from " + esc(depStation.name) : ""}</div>` + trainRows
-          + `<div class="sample">Live from the National Rail feed</div>`);
+          + `<div class="sample">Live from the National Rail feed</div>`
+          + `<div class="tdcta" style="margin-top:12px"><button class="tdbtn" type="button" data-trains-setup data-close-drawer>🚆 Track my trains</button><small class="muted">Pin your regular journey or a trip to the Today box.</small></div>`);
       }
       if (m.id === "schools") {
         const d = await getJSON(`${API}/api/factory/schools-near?postcode=${encodeURIComponent(pc)}`);
@@ -1147,7 +1152,14 @@ document.addEventListener("click", e => {
   const f = e.target.closest("[data-fuel]");
   if (f) { e.stopPropagation(); setFuel(f.dataset.fuel); return; }
   if (e.target.closest("[data-install]")) { installApp(); return; }
-  if (e.target.closest("[data-trains-setup]")) { openTrainSetup(); return; }
+  const ts = e.target.closest("[data-trains-setup]");
+  if (ts) {
+    if (ts.hasAttribute("data-close-drawer")) {
+      closeDrawer();
+      const t = document.getElementById("today"); if (t && t.scrollIntoView) t.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
+    openTrainSetup(); return;
+  }
   const hw = e.target.closest("[data-how]");
   if (hw) {
     e.preventDefault(); track("how");
@@ -1332,7 +1344,7 @@ async function loadToday() {
     put("fuel", c ? `<b>${fuelLabel} ${c.price_p}p</b> at ${esc(shortBrand(c.brand))}, ${c.distance_mi} mi away. ${tog}` : `No ${fuelLabel.toLowerCase()} prices nearby. ${tog}`);
     return c;
   }).catch(() => { put("fuel", `Fuel prices aren't available right now. ${tog}`, true); return null; });
-  const setTrains = ` <button class="showhidden" type="button" data-trains-setup style="margin-left:2px">🚆 Track my trains</button>`;
+  const setTrains = `<div class="tdcta"><button class="tdbtn" type="button" data-trains-setup>🚆 Track my trains</button><small class="muted">Your regular journey or a trip today, live both ways.</small></div>`;
   if (anyTrains()) loadMyTrains(put);
   else todayTrain(pc).then(r => {
     if (!r.next) return put("train", `No more trains listed from ${esc(r.st.name || "your nearest station")} right now.${setTrains}`, true);
