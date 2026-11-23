@@ -61,7 +61,25 @@ ul.facts{margin:0;padding-left:20px}ul.facts li{margin:4px 0}
 .vs-wrap{overflow-x:auto;margin:0 0 16px}
 .state{padding:30px;text-align:center;color:var(--muted);border:2px dashed var(--ink);border-radius:18px;margin:26px 0;background:#fff}
 footer{color:var(--muted);font-size:13px;padding:30px 0 50px;text-align:center}
+.share{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:6px 0 16px}
+.share a.chip{text-decoration:none;color:var(--ink)}.share a.chip:hover{color:#fff}
+.share .chip.main{background:var(--ink);color:#fff}.share .chip.main:hover{background:var(--violet)}
+.share-msg{font-size:13px;font-weight:800;color:var(--violet)}
+.print-head{display:none}
 @media (max-width:640px){.card h2{font-size:24px}.search{flex-direction:column;border-radius:20px}}
+@media print{
+  @page{margin:14mm}
+  *{-webkit-print-color-adjust:exact;print-color-adjust:exact}
+  body{background:#fff;font-size:12px}
+  .top,.hero,.no-print{display:none!important}
+  .print-head{display:block;font-size:11px;color:var(--muted);border-bottom:1px solid var(--line);padding:0 0 8px;margin:0 0 12px}
+  .card{box-shadow:none;border:0;margin:0;padding:0}
+  .fact,.opp,.brand,.vs tr,li{break-inside:avoid}
+  h2,h3{break-after:avoid}
+  .vs-wrap{overflow:visible}
+  a{color:inherit}
+  footer{padding:16px 0 0}
+}
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}
 </style>
 </head>
@@ -153,8 +171,10 @@ function renderCompany(c) {
     body = `<div class="state">We're researching ${esc(c.display_name)} now. Refresh this page in a minute.</div>`;
   }
   return `<article class="card" aria-labelledby="co-name">
+    ${printHead()}
     <header><h2 id="co-name">${esc(c.display_name)}</h2><span class="status ${esc(status)}">${esc(LABEL[status] || status)}</span></header>
     <p class="meta">${[c.headquarters, c.industry].filter(Boolean).map(esc).join(" · ")}</p>
+    ${status === "ready" ? shareBar() : ""}
     ${body}</article>`;
 }
 
@@ -358,10 +378,58 @@ async function compareBrands(names) {
   const allCh = [...new Set(b.flatMap(x => x.channels))];
   b.forEach(x => { const miss = allCh.filter(c => !x.channels.includes(c)); if (x.ok && miss.length) f.push(`<b>Where it's sold:</b> ${esc(x.name)} wasn't seen in ${esc(miss.join(", ").toLowerCase())} in these listings, where a rival was. Google Shopping often misses the big chains, so check their sites before calling it a gap.`); });
 
-  $("out").innerHTML = `<article class="card"><header><h2>${b.map(x => esc(x.name)).join(" vs ")}</h2></header>
-    <p class="meta">UK prices and shops. Size and ownership are worldwide.</p>${table}
+  pageReady = Promise.resolve();
+  $("out").innerHTML = `<article class="card">${printHead()}<header><h2>${b.map(x => esc(x.name)).join(" vs ")}</h2></header>
+    <p class="meta">UK prices and shops. Size and ownership are worldwide.</p>${shareBar()}${table}
     ${f.length ? `<h3>What stands out</h3><ul class="facts">${f.map(x => `<li>${x}</li>`).join("")}</ul>` : ""}
     <p class="sources">Sources: Google Shopping UK listings (about 10 per brand), Wikipedia and Wikidata, live. A quick guide, not sales or market share. Click a brand name for its full page.</p></article>`;
+  wireShare(names.join(" vs "));
+}
+
+// ---------- Share and download ----------
+// The page link always matches what's on screen, so a shared link opens the same brand or comparison.
+let pageReady = Promise.resolve();
+function setQ(q) {
+  try { const p = new URLSearchParams(location.search); p.set("q", q); history.replaceState(null, "", "?" + p.toString().replace(/\+/g, "%20")); } catch (_) {}
+}
+function printHead() {
+  return `<div class="print-head">Human Agency · Intel · ${esc(location.href)} · ${esc(when(new Date()))}</div>`;
+}
+function shareBar() {
+  return `<div class="share no-print" role="group" aria-label="Share or download this page">
+    <button class="chip main" type="button" data-act="pdf">⬇ Download PDF</button>
+    <button class="chip" type="button" data-act="share">Share</button>
+    <button class="chip" type="button" data-act="copy">Copy link</button>
+    <a class="chip" data-act="wa" target="_blank" rel="noopener">WhatsApp</a>
+    <a class="chip" data-act="mail">Email</a>
+    <span class="share-msg" aria-live="polite"></span></div>`;
+}
+function wireShare(title) {
+  const bar = document.querySelector("#out .share");
+  if (!bar) return;
+  const url = location.href, text = `${title}: company and brand intel from Human Agency`;
+  const msg = bar.querySelector(".share-msg");
+  const say = t => { msg.textContent = t; setTimeout(() => { if (msg.textContent === t) msg.textContent = ""; }, 5000); };
+  bar.querySelector('[data-act="wa"]').href = "https://wa.me/?text=" + encodeURIComponent(text + " " + url);
+  bar.querySelector('[data-act="mail"]').href = `mailto:?subject=${encodeURIComponent(text)}&body=${encodeURIComponent(text + "\n\n" + url)}`;
+  const copy = async () => {
+    try { await navigator.clipboard.writeText(url); say("Link copied"); }
+    catch (_) { say("Copy this link: " + url); }
+  };
+  bar.querySelector('[data-act="copy"]').onclick = copy;
+  bar.querySelector('[data-act="share"]').onclick = () => navigator.share ? navigator.share({ title: text, url }).catch(() => {}) : copy();
+  bar.querySelector('[data-act="pdf"]').onclick = async e => {
+    const btn = e.currentTarget, label = btn.textContent;
+    btn.textContent = "Getting it ready…"; btn.disabled = true;
+    // Wait for the sections still loading (up to 20 seconds) so the PDF isn't half empty
+    await Promise.race([pageReady, new Promise(r => setTimeout(r, 20000))]);
+    btn.textContent = label; btn.disabled = false;
+    const old = document.title;
+    document.title = `${title} | Intel | Human Agency`; // becomes the PDF file name
+    addEventListener("afterprint", () => { document.title = old; }, { once: true });
+    say("Choose “Save as PDF” in the print window");
+    window.print();
+  };
 }
 
 // ---------- Brand: commercial opportunities ----------
@@ -563,8 +631,13 @@ async function showCompany(name) {
   $("out").innerHTML = `<div class="state">Looking up ${esc(name)}…</div>`;
   try {
     const c = await getJSON(`${API}/api/company/${encodeURIComponent(name.toLowerCase().replace(/\s+/g, "-"))}`);
+    setQ(c.display_name);
     $("out").innerHTML = renderCompany(c);
-    if (c.status === "ready") { loadHiring(c.display_name); loadAnalysis(c.display_name); loadBrand(c.display_name); loadOpportunities(c.display_name); if (GLANCE) loadGlance(c.display_name); }
+    if (c.status === "ready") {
+      const n = c.display_name;
+      pageReady = Promise.allSettled([loadHiring(n), loadAnalysis(n), loadBrand(n), loadOpportunities(n), GLANCE ? loadGlance(n) : null]);
+      wireShare(n);
+    }
   } catch (e) {
     $("out").innerHTML = `<div class="state">Could not load ${esc(name)}. ${esc(e.message || "")}</div>`;
   }
@@ -574,8 +647,8 @@ async function search(q) {
   q = q.trim();
   if (q.length < 2) return;
   const vs = q.split(/\s+(?:vs\.?|versus|v)\s+|\s*,\s*/i).map(x => x.trim()).filter(x => x.length > 1);
-  if (vs.length > 1) { try { history.replaceState(null, "", "?q=" + encodeURIComponent(q)); } catch (_) {} $("suggest").innerHTML = ""; return compareBrands(vs.slice(0, 3)); }
-  try { history.replaceState(null, "", "?q=" + encodeURIComponent(q)); } catch (_) {}
+  if (vs.length > 1) { setQ(q); $("suggest").innerHTML = ""; return compareBrands(vs.slice(0, 3)); }
+  setQ(q);
   $("suggest").innerHTML = "";
   try {
     const d = await getJSON(`${API}/api/companies/search?q=${encodeURIComponent(q)}`);
