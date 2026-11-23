@@ -314,6 +314,15 @@ body.back .stepsmore { display:none; }
 .tsetup .btn { padding:8px 14px; font-size:13px; }
 .tsetup .rmsg { font-size:13px; color:#c0392b; margin-top:6px; min-height:16px; }
 @media (max-width:600px) { .tsetup .tfields { grid-template-columns:1fr; } .troute { min-width:0; width:100%; } }
+.tpick { display:grid; grid-template-columns:1fr 1fr; gap:10px; margin:10px 0 4px; }
+.tpick button { text-align:left; border:2px solid var(--ink); background:#fff; border-radius:14px; padding:12px; cursor:pointer; box-shadow:3px 3px 0 var(--ink); font:inherit; }
+.tpick button:hover { background:#fff3b0; }
+.tpick b { display:block; font-size:15px; margin-bottom:2px; }
+.tpick small { color:var(--muted); font-size:13px; }
+.ttag { font-style:normal; font-size:11px; font-weight:900; background:var(--ink); color:#fff; border-radius:999px; padding:1px 7px; vertical-align:1px; }
+.tcheck { flex-direction:row !important; align-items:center; gap:8px !important; font-weight:700 !important; margin:4px 0; }
+.tcheck input { width:16px; height:16px; }
+@media (max-width:600px) { .tpick { grid-template-columns:1fr; } }
 .remind { margin-top:14px; border-top:2px solid var(--ink); padding-top:14px; }
 .remind .rhead { display:flex; gap:10px; align-items:center; flex-wrap:wrap; }
 .remind .rhead b { font-size:16px; }
@@ -1306,7 +1315,7 @@ async function loadToday() {
   const el = document.getElementById("today"); if (!el) return;
   const pc = postcode, seq = ++todaySeq;
   const ICON = { wx: "🌤️", fuel: "⛽", train: "🚆", bin: "🗑️" };
-  const OPEN = { wx: "weather", fuel: "fuel", train: myTrains() ? "" : "trains", bin: "" };
+  const OPEN = { wx: "weather", fuel: "fuel", train: anyTrains() ? "" : "trains", bin: "" };
   el.innerHTML = `<div class="tdhead"><h2>Today in ${esc(pc)}</h2><span class="tddate">${esc(new Date().toLocaleDateString("en-GB", { weekday: "long", day: "numeric", month: "long" }))}</span>${installBtn()}</div>
     <div>${["wx", "fuel", "train", "bin"].map(k => `<div class="tdrow" id="td-${k}"${OPEN[k] ? ` data-open="${OPEN[k]}"` : ""}><span class="tdi">${ICON[k]}</span><span class="tdt muted">Checking…</span></div>`).join("")}</div>
     <div class="tdchanges" id="tdChanges"></div>
@@ -1323,8 +1332,8 @@ async function loadToday() {
     put("fuel", c ? `<b>${fuelLabel} ${c.price_p}p</b> at ${esc(shortBrand(c.brand))}, ${c.distance_mi} mi away. ${tog}` : `No ${fuelLabel.toLowerCase()} prices nearby. ${tog}`);
     return c;
   }).catch(() => { put("fuel", `Fuel prices aren't available right now. ${tog}`, true); return null; });
-  const setTrains = ` <button class="showhidden" type="button" data-trains-setup style="margin-left:2px">Set my trains</button>`;
-  if (myTrains()) loadMyTrains(put);
+  const setTrains = ` <button class="showhidden" type="button" data-trains-setup style="margin-left:2px">🚆 Track my trains</button>`;
+  if (anyTrains()) loadMyTrains(put);
   else todayTrain(pc).then(r => {
     if (!r.next) return put("train", `No more trains listed from ${esc(r.st.name || "your nearest station")} right now.${setTrains}`, true);
     const { t, lb } = r.next;
@@ -1522,7 +1531,7 @@ function remindChoices(box, ch) {
   const usualTxt = j ? [j.out && `${j.out} ${shortStation(j.from.name)} → ${shortStation(j.to.name)}`, j.back && `${j.back} back`].filter(Boolean).join(", ") : "";
   box.innerHTML = `<div class="rpanel"><b>${ch === "wa" ? "On WhatsApp" : "As notifications on this device"}</b>
     <label><input type="checkbox" id="rBins" ${hasBin && binsOn ? "checked" : ""} ${hasBin ? "" : "disabled"}><span><b>Bins, the evening before</b><br><small class="muted">${hasBin ? "For " + esc(bin.label) : `First <button class="showhidden" type="button" data-td="bins" style="margin:0;padding:0">set your address</button>, then come back here.`}</small></span></label>
-    <label><input type="checkbox" id="rTrains" ${hasUsual && trainsOn ? "checked" : ""} ${hasUsual ? "" : "disabled"}><span><b>My trains, if late or cancelled</b><br><small class="muted">${hasUsual ? esc(usualTxt) + ". Weekdays, in the hour before it leaves." : `First <button class="showhidden" type="button" data-trains-setup style="margin:0;padding:0">set your trains</button> with a usual time, then come back here.`}</small></span></label>
+    <label><input type="checkbox" id="rTrains" ${hasUsual && trainsOn ? "checked" : ""} ${hasUsual ? "" : "disabled"}><span><b>My trains, if late or cancelled</b><br><small class="muted">${hasUsual ? esc(usualTxt) + ". Weekdays, in the hour before it leaves." : `First <button class="showhidden" type="button" data-trains-setup style="margin:0;padding:0">track your regular trains</button> with a usual time, then come back here.`}</small></span></label>
     <label><input type="checkbox" id="rFuel" ${fuelOn ? "checked" : ""}><span><b>${fuelType === "diesel" ? "Diesel" : "Petrol"} drops near ${esc(postcode)}</b><br><small class="muted">When the cheapest price falls by 1p or more. Checked once a day.</small></span></label>
     <div class="row2"><button class="btn" type="button" id="rSave">Save</button><button class="btn ghost" type="button" data-rclose>Close</button>${anyOn ? `<button class="showhidden" type="button" id="rOff">Turn all off</button>` : ""}</div>
     <div class="rmsg" id="rMsg">${ch === "wa" ? "Reply STOP BINS, STOP FUEL, STOP TRAINS or STOP REMINDERS on WhatsApp any time." : "You can turn these off here any time."}</div></div>`;
@@ -1580,6 +1589,11 @@ async function pushSubscription(wanted) {
 const TRAINS_KEY = "factory_trains";
 var myTrainsCfg = LS.get(TRAINS_KEY, null);   // {from:{crs,name}, to:{crs,name}, out:"07:42", back:"17:48"}
 const myTrains = () => myTrainsCfg && myTrainsCfg.from && myTrainsCfg.to ? myTrainsCfg : null;
+const TRIP_KEY = "factory_trip";
+const todayIso = () => { const d = new Date(); return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0"); };
+var tripCfg = LS.get(TRIP_KEY, null);          // {from, to, back:bool, date:"YYYY-MM-DD"}: shows today only
+const myTrip = () => tripCfg && tripCfg.from && tripCfg.to && tripCfg.date === todayIso() ? tripCfg : null;
+const anyTrains = () => !!(myTrains() || myTrip());
 const shortStation = n => String(n || "").replace(/^London /, "");
 function trainChip(t) {
   const late = Number(t.late_min || 0);
@@ -1593,21 +1607,55 @@ async function trainLeg(frm, to) {
   return { trains: (d.trains || []).filter(t => { const at = atToday(t.scheduled); return !at || at >= Date.now() - 120e3; }), filtered: d.filtered !== false };
 }
 async function loadMyTrains(put) {
-  const j = myTrains(); if (!j) return;
-  const legs = [[j.from, j.to, j.out], [j.to, j.from, j.back]];
-  if (new Date().getHours() >= 12) legs.reverse();      // afternoon: the way home first
-  const rows = await Promise.all(legs.map(async ([a, b, usual]) => {
+  const j = myTrains(), trip = myTrip();
+  if (!j && !trip) return;
+  let legs = [];
+  if (j) { legs = [[j.from, j.to, j.out], [j.to, j.from, j.back]]; if (new Date().getHours() >= 12) legs.reverse(); }   // afternoon: the way home first
+  if (trip) legs = [[trip.from, trip.to, "", "Trip today"]].concat(trip.back ? [[trip.to, trip.from, "", "Trip back"]] : []).concat(legs);
+  const rows = await Promise.all(legs.map(async ([a, b, usual, tag]) => {
     try {
       const r = await trainLeg(a, b);
       const mine = usual ? r.trains.find(t => t.scheduled === usual) : null;
       const chips = r.trains.slice(0, 3).map(trainChip).join("") || `<span class="muted">No trains listed right now</span>`;
       const yours = mine && !r.trains.slice(0, 3).includes(mine) ? ` <span class="muted">· yours</span> ${trainChip(mine)}` : "";
-      return `<div class="tleg"><span class="troute">${esc(shortStation(a.name))} → ${esc(shortStation(b.name))}</span><span class="tchips">${chips}${yours}</span>${r.filtered ? "" : `<small class="muted">All trains from ${esc(shortStation(a.name))}, the route filter isn't working right now.</small>`}</div>`;
+      return `<div class="tleg"><span class="troute">${tag ? `<em class="ttag">${esc(tag)}</em> ` : ""}${esc(shortStation(a.name))} → ${esc(shortStation(b.name))}</span><span class="tchips">${chips}${yours}</span>${r.filtered ? "" : `<small class="muted">All trains from ${esc(shortStation(a.name))}, the route filter isn't working right now.</small>`}</div>`;
     } catch (e) {
       return `<div class="tleg"><span class="troute">${esc(shortStation(a.name))} → ${esc(shortStation(b.name))}</span><span class="muted">Not available right now</span></div>`;
     }
   }));
-  put("train", rows.join("") + `<div class="tedit"><button class="showhidden" type="button" data-trains-setup>Edit my trains</button></div>`);
+  put("train", rows.join("") + `<div class="tedit"><button class="showhidden" type="button" data-trains-setup>${j ? "Edit or add a trip" : "Track my regular trains"}</button></div>`);
+}
+function openTripSetup(row) {
+  track("trains:trip");
+  const t = myTrip() || {};
+  const val = s => s ? esc(s.name) : "";
+  row.innerHTML = `<span class="tdi">🚆</span><div class="tdt tsetup">
+    <b>Another trip, today</b> <small class="muted">Cleared at midnight.</small>
+    <div class="tfields">
+      <label>From<input id="tsFrom" placeholder="e.g. Longcross" value="${val(t.from)}" data-crs="${t.from ? esc(t.from.crs) : ""}" autocomplete="off"><span class="tlist" id="tsFromL"></span></label>
+      <label>To<input id="tsTo" placeholder="e.g. Reading" value="${val(t.to)}" data-crs="${t.to ? esc(t.to.crs) : ""}" autocomplete="off"><span class="tlist" id="tsToL"></span></label>
+    </div>
+    <label class="tcheck"><input type="checkbox" id="tsBackChk" ${t.back ? "checked" : ""}> Coming back today too</label>
+    <div class="row2"><button class="btn" type="button" id="tsSave">Show my trip</button><button class="btn ghost" type="button" id="tsCancel">Cancel</button>${myTrip() ? `<button class="showhidden" type="button" id="tsRemove">Remove trip</button>` : ""}</div>
+    <div class="rmsg" id="tsMsg"></div></div>`;
+  stationPicker(document.getElementById("tsFrom"), document.getElementById("tsFromL"));
+  stationPicker(document.getElementById("tsTo"), document.getElementById("tsToL"));
+  document.getElementById("tsCancel").onclick = () => loadToday();
+  const rm = document.getElementById("tsRemove");
+  if (rm) rm.onclick = () => { tripCfg = null; LS.set(TRIP_KEY, null); loadToday(); };
+  document.getElementById("tsSave").onclick = () => {
+    const f = document.getElementById("tsFrom"), to = document.getElementById("tsTo");
+    const msg = x => { document.getElementById("tsMsg").textContent = x; };
+    if (!f.dataset.crs) return msg("Pick your From station from the list.");
+    if (!to.dataset.crs) return msg("Pick your To station from the list.");
+    if (f.dataset.crs === to.dataset.crs) return msg("From and To need to be different stations.");
+    tripCfg = { from: { crs: f.dataset.crs, name: f.value }, to: { crs: to.dataset.crs, name: to.value }, back: document.getElementById("tsBackChk").checked, date: todayIso() };
+    LS.set(TRIP_KEY, tripCfg);
+    track("trains:trip-saved");
+    toast("Tracking your trip today 🚆");
+    loadToday();
+  };
+  document.getElementById("tsFrom").focus();
 }
 function stationPicker(input, list, onPick) {
   let timer = 0, seq = 0;
@@ -1628,14 +1676,27 @@ function stationPicker(input, list, onPick) {
     }, 250);
   });
 }
-function openTrainSetup() {
+function openTrainSetup(kind) {
   const row = document.getElementById("td-train"); if (!row) return;
-  track("trains:setup");
+  if (!kind) {
+    track("trains:setup");
+    row.removeAttribute("data-open");
+    row.innerHTML = `<span class="tdi">🚆</span><div class="tdt tsetup"><b>Track my trains</b> <small class="muted">Which journey?</small>
+      <div class="tpick">
+        <button type="button" data-tkind="regular"><b>My regular journey</b><small>Like your commute. Saved, shown both ways every day${myTrains() ? ` (now ${esc(shortStation(myTrains().from.name))} ↔ ${esc(shortStation(myTrains().to.name))})` : ""}. You can get alerts if it's late.</small></button>
+        <button type="button" data-tkind="trip"><b>Another trip</b><small>A one-off journey today. Shown until midnight, then it clears itself.</small></button>
+      </div>
+      <div class="row2"><button class="btn ghost" type="button" id="tsCancel">Cancel</button></div></div>`;
+    row.querySelectorAll("[data-tkind]").forEach(b => b.onclick = () => openTrainSetup(b.dataset.tkind));
+    document.getElementById("tsCancel").onclick = () => loadToday();
+    return;
+  }
+  if (kind === "trip") return openTripSetup(row);
   const j = myTrains() || {};
   const val = s => s ? esc(s.name) : "";
   row.removeAttribute("data-open");
   row.innerHTML = `<span class="tdi">🚆</span><div class="tdt tsetup">
-    <b>My trains</b> <small class="muted">Your usual journey. We'll show it both ways.</small>
+    <b>My regular journey</b> <small class="muted">We'll show it both ways.</small>
     <div class="tfields">
       <label>From<input id="tsFrom" placeholder="e.g. Longcross" value="${val(j.from)}" data-crs="${j.from ? esc(j.from.crs) : ""}" autocomplete="off"><span class="tlist" id="tsFromL"></span></label>
       <label>To<input id="tsTo" placeholder="e.g. Waterloo" value="${val(j.to)}" data-crs="${j.to ? esc(j.to.crs) : ""}" autocomplete="off"><span class="tlist" id="tsToL"></span></label>
