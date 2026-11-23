@@ -1812,6 +1812,20 @@ const AI_IDEAS = {
   office: ["Draft emails and proposals", "Summarise meetings and long documents (Copilot does this inside Microsoft 365)", "Write the FAQs for your website", "Tidy up and explain spreadsheets"],
   other: ["Draft emails, posts and letters", "Summarise long documents", "Answer customer questions faster", "Brainstorm ideas and plans"],
 };
+// Where "Learn the basics" goes on AI Learning, for each type of business
+const AI_LEARN = {
+  none:   ["/guide.html", "🎓 Where do I start?", "A two-minute plan for you, on AI Learning"],
+  cafe:   ["/compare.html", "🎓 Which AI tool should I use?", "Compare ChatGPT, Claude, Gemini and more for menus, reviews and posts"],
+  shop:   ["/use-cases.html", "🎓 How shops use AI", "Retail examples, and when AI is and isn't worth it"],
+  salon:  ["/compare.html", "🎓 Which AI tool should I use?", "Compare ChatGPT, Claude, Gemini and more for reminders, reviews and captions"],
+  trades: ["/use-cases.html", "🎓 When AI helps, and when it doesn't", "A quick checklist before you hand a job to AI"],
+  office: ["/compare.html", "🎓 Which AI tool fits your office?", "Compare ChatGPT, Claude, Gemini and more, side by side"],
+  other:  ["/guide.html", "🎓 Where do I start?", "A two-minute plan for your business, on AI Learning"],
+};
+function aiLearnLink(k) {
+  const [path, title, sub] = AI_LEARN[k] || AI_LEARN.none;
+  return `<a class="aiact" id="aiLearn" href="${AILEARN}${path}" target="_blank" rel="noopener" data-promo="ai"><b>${title}</b><span>${sub}</span></a>`;
+}
 const AI_TYPES = [["cafe", "☕ Café or restaurant"], ["shop", "🛍️ Shop"], ["salon", "💇 Salon or beauty"], ["trades", "🔧 Trades"], ["office", "💼 Office or services"], ["other", "✨ Something else"]];
 function aiPanel() {
   return `<div class="box" id="aiBox">
@@ -1821,7 +1835,7 @@ function aiPanel() {
     <div class="aitypes">${AI_TYPES.map(([k, l]) => `<button type="button" data-aitype="${k}">${l}</button>`).join("")}</div>
     <div id="aiIdeas"></div>
     <div class="aiacts">
-      <a class="aiact" href="${AILEARN}/" target="_blank" rel="noopener" data-promo="ai"><b>🎓 Learn the basics</b><span>Short guides and a jargon buster on AI Learning</span></a>
+      ${aiLearnLink("none")}
       <button class="aiact" type="button" data-open-mod="bizcheck"><b>🔎 Check your business</b><span>Free check of your Google listing, website and AI access</span></button>
       <button class="aiact" type="button" id="aiHelpBtn"><b>🛠️ Help me set it up</b><span>We'll show you what's worth doing, and do it with you</span></button>
     </div>
@@ -1834,6 +1848,7 @@ function wireAi() {
     box.querySelectorAll("[data-aitype]").forEach(x => x.classList.toggle("on", x === b));
     track("biz:ai-" + b.dataset.aitype);
     document.getElementById("aiIdeas").innerHTML = `<ul class="aiideas">${AI_IDEAS[b.dataset.aitype].map(i => `<li>${esc(i)}</li>`).join("")}</ul>`;
+    document.getElementById("aiLearn").outerHTML = aiLearnLink(b.dataset.aitype);
   });
   document.getElementById("aiHelpBtn").onclick = () => {
     track("biz:ai-help");
