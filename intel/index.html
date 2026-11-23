@@ -222,7 +222,13 @@ async function loadOpportunities(name) {
   const lower = name.toLowerCase().replace(/[^a-z0-9]/g, "");
   const ownShop = shops.some(s => s.toLowerCase().replace(/[^a-z0-9]/g, "").includes(lower));
   const seen = CHANNELS.filter(([, re]) => shops.some(s => re.test(s))).map(([n]) => n);
-  const missing = CHANNELS.filter(([n]) => !seen.includes(n));
+  // Only flag gaps in channels that make sense for what the brand sells
+  const words = listings.map(x => x.title).join(" ").toLowerCase();
+  const beauty = /deodorant|shampoo|conditioner|moisturi|serum|cream|lotion|body wash|shower|soap|lip|mascara|foundation|skin|hair|fragrance|perfume|balm|cleanser/.test(words);
+  const food = /spread|sauce|jar|snack|biscuit|chocolate|crisps|drink|juice|coffee|tea\b|cereal|bar\b|yeast|cheese|ice cream|g\b|ml\b/.test(words) && !beauty;
+  const fits = beauty ? ["Supermarkets", "Health and beauty chains", "Marketplaces", "Beauty specialists"]
+             : food ? ["Supermarkets", "Marketplaces"] : ["Supermarkets", "Marketplaces"];
+  const missing = CHANNELS.filter(([n]) => fits.includes(n) && !seen.includes(n));
   if (shops.length) {
     add("Sell more of what exists", missing.length ? `Check the gaps in where it's sold` : `Sold widely, so keep the shelf`,
       `Seen at ${shops.length} sellers: ${shops.slice(0, 6).join(", ")}${shops.length > 6 ? " and more" : ""}. `
