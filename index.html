@@ -253,6 +253,48 @@ footer { text-align:center; color:var(--muted); font-size:13px; padding:0 20px 4
 .cardtools button:hover { background:var(--c); }
 .pill.new { background:var(--sun); margin-left:6px; }
 .showhidden { border:0; background:none; color:var(--violet); font-weight:800; cursor:pointer; font-size:13px; margin-left:8px; }
+/* Returning visitors: compact top so "Today" shows without scrolling */
+body.back .hero { padding:14px 20px 16px; }
+body.back .blob { opacity:.3; }
+body.back .kicker, body.back .lede, body.back .steps { display:none; }
+body.back h1 { font-size:clamp(22px,3.4vw,30px); margin:4px 0 0; }
+body.back h1 br { display:none; }
+body.back .try { margin-top:10px; padding:4px; box-shadow:4px 4px 0 var(--ink); }
+body.back .try input { padding:8px 12px; font-size:15px; }
+body.back .try .btn { padding:9px 16px; }
+body.back .pcnote { margin-top:8px; font-size:0; }
+body.back .pcnote .sharebtn { font-size:13px; }
+@media (max-width:700px) {
+  body.back .try { flex-direction:row; border-radius:999px; }
+  body.back .try input { text-align:left; }
+  body.back .try .btn { padding:9px 14px; font-size:13px; white-space:nowrap; }
+}
+body.back .places { margin-top:6px; }
+body.back .today { margin-top:6px; }
+body.back .onboard { display:none; }
+/* First visit on a phone: the three steps as one slim row */
+@media (max-width:700px) {
+  .steps { grid-template-columns:repeat(3,1fr) !important; gap:8px; margin-top:-30px; }
+  .step { padding:10px; box-shadow:3px 3px 0 var(--ink); text-align:center; }
+  .step .n { width:26px; height:26px; margin:0 auto 4px; font-size:13px; }
+  .step h3 { font-size:15px; margin:0; }
+  .step p { display:none; }
+  .hero { padding:28px 16px 48px; }
+}
+.stepsmore { text-align:center; margin:14px 0 0; font-size:14px; color:var(--muted); }
+.stepsmore a { color:var(--violet); font-weight:800; text-decoration:none; }
+body.back .stepsmore { display:none; }
+.how { max-width:1100px; margin:10px auto 26px; padding:0 20px; scroll-margin-top:16px; }
+.how h2 { font-size:24px; font-weight:900; margin:0 0 12px; }
+.howgrid { display:grid; grid-template-columns:repeat(3,1fr); gap:14px; }
+.howcol { background:#fff; border:2px solid var(--ink); border-radius:var(--r); box-shadow:5px 5px 0 var(--ink); padding:16px 18px; }
+.howcol h3 { margin:0 0 8px; font-size:18px; }
+.howcol ol, .howcol ul { margin:0; padding-left:20px; font-size:14px; }
+.howcol li { margin:0 0 8px; }
+.howtip { font-size:13px; color:var(--muted); margin:6px 0 0; }
+.how.flash .howcol { animation:howflash 1.2s ease-out; }
+@keyframes howflash { 0% { background:#fff3b0; } 100% { background:#fff; } }
+@media (max-width:900px) { .howgrid { grid-template-columns:1fr; } }
 .remind { margin-top:14px; border-top:2px solid var(--ink); padding-top:14px; }
 .remind .rhead { display:flex; gap:10px; align-items:center; flex-wrap:wrap; }
 .remind .rhead b { font-size:16px; }
@@ -286,20 +328,21 @@ footer { text-align:center; color:var(--muted); font-size:13px; padding:0 20px 4
   <div class="blob b1"></div><div class="blob b2"></div><div class="blob b3"></div>
   <span class="kicker">✨ humanagency.co/factory</span>
   <h1>Small tools,<br><span>built to take apart.</span></h1>
-  <p class="lede">Fuel prices, train times, your councillors, cafés and more. Try one in seconds, take it, or build on the code.</p>
+  <p class="lede">Your area today: fuel prices, trains, bin day, weather, your MP and more. Set your postcode once and check it each morning.</p>
   <form class="try" id="tryForm">
     <input id="pc" placeholder="Your postcode, e.g. KT16 0DA" aria-label="Your postcode" maxlength="8">
     <button class="btn" type="submit">Set postcode ⚡</button>
   </form>
-  <p class="pcnote">Used by every module · <b id="pcChip"></b> <button class="sharebtn" id="shareArea" type="button">Share this postcode</button></p>
+  <p class="pcnote">Used by every module · <b id="pcChip"></b> <button class="sharebtn" id="shareArea" type="button">Share this postcode</button> <button class="sharebtn" type="button" data-how>❓ How it works</button></p>
   <div class="places" id="places"></div>
 </header>
 
 <section class="steps" aria-label="How it works">
-  <div class="step"><div class="n" style="background:var(--pink)">1</div><h3>Try</h3><p>Type a postcode and see a real result. No sign-up.</p></div>
-  <div class="step"><div class="n" style="background:var(--sky)">2</div><h3>Take</h3><p>Use it as it is, or share a link with a neighbour.</p></div>
-  <div class="step"><div class="n" style="background:var(--mint)">3</div><h3>Build</h3><p>Copy the code, run the example, and make it yours.</p></div>
+  <div class="step"><div class="n" style="background:var(--pink)">1</div><h3>Set your postcode</h3><p>Just once. It stays in this browser, no sign-up.</p></div>
+  <div class="step"><div class="n" style="background:var(--sky)">2</div><h3>Check Today</h3><p>Weather, cheapest fuel, your next train and bin day at a glance.</p></div>
+  <div class="step"><div class="n" style="background:var(--mint)">3</div><h3>Get reminders</h3><p>Bins the night before and fuel drops, on WhatsApp or your phone.</p></div>
 </section>
+<p class="stepsmore"><a href="#how" data-how>How it works</a> · Building something? <a href="#how-build" data-how>Every tool comes with its code</a></p>
 
 <main class="page">
   <div class="onboard" id="onboard" hidden>
@@ -313,6 +356,37 @@ footer { text-align:center; color:var(--muted); font-size:13px; padding:0 20px 4
   <div id="personalBox"></div>
   <div id="grid"></div>
 </main>
+
+<section class="how" id="how" aria-labelledby="howTitle">
+  <h2 id="howTitle">How it works</h2>
+  <div class="howgrid">
+    <div class="howcol">
+      <h3>🏡 For you</h3>
+      <ol>
+        <li><b>Set your postcode.</b> Once. It's saved in this browser, no account needed.</li>
+        <li><b>Check Today.</b> Weather and when the rain starts, the cheapest fuel near you, when to leave for your train, and bin day.</li>
+        <li><b>Let it come to you.</b> Turn on reminders, add the page to your home screen, and save home and work so you can switch in one tap.</li>
+      </ol>
+      <p class="howtip">Tips: tap any card for the full list. ☆ pins a card to the top, ✕ hides one. Coming back shows what's changed since your last visit.</p>
+    </div>
+    <div class="howcol" id="how-build">
+      <h3>🛠️ For builders</h3>
+      <ol>
+        <li><b>Try</b> any card with a real postcode. It's live public data.</li>
+        <li><b>Take</b> it: share a link with the postcode filled in, or add it to your home screen.</li>
+        <li><b>Build</b> on it: tap <b>&lt;/&gt; Code</b> on a card to install the package and run the example.</li>
+      </ol>
+    </div>
+    <div class="howcol">
+      <h3>🔒 Your data</h3>
+      <ul>
+        <li>Your postcode, saved places and pinned cards stay in this browser.</li>
+        <li>Reminders: we keep your number (or this device) and your bin address only to send them. Reply <b>STOP BINS</b> on WhatsApp, or turn them off in the Today box.</li>
+        <li>We count visits with a random ID. No cookies, no ads, no tracking across sites.</li>
+      </ul>
+    </div>
+  </div>
+</section>
 
 <section class="buildcta" aria-label="Work with us">
   <div class="hook"><span class="hi">🛠️</span><div><b>Want a tool like this for your business or community?</b><small>We build small, useful tools on live data, and help teams put AI to work.</small></div><a class="btn" href="https://humanagency.co/" target="_blank" rel="noopener">Talk to us ↗</a></div>
@@ -1045,6 +1119,15 @@ document.addEventListener("click", e => {
   const f = e.target.closest("[data-fuel]");
   if (f) { e.stopPropagation(); setFuel(f.dataset.fuel); return; }
   if (e.target.closest("[data-install]")) { installApp(); return; }
+  const hw = e.target.closest("[data-how]");
+  if (hw) {
+    e.preventDefault(); track("how");
+    const id = (hw.getAttribute("href") || "#how").slice(1);
+    const el = document.getElementById(id) || document.getElementById("how");
+    if (el && el.scrollIntoView) el.scrollIntoView({ behavior: "smooth", block: "start" });
+    const how = document.getElementById("how"); if (how) { how.classList.remove("flash"); void how.offsetWidth; how.classList.add("flash"); }
+    return;
+  }
   const out = e.target.closest("a[href]");
   if (out && out.href.indexOf("miru.humanagency.co") > -1) track("whatsapp");
   if (out && out.closest(".buildcta")) track("talk");
@@ -1470,11 +1553,12 @@ fetch(`${API}/api/factory/me/reminders`, { credentials: "include" }).then(r => r
 
 
 const __firstVisit = (() => { try { return !localStorage.getItem(PC_KEY); } catch (e) { return true; } })();
+if (!__firstVisit && document.body && document.body.classList) document.body.classList.add("back");
 setPostcode(postcode);
 render();
 renderPlaces();
 track("view");
-if (__firstVisit) { const ob = document.getElementById("onboard"); if (ob) ob.hidden = false; }
+// The three steps at the top now explain the page, so the old "New here?" box stays hidden
 // Shared link: #cafes?pc=KT16%200DA opens that module with that postcode
 (function openFromLink() {
   const pcOnly = location.hash.match(/^#pc=(.*)$/i);
