@@ -722,6 +722,13 @@ async function loadTeasers() {
       const d = await getJSON(`${API}/api/factory/schools-near?postcode=${encodeURIComponent(pc)}`);
       return d.schools && d.schools.length ? line(`${d.schools.length} schools nearby`) : line("No schools found", false);
     },
+    bins: async () => {
+      const b = await todayBins(homePc());
+      if (!b) return line("Set your address once to see your days", false);
+      if (b.none) return line("No upcoming collections found", false);
+      const cap = x => x.charAt(0).toUpperCase() + x.slice(1).toLowerCase();
+      return line(`${esc(cap(b.now.join(" and ")))} ${esc(b.when)}`);
+    },
     pharmacy: async () => {
       const list = await getJSON(`${API}/api/myarea/place-search?q=${encodeURIComponent(pc + " pharmacy")}`);
       return list.length ? line(`${list.length} pharmacies found`) : line("No pharmacies found", false);
@@ -731,7 +738,7 @@ async function loadTeasers() {
     set(id, line("Checking…"));
     jobs[id]().then(html => set(id, html)).catch(e => set(id, line("Couldn't load · " + (e.message || "error"), false)));
   }
-  MODULES.filter(m => m.type === "near" && !jobs[m.id]).forEach(m => set(m.id, line("Not live for your area yet", false)));
+  MODULES.filter(m => m.type === "near" && !jobs[m.id] && !["bizcheck", "aibiz", "track"].includes(m.id)).forEach(m => set(m.id, line("Not live for your area yet", false)));
 }
 function renderLiveTog() {
   const opts = [["all","All"],["live","Live"],["beta","Beta"]];
