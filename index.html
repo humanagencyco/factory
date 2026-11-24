@@ -522,6 +522,7 @@ const MODULES = [
   { id:"track", type:"near", emo:"🚉", name:"Track your train", desc:"Pick two stations. See the next trains there and back.", status:"ready", c:"#e2f0ff", pkg:"", repo:"" },
   { id:"pharmacy", type:"near", emo:"💊", name:"Pharmacies open now", desc:"Open pharmacies nearby, with phone numbers.", status:"beta", c:"#efe2ff", pkg:"@humanagency/pharmacy-finder", repo:"github.com/humanagencyco/pharmacy-finder" },
   { id:"schools", type:"near", emo:"🏫", name:"Nearest schools", desc:"Schools near your postcode, with Ofsted and contact details.", status:"beta", c:"#fff0d6", pkg:"@humanagency/school-digest", repo:"github.com/humanagencyco/school-digest" },
+  { id:"lifeadmin", type:"personal", emo:"📅", name:"Life admin reminders", desc:"MOT, road tax, passport, insurance. Your renewal dates in one place, with calendar reminders.", status:"ready", c:"#e2f6e9", pkg:"", repo:"", link:"/factory/admin/" },
   { id:"expenses", type:"personal", emo:"💷", name:"Expense tracker", desc:"Receipts sorted by category and month.", status:"beta", c:"#e4f6ff", pkg:"@humanagency/expense-tracker", repo:"github.com/humanagencyco/expense-tracker" },
   { id:"pubs", type:"near", emo:"🍺", name:"Best pubs", desc:"Pubs near you, with hygiene ratings where we have them.", status:"beta", c:"#f0e9dd", pkg:"@humanagency/best-pubs", repo:"github.com/humanagencyco/best-pubs" },
 ];
@@ -844,7 +845,7 @@ function render() {
   const SECTIONS = [
     ["near", "📍 Near you", "Uses the postcode you set above."],
     ["topic", "🌍 Topics", "No postcode needed."],
-    ["personal", "🔒 Personal", "Needs a login. Your data stays private."],
+    ["personal", "🔒 Personal", "Private to you. Some need a Miru login."],
   ];
   renderSecNav();
   loadPersonal();  // sign-in and "your place" sit at the top of every section
@@ -934,6 +935,7 @@ function tryPanel(m) {
   if (m.id === "company") return `<div class="box"><div class="row"><input id="tIn" placeholder="Company or brand, e.g. Tesco" maxlength="60" style="text-transform:none"><button class="btn pink" id="tGo">Check</button></div><div id="tOut" style="margin-top:10px"><div class="sample">Who they are, how they're doing, what people say, and who's hiring. From <b>Intel</b>, our company research tool.</div></div></div>`;
   if (m.id === "vehicle") return `<div class="box"><div class="row"><input id="tIn" placeholder="Registration, e.g. AB12 CDE" maxlength="10"><button class="btn pink" id="tGo">Check</button></div><div id="tOut" style="margin-top:10px"></div></div>`;
   if (m.type === "topic") return `<div class="box"><b>No postcode needed.</b><p style="margin:6px 0 10px;color:var(--muted)">This is for everyone.</p><a class="btn pink" href="${esc(m.link)}" target="_blank" rel="noopener" style="text-decoration:none">Open ${esc(m.name)} ↗</a></div>`;
+  if (m.id === "lifeadmin") return `<div class="box"><b>No login needed.</b><p style="margin:6px 0 10px;color:var(--muted)">Your dates stay in this browser and aren't sent anywhere.</p><a class="btn pink" href="/factory/admin/" style="text-decoration:none">Open reminders</a></div>`;
   if (m.type === "personal") return `<div class="box"><b>Log in to see this.</b><p style="margin:6px 0 10px;color:var(--muted)">Your messages and data stay private. Sign in on Miru to open it.</p><a class="btn pink" href="${esc(m.link)}" target="_blank" rel="noopener" style="text-decoration:none">Sign in to Miru ↗</a></div>`;
   if (m.status === "soon") return `<div class="box"><b>Not ready yet.</b><p style="margin:6px 0 0;color:var(--muted)">We're still choosing a fair way to rank pubs. Tell us what matters to you and we'll use it.</p></div>`;
   if (m.id === "weather") return `<div class="box"><div class="row"><input id="tIn" placeholder="Postcode" maxlength="8" value="${postcode}"><button class="btn pink" id="tGo">Check</button></div><div id="tOut" style="margin-top:10px"></div></div>`;
