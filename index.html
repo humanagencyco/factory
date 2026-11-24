@@ -175,6 +175,7 @@ a.bin-btn { display:inline-block; text-decoration:none; }
 .mehead { display:flex; justify-content:space-between; align-items:center; gap:12px; flex-wrap:wrap; }
 .kicker { font-size:11px; font-weight:900; text-transform:uppercase; letter-spacing:.08em; color:var(--muted); }
 .mephone { font-size:18px; }
+.me { margin-bottom:34px; }
 .melayout { display:grid; grid-template-columns:repeat(3, minmax(0,1fr)); gap:16px; align-items:stretch; margin-top:12px; }
 .melayout > .mecard { display:flex; flex-direction:column; }
 .melayout .melink { margin-top:auto; padding-top:12px; }
@@ -190,8 +191,8 @@ a.bin-btn { display:inline-block; text-decoration:none; }
 .schoolfold > summary { list-style:none; cursor:pointer; display:flex; flex-direction:column; align-items:flex-start; gap:2px; flex:1; }
 .schoolfold > summary::-webkit-details-marker { display:none; }
 .schoolfold .sf-title { font-size:17px; font-weight:900; }
-.schoolfold .sf-open { margin-top:auto; font-size:13px; color:#8b5cf6; border-color:transparent; padding-left:0; padding-top:12px; font-weight:900; border:2px solid var(--ink); border-radius:999px; padding:2px 10px; }
-.schoolfold[open] .sf-open { font-size:0; padding-top:4px; }
+.schoolfold .sf-open { margin-top:auto; padding-top:12px; font-size:14px; font-weight:900; color:#8b5cf6; }
+.schoolfold[open] .sf-open { font-size:0; padding-top:4px; margin-top:0; }
 .schoolfold[open] .sf-open::after { content:"Hide messages"; font-size:13px; }
 .schoolfold[open] > summary { margin-bottom:10px; }
 .schoolfold > summary:focus-visible { outline:3px solid #5aa9ff; outline-offset:3px; border-radius:8px; }
