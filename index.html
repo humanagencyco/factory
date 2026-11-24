@@ -178,6 +178,15 @@ a.bin-btn { display:inline-block; text-decoration:none; }
 .melayout { display:grid; grid-template-columns:1.6fr 1fr; gap:16px; align-items:start; }
 .mecard { background:#fff; border:2px solid var(--ink); border-radius:18px; padding:18px; box-shadow:5px 5px 0 var(--ink); }
 .mecard h3 { margin:0 0 12px; font-size:17px; font-weight:900; }
+.signedin .mod[data-id="school-msgs"] { display:none; }
+.schoolfold > summary { list-style:none; cursor:pointer; display:flex; flex-wrap:wrap; align-items:baseline; gap:6px 10px; }
+.schoolfold > summary::-webkit-details-marker { display:none; }
+.schoolfold .sf-title { font-size:17px; font-weight:900; }
+.schoolfold .sf-open { margin-left:auto; font-size:13px; font-weight:900; border:2px solid var(--ink); border-radius:999px; padding:2px 10px; }
+.schoolfold[open] .sf-open { background:var(--ink); color:#fff; }
+.schoolfold[open] .sf-open::after { content:" less"; }
+.schoolfold[open] > summary { margin-bottom:10px; }
+.schoolfold > summary:focus-visible { outline:3px solid #5aa9ff; outline-offset:3px; border-radius:8px; }
 .melist { list-style:none; margin:0; padding:0; }
 .melist li { display:flex; gap:12px; align-items:flex-start; padding:12px 0; border-bottom:1px dashed var(--line); }
 .melist li:last-child { border-bottom:0; }
@@ -712,7 +721,7 @@ async function loadPersonal() {
   box.innerHTML = `<div class="sample">Checking sign-in…</div>`;
   try {
     const me = await fetch(`${API}/api/auth/me`, AUTH).then(r => r.json());
-    if (!me.signed_in) return renderSignIn(box);
+    if (!me.signed_in) { document.body.classList.remove("signedin"); return renderSignIn(box); }
     if (activeSection !== "personal") {
       box.innerHTML = `<div class="sample" style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap">
         <span>🔒 Signed in. Your school messages, spending and bin day are under <b>Personal</b>.</span>
@@ -748,12 +757,14 @@ async function loadPersonal() {
     };
     const tabsHtml = () => ["All", ...kids].map(k => `<button class="ktab" type="button" aria-pressed="${k === kid}" data-k="${esc(k)}">${esc(k)}${k === "All" ? ` <em>${all.length}</em>` : ` <em>${all.filter(x => (x.child || "Other") === k).length}</em>`}</button>`).join("");
     const schoolCard = `
-          <section class="mecard">
-            <div class="cardhead"><h3>📬 School messages</h3><small class="muted">Last 10 days</small></div>
+          <details class="mecard schoolfold">
+            <summary><span class="sf-title">📬 School messages</span>
+              <small class="muted">${all.length ? `${all.length} in the last 10 days${kids.length > 1 ? ": " + kids.map(k => `${esc(k)} ${all.filter(x => (x.child || "Other") === k).length}`).join(", ") : ""}` : "Nothing in the last 10 days"}${all.some(x => x.deadline || x.action) ? ` · <b style="color:var(--ink)">${all.filter(x => x.deadline || x.action).length} need action</b>` : ""}</small>
+              <span class="sf-open" aria-hidden="true">Show</span></summary>
             <div class="ktabs" id="kTabs">${tabsHtml()}</div>
             <div id="kList">${listHtml()}</div>
             <a class="melink" href="https://miru.humanagency.co/" target="_blank" rel="noopener">See all in Miru ↗</a>
-          </section>`;
+          </details>`;
     await lifeRefreshCars();
     const dueSoon = [
       ...lifeLoad().map(x => ({ emo: x.emo, name: x.name, date: x.date, from: "" })),
@@ -793,6 +804,7 @@ async function loadPersonal() {
       document.getElementById("kList").innerHTML = listHtml();
     });
     document.getElementById("openLife").onclick = () => openModule("lifeadmin");
+    document.body.classList.add("signedin");
     document.getElementById("pSignOut").onclick = async () => {
       await fetch(`${API}/api/auth/logout`, { method: "POST", credentials: "include" });
       loadPersonal();
