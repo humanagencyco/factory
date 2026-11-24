@@ -1,0 +1,226 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Life admin reminders | Human Agency</title>
+<meta name="description" content="MOT, road tax, passport, insurance and other renewal dates in one place. Saved only in your browser.">
+<style>
+:root{--ink:#1d1630;--muted:#6c6485;--paper:#fff8f1;--pink:#ff5d8f;--sun:#ffb830;--mint:#2fd1a4;--sky:#5aa9ff;--violet:#8b5cf6;--red:#ff8a8a}
+*{box-sizing:border-box}body{margin:0;background:var(--paper);color:var(--ink);font:16px/1.55 -apple-system,BlinkMacSystemFont,"Segoe UI",Inter,Roboto,sans-serif}
+a{color:var(--violet);font-weight:800}
+.wrap{max-width:820px;margin:0 auto;padding:0 20px}
+.top{padding:18px 0;display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap}
+.top .home{font-weight:900;text-decoration:none;color:var(--ink)}
+.kicker{display:inline-block;background:#fff;border:2px solid var(--ink);border-radius:999px;padding:5px 14px;font-weight:800;font-size:13px;box-shadow:3px 3px 0 var(--ink)}
+.hero{padding:26px 0 6px}
+h1{font-size:clamp(34px,6vw,52px);line-height:1.04;margin:12px 0 10px;font-weight:900;letter-spacing:-.02em}
+.lede{color:var(--muted);font-size:18px;max-width:600px;margin:0}
+.card{margin:22px 0;background:#fff;border:2px solid var(--ink);border-radius:22px;box-shadow:6px 6px 0 var(--ink);padding:20px 22px}
+.card h2{margin:0 0 4px;font-size:21px;font-weight:900}
+.sub{color:var(--muted);font-size:14px;margin:0 0 14px}
+.row{display:flex;gap:8px;flex-wrap:wrap}
+input,select{border:2px solid var(--ink);border-radius:12px;padding:11px 13px;font:inherit;font-weight:700;background:#fff;color:var(--ink);min-width:0}
+input[type=text]{flex:1 1 200px}
+.btn{border:2px solid var(--ink);cursor:pointer;background:var(--ink);color:#fff;font:inherit;font-weight:900;border-radius:999px;padding:10px 18px}
+.btn.light{background:#fff;color:var(--ink)}
+.btn:focus-visible,input:focus-visible,select:focus-visible,a:focus-visible,.chip:focus-visible{outline:3px solid var(--sky);outline-offset:2px}
+.chips{display:flex;flex-wrap:wrap;gap:8px}
+.chip{border:2px solid var(--ink);background:#fff;border-radius:999px;padding:7px 13px;font:inherit;font-weight:800;font-size:14px;cursor:pointer;color:var(--ink)}
+.chip[aria-pressed=true]{background:var(--ink);color:#fff}
+.form{display:none;margin-top:14px;border-top:2px dashed #0002;padding-top:14px}
+.form.on{display:block}
+.form label{display:block;font-size:13px;font-weight:800;color:var(--muted);margin:0 0 4px}
+.msg{font-size:14px;margin:10px 0 0;color:var(--muted)}
+.list{display:flex;flex-direction:column;gap:10px}
+.item{display:grid;grid-template-columns:auto 1fr auto;gap:12px;align-items:center;border:2px solid var(--ink);border-radius:16px;padding:12px 14px;background:var(--paper)}
+.item .emo{font-size:26px;line-height:1}
+.item b{display:block;font-size:16px}
+.item small{display:block;color:var(--muted);font-size:13px}
+.item .acts{display:flex;gap:10px;flex-wrap:wrap;margin-top:4px;font-size:13px}
+.item .acts a,.item .acts button{font-size:13px;font-weight:800;background:none;border:0;padding:0;color:var(--violet);cursor:pointer;text-decoration:underline}
+.left{font-weight:900;font-size:13px;border:2px solid var(--ink);border-radius:999px;padding:4px 10px;white-space:nowrap;background:var(--mint)}
+.left.soon{background:var(--sun)}.left.late{background:var(--red)}
+.empty{border:2px dashed var(--ink);border-radius:16px;padding:22px;text-align:center;color:var(--muted)}
+.foot{display:flex;gap:10px;flex-wrap:wrap;margin-top:14px}
+footer{color:var(--muted);font-size:13px;padding:20px 0 50px;text-align:center}
+@media (max-width:520px){.item{grid-template-columns:auto 1fr}.item .left{grid-column:2;justify-self:start}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="top"><a class="home" href="/factory/">← Agent Factory</a><span class="kicker">🔒 Personal</span></div>
+
+  <section class="hero">
+    <h1>What's due, and when</h1>
+    <p class="lede">MOT, road tax, passport, insurance. Keep your renewal dates in one place and get a reminder in your own calendar. Saved only in this browser, no login.</p>
+  </section>
+
+  <section class="card" aria-labelledby="h-due">
+    <h2 id="h-due">Coming up</h2>
+    <p class="sub">Soonest first. Anything due within 30 days is highlighted.</p>
+    <div class="list" id="list"></div>
+    <div class="foot" id="foot"></div>
+  </section>
+
+  <section class="card" aria-labelledby="h-car">
+    <h2 id="h-car">Find your car's dates</h2>
+    <p class="sub">Type a registration and we'll fill in when the MOT and road tax are due, from live DVLA data.</p>
+    <form class="row" id="carForm">
+      <input type="text" id="reg" placeholder="Registration, like AB12 CDE" maxlength="10" autocomplete="off" aria-label="Car registration">
+      <button class="btn" type="submit">Find dates</button>
+    </form>
+    <p class="msg" id="carMsg" aria-live="polite"></p>
+  </section>
+
+  <section class="card" aria-labelledby="h-add">
+    <h2 id="h-add">Add a date</h2>
+    <p class="sub">Pick one, then add the date it's due.</p>
+    <div class="chips" id="chips"></div>
+    <form class="form" id="addForm">
+      <div class="row">
+        <div style="flex:1 1 200px"><label for="aName">What</label><input type="text" id="aName" style="width:100%"></div>
+        <div><label for="aDate">Due date</label><input type="date" id="aDate" required></div>
+      </div>
+      <div class="row" style="margin-top:10px"><button class="btn" type="submit">Add</button><button class="btn light" type="button" id="aCancel">Cancel</button></div>
+    </form>
+  </section>
+
+  <footer>Your dates are kept in this browser only. They aren't sent anywhere, so they won't show on another phone or computer. The car lookup asks DVLA for the registration you type and nothing else. Built by Human Agency.</footer>
+</div>
+
+<script>
+const API = "https://miru.humanagency.co";
+const $ = id => document.getElementById(id);
+const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+
+// Common renewals, with the official place to renew where there is one
+const PRESETS = [
+  { k: "passport", emo: "🛂", name: "Passport expires", link: "https://www.gov.uk/renew-adult-passport", tip: "Renew on GOV.UK" },
+  { k: "licence", emo: "🪪", name: "Driving licence photo card", link: "https://www.gov.uk/renew-driving-licence", tip: "Renew on GOV.UK" },
+  { k: "carins", emo: "🚗", name: "Car insurance renewal", tip: "Compare before it auto-renews" },
+  { k: "homeins", emo: "🏠", name: "Home insurance renewal", tip: "Compare before it auto-renews" },
+  { k: "tv", emo: "📺", name: "TV licence", link: "https://www.tvlicensing.co.uk/", tip: "TV Licensing" },
+  { k: "boiler", emo: "🔥", name: "Boiler service", tip: "Book a Gas Safe engineer" },
+  { k: "energy", emo: "⚡", name: "Energy tariff ends", tip: "Look at new fixes a few weeks before" },
+  { k: "other", emo: "📌", name: "", tip: "" },
+];
+const CAR = {
+  mot: { emo: "🔧", link: "https://www.gov.uk/getting-an-mot", tip: "Book an MOT" },
+  tax: { emo: "🧾", link: "https://www.gov.uk/vehicle-tax", tip: "Tax on GOV.UK" },
+};
+
+// Storage: this browser only
+const KEY = "ha-life-admin-v1";
+let items = [];
+try { items = JSON.parse(localStorage.getItem(KEY) || "[]"); } catch (_) { items = []; }
+const save = () => { try { localStorage.setItem(KEY, JSON.stringify(items)); } catch (_) {} };
+
+const today = () => { const d = new Date(); d.setHours(0, 0, 0, 0); return d; };
+const parse = s => { const [y, m, d] = s.split("-").map(Number); return new Date(y, m - 1, d); };
+const iso = d => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+const nice = s => parse(s).toLocaleDateString("en-GB", { weekday: "short", day: "numeric", month: "short", year: "numeric" });
+const daysTo = s => Math.round((parse(s) - today()) / 86400000);
+const leftText = n => n < 0 ? `${-n} day${n === -1 ? "" : "s"} overdue` : n === 0 ? "Due today" : n === 1 ? "Tomorrow" : n < 60 ? `${n} days` : n < 730 ? `${Math.round(n / 30.4)} months` : `${Math.round(n / 365)} years`;
+
+function render() {
+  items.sort((a, b) => a.date.localeCompare(b.date));
+  $("list").innerHTML = items.length ? items.map(it => {
+    const n = daysTo(it.date);
+    return `<div class="item">
+      <span class="emo" aria-hidden="true">${esc(it.emo)}</span>
+      <div><b>${esc(it.name)}</b><small>${nice(it.date)}${it.note ? `. ${esc(it.note)}` : ""}</small>
+        <div class="acts">
+          ${it.link ? `<a href="${esc(it.link)}" target="_blank" rel="noopener">${esc(it.tip || "Renew")} ↗</a>` : it.tip ? `<span style="color:var(--muted)">${esc(it.tip)}</span>` : ""}
+          <button type="button" data-ics="${esc(it.id)}">Add to calendar</button>
+          <button type="button" data-del="${esc(it.id)}" aria-label="Remove ${esc(it.name)}">Remove</button>
+        </div></div>
+      <span class="left ${n < 0 ? "late" : n <= 30 ? "soon" : ""}">${leftText(n)}</span>
+    </div>`;
+  }).join("") : `<div class="empty">Nothing here yet. Find your car's dates below, or add a passport or insurance date.</div>`;
+  $("foot").innerHTML = items.length > 1 ? `<button class="btn light" type="button" id="icsAll">Add all to calendar</button>` : "";
+  if ($("icsAll")) $("icsAll").onclick = () => download(items, "life-admin-reminders.ics");
+}
+
+$("list").addEventListener("click", e => {
+  const del = e.target.closest("[data-del]"), ics = e.target.closest("[data-ics]");
+  if (del) { items = items.filter(x => x.id !== del.dataset.del); save(); render(); }
+  if (ics) { const it = items.find(x => x.id === ics.dataset.ics); if (it) download([it], it.name.replace(/[^a-z0-9]+/gi, "-").toLowerCase() + ".ics"); }
+});
+
+// Calendar file: an all-day event on the due date, with reminders 2 weeks and 2 days before
+function download(list, filename) {
+  const stamp = new Date().toISOString().replace(/[-:]/g, "").replace(/\.\d+/, "");
+  const fold = s => s.replace(/[,;\\]/g, m => "\\" + m);
+  const ev = list.map(it => {
+    const d = parse(it.date), next = new Date(d); next.setDate(d.getDate() + 1);
+    const ymd = x => iso(x).replace(/-/g, "");
+    return ["BEGIN:VEVENT", `UID:${it.id}@humanagency.co`, `DTSTAMP:${stamp}`, `DTSTART;VALUE=DATE:${ymd(d)}`, `DTEND;VALUE=DATE:${ymd(next)}`,
+      `SUMMARY:${fold(it.name)}`, `DESCRIPTION:${fold((it.tip ? it.tip + ". " : "") + (it.link || ""))}`,
+      "BEGIN:VALARM", "ACTION:DISPLAY", `DESCRIPTION:${fold(it.name)} in 2 weeks`, "TRIGGER:-P14D", "END:VALARM",
+      "BEGIN:VALARM", "ACTION:DISPLAY", `DESCRIPTION:${fold(it.name)} in 2 days`, "TRIGGER:-P2D", "END:VALARM", "END:VEVENT"].join("\r\n");
+  });
+  const ics = ["BEGIN:VCALENDAR", "VERSION:2.0", "PRODID:-//Human Agency//Life admin//EN", "CALSCALE:GREGORIAN", ...ev, "END:VCALENDAR"].join("\r\n");
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(new Blob([ics], { type: "text/calendar" }));
+  a.download = filename; document.body.appendChild(a); a.click(); a.remove();
+}
+
+const uid = () => Math.random().toString(36).slice(2, 10) + Date.now().toString(36);
+function upsert(it) {
+  // One MOT and one tax date per car: replace rather than duplicate
+  if (it.key) items = items.filter(x => x.key !== it.key);
+  items.push({ id: uid(), ...it }); save(); render();
+}
+
+// Car lookup
+$("carForm").addEventListener("submit", async e => {
+  e.preventDefault();
+  const reg = $("reg").value.replace(/\s+/g, "").toUpperCase();
+  if (reg.length < 2) return;
+  $("carMsg").textContent = "Checking DVLA…";
+  try {
+    const r = await fetch(`${API}/api/mot?reg=${encodeURIComponent(reg)}`);
+    const d = await r.json().catch(() => ({}));
+    if (!r.ok) throw new Error(d.error || "Couldn't find that registration");
+    const label = [d.make, reg].filter(Boolean).join(" ");
+    const when = (dateField, days) => {
+      if (dateField && /^\d{4}-\d{2}-\d{2}/.test(dateField)) return dateField.slice(0, 10);
+      if (days != null && !isNaN(days)) { const x = today(); x.setDate(x.getDate() + Number(days)); return iso(x); }
+      return null;
+    };
+    const mot = when(d.mot_expiry_date || d.mot_expiry || d.mot_due, d.days_left);
+    const tax = when(d.tax_due_date || d.tax_due, d.tax_days_left);
+    const added = [];
+    if (mot) { upsert({ key: "mot-" + reg, emo: CAR.mot.emo, name: `MOT due, ${label}`, date: mot, link: CAR.mot.link, tip: CAR.mot.tip }); added.push("MOT"); }
+    if (tax) { upsert({ key: "tax-" + reg, emo: CAR.tax.emo, name: `Road tax due, ${label}`, date: tax, link: CAR.tax.link, tip: CAR.tax.tip }); added.push("road tax"); }
+    $("carMsg").textContent = added.length
+      ? `Added ${added.join(" and ")} for ${label}. Live from DVLA.`
+      : `Found ${label}, but DVLA didn't give MOT or tax dates. ${d.mot_status ? "MOT: " + d.mot_status + ". " : ""}${d.tax_status ? "Tax: " + d.tax_status + "." : ""}`;
+  } catch (err) { $("carMsg").textContent = err.message || "Couldn't check that right now."; }
+});
+
+// Presets
+let picked = null;
+$("chips").innerHTML = PRESETS.map(p => `<button type="button" class="chip" data-k="${p.k}" aria-pressed="false">${p.emo} ${esc(p.name || "Something else")}</button>`).join("");
+$("chips").addEventListener("click", e => {
+  const b = e.target.closest(".chip"); if (!b) return;
+  picked = PRESETS.find(p => p.k === b.dataset.k);
+  [...$("chips").children].forEach(c => c.setAttribute("aria-pressed", c === b));
+  $("aName").value = picked.name; $("aDate").value = "";
+  $("addForm").classList.add("on");
+  (picked.name ? $("aDate") : $("aName")).focus();
+});
+$("aCancel").onclick = () => { $("addForm").classList.remove("on"); [...$("chips").children].forEach(c => c.setAttribute("aria-pressed", false)); };
+$("addForm").addEventListener("submit", e => {
+  e.preventDefault();
+  const name = $("aName").value.trim(), date = $("aDate").value;
+  if (!name || !date) return;
+  upsert({ emo: picked?.emo || "📌", name, date, link: picked?.link || "", tip: picked?.tip || "" });
+  $("aCancel").onclick();
+});
+
+render();
+</script>
+</body>
+</html>
