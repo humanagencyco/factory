@@ -457,6 +457,20 @@ body.back .stepsmore { display:none; }
   .sec h2 { font-size:20px !important; }
   .sec h2 span { display:block; font-size:13px; margin-top:2px; }
 }
+
+/* Preview of the simpler page */
+.v2foot { display:none; }
+.v2 .v2foot { display:block; max-width:1100px; margin:30px auto 10px; padding:0 20px; }
+.v2 .v2build { font-size:15px; margin:0 0 6px; }
+.v2 .v2links { margin:0 0 12px; font-weight:800; }
+.v2 .v2links a { color:#8b5cf6; }
+.v2 .v2more { border:2px solid var(--ink); border-radius:16px; background:#fff; padding:10px 14px; margin:0 0 10px; }
+.v2 .v2more summary { cursor:pointer; font-weight:800; }
+.v2 .v2more[open] summary { margin-bottom:10px; }
+.v2 .v2l a { display:inline-block; margin:4px 12px 4px 0; font-weight:700; color:var(--ink); }
+.v2 #how:not(.open), .v2 #whatsnew:not(.open), .v2 .stepsmore, .v2 .livetog { display:none !important; }
+.v2 .tdrow[data-open] { position:relative; padding-right:22px; }
+.v2 .tdrow[data-open]::after { content:"›"; position:absolute; right:2px; top:6px; font-size:22px; font-weight:900; color:var(--muted); }
 </style>
 <link rel="manifest" href="manifest.webmanifest">
 <meta name="theme-color" content="#fff8f1">
@@ -546,6 +560,13 @@ body.back .stepsmore { display:none; }
   </div>
 </section>
 
+<section class="v2foot" aria-label="More">
+  <p class="v2build">🛠️ <b>Building something?</b> Every tool comes with its code. Open any tool and tap <b>Build</b>.</p>
+  <p class="v2links"><a href="#whatsnew" data-how>✨ What's new</a> · <a href="#how" data-how>❓ How it works</a></p>
+  <details class="v2more" id="v2AreaBox"><summary>🧭 Your area: flood warnings, street crime, reported potholes</summary><div id="v2Area"></div></details>
+  <details class="v2more"><summary>🔗 Useful links for your postcode</summary><p class="v2l" id="v2Links"></p></details>
+</section>
+
 <section class="buildcta" aria-label="Work with us">
   <div class="hook"><span class="hi">🛠️</span><div><b>Want a tool like this for your business or community?</b><small>We build small, useful tools on live data, and help teams put AI to work.</small></div><a class="btn" href="https://humanagency.co/" target="_blank" rel="noopener">Talk to us ↗</a></div>
 </section>
@@ -603,6 +624,16 @@ const MODULES = [
   { id:"pubs", type:"near", hidden:true, emo:"🍺", name:"Best pubs", desc:"Pubs near you, with hygiene ratings where we have them.", status:"beta", c:"#f0e9dd", pkg:"@humanagency/best-pubs", repo:"github.com/humanagencyco/best-pubs" },
 ];
 const LABEL = { ready:"Ready", beta:"Beta", soon:"Coming soon" };
+// Preview of the simpler page: Today carries the product, tiles are only for looking things up
+const V2 = (() => { try { const q = new URLSearchParams(location.search).get("new"); if (q === "1") sessionStorage.setItem("factory_v2", "1"); if (q === "0") sessionStorage.removeItem("factory_v2"); return sessionStorage.getItem("factory_v2") === "1"; } catch (e) { return false; } })();
+const TODAY_IDS = ["weather", "fuel", "trains", "bins"];
+if (V2) {
+  document.body.classList.add("v2");
+  MODULES.forEach(m => { if (m.id === "company" || m.id === "vehicle") m.type = "near"; });
+  const ab = document.getElementById("v2AreaBox"); if (ab) ab.addEventListener("toggle", () => { if (ab.open && typeof loadArea === "function") loadArea(); });
+  const h = document.querySelector(".hero h1"); if (h) h.innerHTML = "Your area,<br><span>every morning.</span>";
+  const l = document.querySelector(".hero .lede"); if (l) l.textContent = "Weather, fuel, trains and bin day for your postcode, in one glance. Set it once and check it with your coffee.";
+}
 
 const PC_KEY = "factory_postcode";
 let postcode = "TW1 1AA";
@@ -929,7 +960,7 @@ function drawPrep(done) {
 function markPrep(k) { if (!prepOn) return; prepState[k] = true; drawPrep(PREP_STEPS.every(([x]) => prepState[x])); if (PREP_STEPS.every(([x]) => prepState[x])) prepOn = false; }
 function startPrep() { prepOn = true; prepState = { pc: true }; drawPrep(false); }
 function renderSecNav() {
-  const tabs = [["near","📍 Near you"],["topic","🌍 Topics"],["personal","🔒 Personal"]];
+  const tabs = V2 ? [["near","🔎 Look up"],["topic","📚 Learn"],["personal","🔒 Personal"]] : [["near","📍 Near you"],["topic","🌍 Topics"],["personal","🔒 Personal"]];
   const fresh = k => MODULES.filter(m => m.type === k && NEWMODS.has(m.id)).map(m => m.name);
   $("secnav").innerHTML = tabs.map(([k,l]) => { const n = fresh(k); return `<button role="tab" data-s="${k}" aria-selected="${k===activeSection}"${n.length ? ` title="New: ${esc(n.join(", "))}"` : ""}>${l}${n.length ? `<span class="newdot" aria-label="new"></span>` : ""}</button>`; }).join("");
   $("secnav").querySelectorAll("button").forEach(b => b.onclick = () => { activeSection = b.dataset.s; render(); });
@@ -937,7 +968,7 @@ function renderSecNav() {
 function render() {
   renderFilters();
   const filtered = MODULES.filter(m => liveFilter === "all" || (liveFilter === "live" ? m.status === "ready" : m.status === "beta"));
-  const list = filtered.filter(m => !m.hidden && !layout.hide.includes(m.id))
+  const list = filtered.filter(m => !m.hidden && !(V2 && TODAY_IDS.includes(m.id)) && !layout.hide.includes(m.id))
     .sort((a, b) => (layout.pin.includes(b.id) ? 1 : 0) - (layout.pin.includes(a.id) ? 1 : 0));
   renderLiveTog();
   const card = m => `
@@ -957,7 +988,12 @@ function render() {
         ${m.pkg || m.repo ? `<button class="mini" type="button" data-act="build" aria-label="Get the code for ${esc(m.name)}">&lt;/&gt; Code</button>` : ""}
       </div>
     </article>`;
-  const SECTIONS = [
+  const SECTIONS = V2 ? [
+    ["near", "🔎 Look something up", "The things you need now and then. Weather, fuel, trains and bins are in Today above."],
+    ["biz", "🏪 For your business", "Free checks and ideas if you run something local."],
+    ["topic", "📚 Learn", "Plain-English guides and good reads."],
+    ["personal", "🔒 Personal", "Private to you. Some need a Miru login."],
+  ] : [
     ["near", "📍 Near you", "Uses the postcode you set above."],
     ["biz", "🏪 For your business", "Free checks and ideas if you run something local."],
     ["topic", "🌍 Topics", "No postcode needed."],
@@ -986,8 +1022,10 @@ function render() {
     const showHidden = hidden ? `<button class="showhidden" type="button" data-showhidden="${t}">Show ${hidden} hidden</button>` : "";
     if (!items.length) return hidden ? `<div class="sec" id="sec-${t}"><h2>${title} <span>${sub}</span>${showHidden}</h2></div>` : "";
     return `<div class="sec" id="sec-${t}"><h2>${title} <span>${sub}</span>${showHidden}</h2><div class="rowline">${items.map(card).join("")}</div></div>`;
-  }).join("") + (activeSection === "near" ? hookHtml() + areaHtml + linksHtml : "");
-  if (activeSection === "near") loadArea();
+  }).join("") + (activeSection === "near" ? hookHtml() + (V2 ? "" : areaHtml + linksHtml) : "");
+  if (V2) { const fa = document.getElementById("v2Area"); if (fa && !fa.dataset.done) { fa.innerHTML = areaHtml.replace(/<h2>[\s\S]*?<\/h2>/, ""); fa.dataset.done = "1"; }
+    const fl = document.getElementById("v2Links"); if (fl) fl.innerHTML = official.map(([e, t, d, u]) => `<a href="${u}" target="_blank" rel="noopener">${e} ${t}</a>`).join(" "); }
+  if (activeSection === "near" && !V2) loadArea();
   $("grid").querySelectorAll("[data-showhidden]").forEach(b => b.onclick = () => {
     const t = b.dataset.showhidden;
     layout.hide = layout.hide.filter(id => (MODULES.find(m => m.id === id) || {}).type !== t);
@@ -1505,6 +1543,7 @@ document.addEventListener("click", e => {
     e.preventDefault(); track("how");
     const id = (hw.getAttribute("href") || "#how").slice(1);
     const el = document.getElementById(id) || document.getElementById("how");
+    if (V2 && el) { const sec = el.closest("section.how") || el; sec.classList.add("open"); }
     if (el && el.scrollIntoView) el.scrollIntoView({ behavior: "smooth", block: "start" });
     const how = document.getElementById("how"); if (how) { how.classList.remove("flash"); void how.offsetWidth; how.classList.add("flash"); }
     return;
@@ -1716,6 +1755,13 @@ async function todayExtra(seq) {
   try {
     const m = await fetch(`${API}/api/factory/me/messages`, AUTH).then(r => r.ok ? r.json() : {});
     (m.messages || []).filter(x => x.deadline).forEach(x => { const n = days(String(x.deadline).slice(0, 10)); if (n >= 0 && n <= 7) picks.push({ n, icon: "📬", html: `<b>${esc(x.child ? x.child + ": " : "")}${esc(x.title || "School message")}</b>, due ${when(n)}.` }); });
+  } catch (_) {}
+  // Active flood warnings within 5 km (Environment Agency)
+  try {
+    const p = await getJSON(`https://api.postcodes.io/postcodes/${encodeURIComponent(postcode)}`);
+    const f = await getJSON(`https://environment.data.gov.uk/flood-monitoring/id/floods?lat=${p.result.latitude}&long=${p.result.longitude}&dist=5`);
+    const items = (f.items || []).filter(x => (x.severityLevel || 4) <= 3);
+    if (items.length) picks.push({ n: -2, icon: "🌊", html: `<b>${esc(items[0].severity || "Flood warning")} near you.</b> ${esc(items[0].description || items[0].eaAreaName || "")} <a href="https://check-for-flooding.service.gov.uk/" target="_blank" rel="noopener">Check flooding ↗</a>` });
   } catch (_) {}
   // Bank holidays in the next week (England and Wales)
   try {
