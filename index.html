@@ -325,6 +325,11 @@ body.back .stepsmore { display:none; }
 .howcol ol, .howcol ul { margin:0; padding-left:20px; font-size:14px; }
 .howcol li { margin:0 0 8px; }
 .howtip { font-size:13px; color:var(--muted); margin:6px 0 0; }
+.wn ul { list-style:none; margin:0; padding:0; }
+.wn li { display:flex; gap:12px; padding:8px 0; border-top:1px dashed #0002; font-size:15px; }
+.wn li:first-child { border-top:0; }
+.wnd { flex:0 0 52px; font-weight:900; font-size:13px; color:var(--muted); padding-top:2px; }
+.wnlink { background:none; border:0; padding:0; font:inherit; font-weight:900; color:#8b5cf6; text-decoration:underline; cursor:pointer; }
 .how.flash .howcol { animation:howflash 1.2s ease-out; }
 @keyframes howflash { 0% { background:#fff3b0; } 100% { background:#fff; } }
 @media (max-width:900px) { .howgrid { grid-template-columns:1fr; } }
@@ -447,7 +452,7 @@ body.back .stepsmore { display:none; }
     <input id="pc" placeholder="Your postcode, e.g. KT16 0DA" aria-label="Your postcode" maxlength="8">
     <button class="btn" type="submit">Set postcode ⚡</button>
   </form>
-  <p class="pcnote">Used by every module · <b id="pcChip"></b> <button class="sharebtn" id="useLoc" type="button" title="Your browser asks first. We only use it to find your postcode, and don't save it.">📍 Use my location</button> <button class="sharebtn" id="shareArea" type="button">Share this postcode</button> <button class="sharebtn" type="button" data-how>❓ How it works</button></p>
+  <p class="pcnote">Used by every module · <b id="pcChip"></b> <button class="sharebtn" id="useLoc" type="button" title="Your browser asks first. We only use it to find your postcode, and don't save it.">📍 Use my location</button> <button class="sharebtn" id="shareArea" type="button">Share this postcode</button> <button class="sharebtn" type="button" data-how>❓ How it works</button> <a class="sharebtn" href="#whatsnew" data-how style="text-decoration:none">✨ What's new</a></p>
   <div class="places" id="places"></div>
 </header>
 
@@ -470,6 +475,19 @@ body.back .stepsmore { display:none; }
   <div id="personalBox"></div>
   <div id="grid"></div>
 </main>
+
+<section class="how" id="whatsnew" aria-labelledby="wnTitle">
+  <h2 id="wnTitle">What's new</h2>
+  <div class="howcol wn">
+    <ul>
+      <li><span class="wnd">24 Nov</span><span><b><button type="button" class="wnlink" data-open-mod="bins">Bin day</button></b> is a tile in Near you. Set your address once and see your next collections.</span></li>
+      <li><span class="wnd">24 Nov</span><span><b>📍 Use my location</b> next to the postcode box. Shows what's near you now, while bins and alerts stay on Home.</span></li>
+      <li><span class="wnd">24 Nov</span><span><b><button type="button" class="wnlink" data-open-mod="lifeadmin">Life admin reminders</button></b> in Personal. MOT and road tax from your registration, plus passport, insurance and other renewals, with calendar reminders.</span></li>
+      <li><span class="wnd">24 Nov</span><span><b>Your space</b> in Personal now shows school messages, what's coming up and your spend side by side.</span></li>
+      <li><span class="wnd">23 Nov</span><span><b><a href="/factory/intel/">Intel</a></b> now covers brands: UK prices, where it's sold, commercial opportunities, and brand vs brand comparisons.</span></li>
+    </ul>
+  </div>
+</section>
 
 <section class="how" id="how" aria-labelledby="howTitle">
   <h2 id="howTitle">How it works</h2>
