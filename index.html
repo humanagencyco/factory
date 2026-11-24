@@ -544,6 +544,7 @@ const MODULES = [
   { id:"guides", type:"topic", emo:"🧭", name:"AI guides", desc:"Plain-English guides to AI, for anyone.", status:"ready", c:"#dff5e8", pkg:"", repo:"github.com/humanagencyco/ai-humanagency", link:"https://ai.humanagency.co" },
   { id:"reading", type:"topic", emo:"📚", name:"Reading & talks", desc:"Talks and articles on AI, curated by hand.", status:"ready", c:"#e4e0ff", pkg:"", repo:"github.com/humanagencyco/ai-humanagency", link:"https://ai.humanagency.co/reading.html" },
   { id:"school-msgs", type:"personal", emo:"✉️", name:"School messages", desc:"Your school emails, sorted into one place.", status:"beta", c:"#ffe3ef", pkg:"", repo:"", link:"https://miru.humanagency.co" },
+  { id:"bins", type:"near", emo:"🗑️", name:"Bin day", desc:"Your next collections and your council. Set your address once.", status:"ready", c:"#e6f4ea", pkg:"", repo:"" },
   { id:"weather", type:"near", emo:"☀️", name:"Weather now", desc:"Current conditions for your postcode.", status:"ready", c:"#fff3b0", pkg:"@humanagency/weather-now", repo:"github.com/humanagencyco/weather-now" },
   { id:"fuel", type:"near", emo:"⛽", name:"Fuel prices", desc:"Cheapest petrol and diesel near a postcode.", status:"ready", c:"#ffd6e5", pkg:"@humanagency/fuel-finder", repo:"github.com/humanagencyco/fuel-finder" },
   { id:"mps", type:"near", emo:"🏛️", name:"MPs & councillors", desc:"Your MP and local councillors, with contact links.", status:"ready", c:"#d9ecff", pkg:"@humanagency/councillors", repo:"github.com/humanagencyco/councillors" },
@@ -595,7 +596,7 @@ function saveBin(v) { try { localStorage.setItem(BIN_KEY, JSON.stringify(v)); } 
 function forgetBin() { try { localStorage.removeItem(BIN_KEY); } catch (e) {} binFind(); }
 function binSaved() {
   const s = savedBin();
-  if (!s || s.postcode !== postcode) return binFind();
+  if (!s || s.postcode !== homePc()) return binFind();
   const box = $("binCard"); if (!box) return;
   box.innerHTML = `<p class="bin-note">Your address: <b>${esc(s.label)}</b></p><div id="binDates"></div>
     <p class="bin-note"><a href="#" onclick="forgetBin();return false;">Change or forget my address</a></p>`;
@@ -606,7 +607,7 @@ function binSaved() {
 function binReset() {
   const box = document.getElementById("binCard"); if (!box) return;
   const s = savedBin();
-  if (s && s.postcode === postcode) {
+  if (s && s.postcode === homePc()) {
     box.innerHTML = `<p class="bin-note">Your address: <b>${esc(s.label)}</b></p>
       <button class="bin-btn" onclick="binSaved()">Show my bin day</button>
       <p class="bin-note"><a href="#" onclick="forgetBin();return false;">Change or forget my address</a></p>`;
@@ -999,6 +1000,7 @@ function tryPanel(m) {
   if (m.id === "vehicle") return `<div class="box"><div class="row"><input id="tIn" placeholder="Registration, e.g. AB12 CDE" maxlength="10"><button class="btn pink" id="tGo">Check</button></div><div id="tOut" style="margin-top:10px"></div></div>`;
   if (m.type === "topic") return `<div class="box"><b>No postcode needed.</b><p style="margin:6px 0 10px;color:var(--muted)">This is for everyone.</p><a class="btn pink" href="${esc(m.link)}" target="_blank" rel="noopener" style="text-decoration:none">Open ${esc(m.name)} ↗</a></div>`;
   if (m.id === "lifeadmin") return lifePanel();
+  if (m.id === "bins") return `<div class="bin-card" id="binCard"></div><p class="sample">Your address is saved in this browser only. Turn on a WhatsApp reminder the evening before in the Today box.</p>`;
   if (m.type === "personal") return `<div class="box"><b>Log in to see this.</b><p style="margin:6px 0 10px;color:var(--muted)">Your messages and data stay private. Sign in on Miru to open it.</p><a class="btn pink" href="${esc(m.link)}" target="_blank" rel="noopener" style="text-decoration:none">Sign in to Miru ↗</a></div>`;
   if (m.status === "soon") return `<div class="box"><b>Not ready yet.</b><p style="margin:6px 0 0;color:var(--muted)">We're still choosing a fair way to rank pubs. Tell us what matters to you and we'll use it.</p></div>`;
   if (m.id === "weather") return `<div class="box"><div class="row"><input id="tIn" placeholder="Postcode" maxlength="8" value="${postcode}"><button class="btn pink" id="tGo">Check</button></div><div id="tOut" style="margin-top:10px"></div></div>`;
@@ -1026,20 +1028,21 @@ const JTTL = 10 * 60 * 1000;
 async function binFind() {
   const box = $("binCard"); if (!box) return;
   binReset();
-  box.innerHTML = `<p class="bin-note">Looking up ${esc(postcode)}…</p>`;
+  box.innerHTML = `<p class="bin-note">Looking up ${esc(homePc())}…</p>`;
   try {
-    const d = await getJSON(`${API}/api/bins/lookup?postcode=${encodeURIComponent(postcode)}`);
+    const d = await getJSON(`${API}/api/bins/lookup?postcode=${encodeURIComponent(homePc())}`);
     if (d.status === "addresses") {
       box.innerHTML = `<div class="bin-pick"><p class="bin-note">Your council is <b>${esc(d.council)}</b>. Which address is yours?</p>
         <select id="binAddr" class="bin-select" aria-label="Your address"><option value="">Choose your address…</option>${d.addresses.map(a => `<option value="${esc(a.id)}">${esc(a.label)}</option>`).join("")}</select>
         <div id="binDates"></div></div>`;
       $("binAddr").onchange = e => {
         const label = e.target.selectedOptions[0] ? e.target.selectedOptions[0].text : "";
-        if (e.target.value) saveBin({ postcode: postcode, uprn: e.target.value, label: label });
+        if (e.target.value) saveBin({ postcode: homePc(), uprn: e.target.value, label: label });
+        if (e.target.value && typeof loadToday === "function") loadToday();
         binDates(e.target.value, label);
       };
     } else {
-      box.innerHTML = `<p class="bin-note"><b>${esc(d.council || "Your council")}</b> is your council for ${esc(postcode)}.</p>
+      box.innerHTML = `<p class="bin-note"><b>${esc(d.council || "Your council")}</b> is your council for ${esc(homePc())}.</p>
         <p class="bin-note">We can't show collection days for this council here yet. Its own bin checker is the official source.</p>
         <a class="bin-btn" href="${esc(d.council_page)}" target="_blank" rel="noopener">Check bin days on ${esc(d.council || "the council")}'s site ↗</a>`;
     }
@@ -1052,7 +1055,7 @@ async function binDates(uprn, label) {
   if (!uprn) { out.innerHTML = ""; return; }
   out.innerHTML = `<p class="bin-note">Checking the council…</p>`;
   try {
-    const r = await fetch(`${API}/api/bins/dates?postcode=${encodeURIComponent(postcode)}&uprn=${encodeURIComponent(uprn)}`);
+    const r = await fetch(`${API}/api/bins/dates?postcode=${encodeURIComponent(homePc())}&uprn=${encodeURIComponent(uprn)}`);
     const d = await r.json().catch(() => ({}));
     if (!r.ok) {
       out.innerHTML = `<p class="bin-note">Collection days for this council aren't available here yet. Please check the council's site for your dates.</p>` +
@@ -1287,6 +1290,7 @@ function wireTry(m) {
   if (m.id === "bizcheck") return wireBiz();
   if (m.id === "aibiz") return wireAi();
   if (m.id === "lifeadmin") return wireLife();
+  if (m.id === "bins") { const b = savedBin(); return b && b.postcode === homePc() ? binSaved() : binFind(); }
   if (m.id === "company") {
     const go = $("tGo"), out = $("tOut");
     const intelUrl = n => `${INTEL}?q=${encodeURIComponent(n)}`;
@@ -1589,10 +1593,7 @@ function setFuel(f) {
   const open = document.getElementById("dtitle");
   if (open && open.dataset.id === "fuel" && document.getElementById("drawer").classList.contains("open")) openModule("fuel");
 }
-function goBins() {
-  activeSection = "personal"; render();
-  setTimeout(() => { const el = document.getElementById("sec-bins"); if (el && el.scrollIntoView) el.scrollIntoView({ behavior: "smooth", block: "start" }); binFind(); }, 50);
-}
+function goBins() { openModule("bins"); }
 
 let todaySeq = 0;
 async function loadToday() {
