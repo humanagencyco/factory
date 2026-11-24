@@ -175,16 +175,24 @@ a.bin-btn { display:inline-block; text-decoration:none; }
 .mehead { display:flex; justify-content:space-between; align-items:center; gap:12px; flex-wrap:wrap; }
 .kicker { font-size:11px; font-weight:900; text-transform:uppercase; letter-spacing:.08em; color:var(--muted); }
 .mephone { font-size:18px; }
-.melayout { display:grid; grid-template-columns:1.6fr 1fr; gap:16px; align-items:start; }
+.melayout { display:grid; grid-template-columns:repeat(3, minmax(0,1fr)); gap:16px; align-items:stretch; margin-top:12px; }
+.melayout > .mecard { display:flex; flex-direction:column; }
+.melayout .melink { margin-top:auto; padding-top:12px; }
+.mestat { font-size:34px; font-weight:900; letter-spacing:-.02em; line-height:1.05; margin:2px 0 4px; }
+.mestat small { font-size:14px; font-weight:700; color:var(--muted); letter-spacing:0; margin-left:6px; }
+.mesmall { list-style:none; margin:8px 0 0; padding:0; font-size:14px; }
+.mesmall li { display:flex; justify-content:space-between; gap:8px; padding:4px 0; border-top:1px dashed var(--line); }
+.mesmall li span { color:var(--muted); white-space:nowrap; font-weight:700; }
+.schoolfold[open] { grid-column:1 / -1; order:10; }
 .mecard { background:#fff; border:2px solid var(--ink); border-radius:18px; padding:18px; box-shadow:5px 5px 0 var(--ink); }
 .mecard h3 { margin:0 0 12px; font-size:17px; font-weight:900; }
 .signedin .mod[data-id="school-msgs"] { display:none; }
-.schoolfold > summary { list-style:none; cursor:pointer; display:flex; flex-wrap:wrap; align-items:baseline; gap:6px 10px; }
+.schoolfold > summary { list-style:none; cursor:pointer; display:flex; flex-direction:column; align-items:flex-start; gap:2px; flex:1; }
 .schoolfold > summary::-webkit-details-marker { display:none; }
 .schoolfold .sf-title { font-size:17px; font-weight:900; }
-.schoolfold .sf-open { margin-left:auto; font-size:13px; font-weight:900; border:2px solid var(--ink); border-radius:999px; padding:2px 10px; }
-.schoolfold[open] .sf-open { background:var(--ink); color:#fff; }
-.schoolfold[open] .sf-open::after { content:" less"; }
+.schoolfold .sf-open { margin-top:auto; font-size:13px; color:#8b5cf6; border-color:transparent; padding-left:0; padding-top:12px; font-weight:900; border:2px solid var(--ink); border-radius:999px; padding:2px 10px; }
+.schoolfold[open] .sf-open { font-size:0; padding-top:4px; }
+.schoolfold[open] .sf-open::after { content:"Hide messages"; font-size:13px; }
 .schoolfold[open] > summary { margin-bottom:10px; }
 .schoolfold > summary:focus-visible { outline:3px solid #5aa9ff; outline-offset:3px; border-radius:8px; }
 .melist { list-style:none; margin:0; padding:0; }
@@ -200,7 +208,7 @@ a.bin-btn { display:inline-block; text-decoration:none; }
 .muted { color:var(--muted); font-size:13px; margin:6px 0 0; }
 .melink { display:inline-block; margin-top:12px; font-weight:900; color:var(--accent2, #8b5cf6); text-decoration:none; font-size:14px; }
 .melink:hover { text-decoration:underline; }
-@media (max-width:760px) { .melayout { grid-template-columns:1fr; } .spendcard .bignum { font-size:36px; } }
+@media (max-width:860px) { .melayout { grid-template-columns:1fr; } .schoolfold[open] { order:0; } .spendcard .bignum { font-size:36px; } }
 .cardhead { display:flex; justify-content:space-between; align-items:baseline; gap:8px; margin-bottom:10px; }
 .cardhead h3 { margin:0; }
 .ktabs { display:flex; flex-wrap:wrap; gap:6px; margin-bottom:6px; }
@@ -758,9 +766,12 @@ async function loadPersonal() {
     const tabsHtml = () => ["All", ...kids].map(k => `<button class="ktab" type="button" aria-pressed="${k === kid}" data-k="${esc(k)}">${esc(k)}${k === "All" ? ` <em>${all.length}</em>` : ` <em>${all.filter(x => (x.child || "Other") === k).length}</em>`}</button>`).join("");
     const schoolCard = `
           <details class="mecard schoolfold">
-            <summary><span class="sf-title">📬 School messages</span>
-              <small class="muted">${all.length ? `${all.length} in the last 10 days${kids.length > 1 ? ": " + kids.map(k => `${esc(k)} ${all.filter(x => (x.child || "Other") === k).length}`).join(", ") : ""}` : "Nothing in the last 10 days"}${all.some(x => x.deadline || x.action) ? ` · <b style="color:var(--ink)">${all.filter(x => x.deadline || x.action).length} need action</b>` : ""}</small>
-              <span class="sf-open" aria-hidden="true">Show</span></summary>
+            <summary>
+              <h3 style="margin:0">📬 School messages</h3>
+              <div class="mestat">${all.length}<small>in the last 10 days</small></div>
+              <span class="muted" style="font-size:14px">${kids.length ? kids.map(k => `${esc(k)} ${all.filter(x => (x.child || "Other") === k).length}`).join(", ") : "Nothing new"}${all.some(x => x.deadline || x.action) ? ` · <b style="color:var(--ink)">${all.filter(x => x.deadline || x.action).length} need action</b>` : ""}</span>
+              <span class="sf-open">Show messages</span>
+            </summary>
             <div class="ktabs" id="kTabs">${tabsHtml()}</div>
             <div id="kList">${listHtml()}</div>
             <a class="melink" href="https://miru.humanagency.co/" target="_blank" rel="noopener">See all in Miru ↗</a>
@@ -773,29 +784,29 @@ async function loadPersonal() {
     const lifeCard = `
           <section class="mecard">
             <h3>📅 Coming up</h3>
-            ${dueSoon.length ? `<ul class="melist">${dueSoon.map(x => { const n = Math.round((lifeParse(x.date) - lifeDay()) / 86400000); return `<li><span class="datepill">${esc(lifeLeft(n))}</span><div class="melbody"><b>${esc(x.emo)} ${esc(x.name)}</b>${x.from ? `<div class="mechips"><span class="chip2 quiet">${esc(x.from)}</span></div>` : ""}</div></li>`; }).join("")}</ul>`
-              : `<p class="muted">Nothing coming up yet. Add your car, passport or insurance dates and they'll show here.</p>`}
-            <button class="melink" type="button" id="openLife" style="background:none;border:0;padding:0;cursor:pointer">Life admin reminders →</button>
+            ${dueSoon.length ? (() => { const d = x => Math.round((lifeParse(x.date) - lifeDay()) / 86400000), [first, ...rest] = dueSoon;
+                return `<div class="mestat">${esc(lifeLeft(d(first)))}</div><span style="font-size:14px;font-weight:800">${esc(first.emo)} ${esc(first.name)}</span>${first.from ? `<span class="muted" style="font-size:13px">${esc(first.from)}</span>` : ""}
+                  ${rest.length ? `<ul class="mesmall">${rest.slice(0, 3).map(x => `<li>${esc(x.emo)} ${esc(x.name)}<span>${esc(lifeLeft(d(x)))}</span></li>`).join("")}</ul>` : ""}`; })()
+              : `<p class="muted" style="margin:0">Nothing yet. Add your car, passport or insurance dates and they'll show here.</p>`}
+            <button class="melink" type="button" id="openLife" style="background:none;border:0;padding-left:0;cursor:pointer;text-align:left">${dueSoon.length ? "See all dates →" : "Add dates →"}</button>
           </section>`;
     const period = esc(spend.period || "this month");
     const total = Number(spend.total || 0);
     box.innerHTML = `
       <div class="me">
         <div class="mehead">
-          <div><div class="kicker">Your space</div><b class="mephone">${esc(me.phone)}</b></div>
+          <div><b style="font-size:20px;font-weight:900">🔒 Your space</b> <span class="muted" style="font-size:14px;margin-left:6px">Signed in as ${esc(me.phone)}</span></div>
           <button class="btn ghost" id="pSignOut" type="button">Sign out</button>
         </div>
         <div class="melayout">
           ${schoolCard}
-          <div style="display:grid;gap:16px">
           ${lifeCard}
           <section class="mecard spendcard">
             <h3>💷 Spend, ${period}</h3>
-            <div class="bignum">£${total.toFixed(2)}</div>
-            <p class="muted">${total === 0 ? "No receipts logged yet this month." : "From your logged receipts."}</p>
+            <div class="mestat">£${total.toFixed(2)}</div>
+            <span class="muted" style="font-size:14px">${total === 0 ? "No receipts logged yet this month." : "From your logged receipts."}</span>
             <a class="melink" href="https://miru.humanagency.co/" target="_blank" rel="noopener">Add receipts in Miru ↗</a>
           </section>
-          </div>
         </div>
       </div>`;
     box.querySelectorAll(".ktab").forEach(b => b.onclick = () => {
