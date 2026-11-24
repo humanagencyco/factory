@@ -271,6 +271,8 @@ a.bin-btn { display:inline-block; text-decoration:none; }
 .places { display:flex; flex-wrap:wrap; gap:6px; justify-content:center; align-items:center; margin:10px auto 0; max-width:640px; position:relative; }
 .place { border:2px solid var(--ink); background:#fff; color:var(--ink); border-radius:999px; padding:5px 12px; font-weight:800; font-size:13px; cursor:pointer; }
 .place.on { background:var(--ink); color:#fff; }
+.place.here { border-style:dashed; }
+.place.here.on { background:#2fd1a4; color:var(--ink); border-style:solid; }
 .place.add { border-style:dashed; background:transparent; }
 .placex { border:0; background:none; cursor:pointer; font-size:12px; color:var(--muted); margin-left:-4px; padding:2px 4px; }
 .placeform { display:flex; gap:6px; flex-wrap:wrap; justify-content:center; width:100%; margin-top:6px; }
@@ -444,7 +446,7 @@ body.back .stepsmore { display:none; }
     <input id="pc" placeholder="Your postcode, e.g. KT16 0DA" aria-label="Your postcode" maxlength="8">
     <button class="btn" type="submit">Set postcode ⚡</button>
   </form>
-  <p class="pcnote">Used by every module · <b id="pcChip"></b> <button class="sharebtn" id="shareArea" type="button">Share this postcode</button> <button class="sharebtn" type="button" data-how>❓ How it works</button></p>
+  <p class="pcnote">Used by every module · <b id="pcChip"></b> <button class="sharebtn" id="useLoc" type="button" title="Your browser asks first. We only use it to find your postcode, and don't save it.">📍 Use my location</button> <button class="sharebtn" id="shareArea" type="button">Share this postcode</button> <button class="sharebtn" type="button" data-how>❓ How it works</button></p>
   <div class="places" id="places"></div>
 </header>
 
@@ -492,6 +494,7 @@ body.back .stepsmore { display:none; }
       <h3>🔒 Your data</h3>
       <ul>
         <li>Your postcode, saved places and pinned cards stay in this browser.</li>
+        <li>Use my location: your browser asks first. We turn it into a postcode for this visit and don't save it. Bins, councillors and alerts stay on your Home.</li>
         <li>Reminders: we keep your number (or this device) and your bin address only to send them. Reply <b>STOP BINS</b> on WhatsApp, or turn them off in the Today box.</li>
         <li>We count visits with a random ID. No cookies, no ads, no tracking across sites.</li>
       </ul>
@@ -559,12 +562,20 @@ const LABEL = { ready:"Ready", beta:"Beta", soon:"Coming soon" };
 const PC_KEY = "factory_postcode";
 let postcode = "TW1 1AA";
 try { postcode = localStorage.getItem(PC_KEY) || postcode; } catch (e) {}
-function setPostcode(pc, fromUser = false) {
+// "Here now" comes from Use my location: it changes what's near you for this visit only.
+// Home (bins, councillors, schools, alerts) never moves with it.
+let hereNow = null;
+function homePc() {
+  if (!hereNow) return postcode;
+  try { return localStorage.getItem(PC_KEY) || postcode; } catch (e) { return postcode; }
+}
+function setPostcode(pc, fromUser = false, opts = {}) {
   const ok = normPC(pc);
   if (!ok) return false;
   if (fromUser) startPrep();
   postcode = ok;
-  try { localStorage.setItem(PC_KEY, postcode); } catch (e) {}
+  if (opts.temp) hereNow = { pc: ok };
+  else { hereNow = null; try { localStorage.setItem(PC_KEY, postcode); } catch (e) {} }
   const chip = document.getElementById("pcChip"); if (chip) chip.textContent = postcode;
   const pc2 = document.getElementById("pc"); if (pc2) pc2.value = postcode;
   if (typeof loadTeasers === "function") loadTeasers();
@@ -978,7 +989,7 @@ $("scrim").onclick = closeDrawer;
 document.addEventListener("keydown", e => { if (e.key==="Escape") closeDrawer(); });
 
 function tryPanel(m) {
-  if (["pubs","trains","schools"].includes(m.id)) return `<div class="box"><div class="row"><input id="tIn" placeholder="Postcode" maxlength="8" value="${postcode}"><button class="btn pink" id="tGo">Check</button></div><div id="tOut" style="margin-top:10px"></div></div>`;
+  if (["pubs","trains","schools"].includes(m.id)) return `<div class="box"><div class="row"><input id="tIn" placeholder="Postcode" maxlength="8" value="${m.id === "schools" ? homePc() : postcode}"><button class="btn pink" id="tGo">Check</button></div><div id="tOut" style="margin-top:10px"></div></div>`;
   if (m.id === "track") return trackPanel();
   if (m.id === "bizcheck") return bizPanel();
   if (m.id === "aibiz") return aiPanel();
@@ -990,7 +1001,7 @@ function tryPanel(m) {
   if (m.status === "soon") return `<div class="box"><b>Not ready yet.</b><p style="margin:6px 0 0;color:var(--muted)">We're still choosing a fair way to rank pubs. Tell us what matters to you and we'll use it.</p></div>`;
   if (m.id === "weather") return `<div class="box"><div class="row"><input id="tIn" placeholder="Postcode" maxlength="8" value="${postcode}"><button class="btn pink" id="tGo">Check</button></div><div id="tOut" style="margin-top:10px"></div></div>`;
   if (m.id === "fuel") return `<div class="box"><div class="row"><input id="tIn" placeholder="Postcode" maxlength="8" value="${postcode}"><button class="btn pink" id="tGo">Check</button></div><div id="tOut" style="margin-top:10px"></div></div>`;
-  if (m.id === "mps") return `<div class="box"><div class="row"><input id="tIn" placeholder="Postcode" maxlength="8" value="${postcode}"><button class="btn pink" id="tGo">Find</button></div><div id="tOut" style="margin-top:10px"></div></div>`;
+  if (m.id === "mps") return `<div class="box"><div class="row"><input id="tIn" placeholder="Postcode" maxlength="8" value="${homePc()}"><button class="btn pink" id="tGo">Find</button></div><div id="tOut" style="margin-top:10px"></div></div>`;
   if (m.id === "cafes") return `<div class="box"><div class="row"><input id="tIn" placeholder="Postcode" maxlength="8" value="${postcode}"><button class="btn pink" id="tGo">Search</button></div><div id="tOut" style="margin-top:10px"></div></div>`;
 if (m.id === "pharmacy") return `<div class="box"><div class="row"><input id="tIn" placeholder="Postcode" maxlength="8" value="${postcode}"><button class="btn pink" id="tGo">Search</button></div><div id="tOut" style="margin-top:10px"></div></div>`;
   return `<div class="box"><b>Try it soon.</b><p style="margin:6px 0 0;color:var(--muted)">This module is in beta. The Take and Build tabs already work.</p></div>`;
@@ -1587,7 +1598,7 @@ async function loadToday() {
   const pc = postcode, seq = ++todaySeq;
   const ICON = { wx: "🌤️", fuel: "⛽", train: "🚆", bin: "🗑️" };
   const OPEN = { wx: "weather", fuel: "fuel", train: "trains", bin: "" };
-  el.innerHTML = `<div class="tdhead"><h2>Today in ${esc(pc)}</h2><span class="tddate">${esc(new Date().toLocaleDateString("en-GB", { weekday: "long", day: "numeric", month: "long" }))}</span>${installBtn()}</div>
+  el.innerHTML = `<div class="tdhead"><h2>${hereNow ? `Near you now · ${esc(pc)}` : `Today in ${esc(pc)}`}</h2><span class="tddate">${esc(new Date().toLocaleDateString("en-GB", { weekday: "long", day: "numeric", month: "long" }))}</span>${installBtn()}</div>
     <div>${["wx", "fuel", "train", "bin"].map(k => `<div class="tdrow" id="td-${k}"${OPEN[k] ? ` data-open="${OPEN[k]}"` : ""}><span class="tdi">${ICON[k]}</span><span class="tdt muted">Checking…</span></div>`).join("")}</div>
     <div class="tdchanges" id="tdChanges"></div>
     ${familyTip()}
@@ -1610,11 +1621,12 @@ async function loadToday() {
     const { t, lb } = r.next;
     put("train", `<b>Leave by ${hhmm(lb.at)}</b> for the ${esc(t.scheduled)} to ${esc(t.destination)} from ${esc(r.st.name)}${/^\d/.test(t.expected || "") ? ` (running late, expected ${esc(t.expected)})` : ""}. About ${lb.mins} min ${lb.how === "walk" ? "walk" : "drive"}.${setTrains}`);
   }).catch(() => put("train", `Train times aren't available right now.${setTrains}`, true));
-  todayBins(pc).then(b => {
+  const binPc = homePc(), atHome = hereNow ? "At home: " : "";
+  todayBins(binPc).then(b => {
     if (!b) return put("bin", `<button class="mini" type="button" data-td="bins" style="border:2px solid var(--ink);border-radius:999px;background:#fff;font-weight:800;padding:3px 10px;cursor:pointer">Set your address</button> to see your bin day here.`, true);
-    if (b.none) return put("bin", "No upcoming collections found for your address.", true);
+    if (b.none) return put("bin", atHome + "No upcoming collections found for your address.", true);
     const cap = s => s.charAt(0).toUpperCase() + s.slice(1);
-    put("bin", `<b>${esc(cap(b.now.join(" and ").toLowerCase()))} ${esc(b.when)}.</b>${b.later ? ` ${esc(cap(b.later.bin.toLowerCase()))} ${esc(dayWord(b.later.d))}.` : ""}`);
+    put("bin", `${atHome}<b>${esc(cap(b.now.join(" and ").toLowerCase()))} ${esc(b.when)}.</b>${b.later ? ` ${esc(cap(b.later.bin.toLowerCase()))} ${esc(dayWord(b.later.d))}.` : ""}`);
   }).catch(() => put("bin", "Bin days aren't available right now.", true));
 
   const [w, c] = await Promise.all([wx, fuel]);
@@ -1649,11 +1661,37 @@ function showChanges(pc, nowVals) {
   out.innerHTML = chips.join("");
 }
 
+// Use my location: ask the browser once, turn it into a postcode, never save the position
+function useLocation() {
+  const b = document.getElementById("useLoc");
+  if (!navigator.geolocation) return toast("Location isn't available in this browser. Type your postcode instead.");
+  const label = b.textContent; b.disabled = true; b.textContent = "📍 Finding you…";
+  const done = () => { b.disabled = false; b.textContent = label; };
+  navigator.geolocation.getCurrentPosition(async pos => {
+    try {
+      const { latitude: la, longitude: lo } = pos.coords;
+      const r = await fetch(`https://api.postcodes.io/postcodes?lon=${lo.toFixed(5)}&lat=${la.toFixed(5)}&limit=1&radius=1000`).then(x => x.json());
+      const pc = r && r.result && r.result[0] && r.result[0].postcode;
+      if (!pc) { done(); return toast("Couldn't find a postcode where you are. Type it instead."); }
+      let stored = null; try { stored = localStorage.getItem(PC_KEY); } catch (e) {}
+      const home = places.length ? (places.find(p => /^home$/i.test(p.label)) || places[0]).pc : stored;
+      if (!home) { setPostcode(pc, true); toast(`Using ${normPC(pc)}. Tap "Save this place" to keep it as Home.`); }
+      else if (normPC(pc) === normPC(home)) { setPostcode(home, true); toast("You're at home 🏠"); }
+      else { setPostcode(pc, true, { temp: true }); toast("Showing what's near you now. Bins and alerts stay on Home."); }
+      track("geo");
+    } catch (e) { toast("Couldn't find your postcode right now. Type it instead."); }
+    done();
+  }, err => { done(); toast(err && err.code === 1 ? "Location is off for this site. Type your postcode instead." : "Couldn't get your location. Type your postcode instead."); },
+  { enableHighAccuracy: false, timeout: 10000, maximumAge: 300000 });
+}
+document.getElementById("useLoc").onclick = useLocation;
+
 // Saved places: home, work, a parent's house
 function renderPlaces() {
   const el = document.getElementById("places"); if (!el) return;
-  const saved = places.some(p => p.pc === postcode);
-  el.innerHTML = places.map((p, i) => `<button type="button" class="place${p.pc === postcode ? " on" : ""}" data-place="${i}">${esc(p.label)} · ${esc(p.pc)}</button><button type="button" class="placex" data-placex="${i}" aria-label="Remove ${esc(p.label)}">✕</button>`).join("")
+  const saved = hereNow ? true : places.some(p => p.pc === postcode);
+  el.innerHTML = (hereNow ? `<button type="button" class="place here on" aria-pressed="true" title="From your location, this visit only">📍 Here now · ${esc(hereNow.pc)}</button>` : "")
+    + places.map((p, i) => `<button type="button" class="place${!hereNow && p.pc === postcode ? " on" : ""}" data-place="${i}">${esc(p.label)} · ${esc(p.pc)}</button><button type="button" class="placex" data-placex="${i}" aria-label="Remove ${esc(p.label)}">✕</button>`).join("")
     + (places.length < 4 ? `<button type="button" class="place add" id="addPlace">＋ ${saved ? "Add another place" : "Save this place"}</button>` : "")
     + `<div class="placeform" id="placeForm" hidden><input id="plLabel" placeholder="Home, Work, Mum's…" maxlength="16" aria-label="Name for this place"><input id="plPc" placeholder="Postcode" maxlength="8" aria-label="Postcode"><button class="btn" type="button" id="plSave">Save</button></div>`;
   el.querySelectorAll("[data-place]").forEach(b => b.onclick = () => { setPostcode(places[+b.dataset.place].pc, true); toast("Switched to " + places[+b.dataset.place].label + " 📍"); });
