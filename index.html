@@ -592,7 +592,7 @@ const MODULES = [
   { id:"trains", type:"near", emo:"🚆", name:"Train times", desc:"Next departures from your nearest station.", status:"beta", c:"#d6f7ec", pkg:"@humanagency/train-times", repo:"github.com/humanagencyco/train-times" },
   { id:"bizcheck", type:"near", emo:"🏪", name:"Is your business easy to find?", desc:"Free instant check: your Google Maps listing, reviews, website, and whether AI assistants can read your site.", status:"ready", c:"#fff0d6", pkg:"", repo:"" },
   { id:"aibiz", type:"near", emo:"🤖", name:"AI for your business", desc:"What ChatGPT, Claude and Copilot could do for a small business, and help to set it up.", status:"ready", c:"#efe2ff", pkg:"", repo:"" },
-  { id:"track", type:"near", emo:"🚉", name:"Track your train", desc:"Pick two stations. See the next trains there and back.", status:"ready", c:"#e2f0ff", pkg:"", repo:"" },
+  { id:"track", type:"near", emo:"🚉", name:"Your journey", desc:"Pick two stations. See the next trains there and back.", status:"ready", c:"#e2f0ff", pkg:"", repo:"", hidden:true },
   { id:"pharmacy", type:"near", emo:"💊", name:"Pharmacies open now", desc:"Open pharmacies nearby, with phone numbers.", status:"beta", c:"#efe2ff", pkg:"@humanagency/pharmacy-finder", repo:"github.com/humanagencyco/pharmacy-finder" },
   { id:"schools", type:"near", emo:"🏫", name:"Nearest schools", desc:"Schools near your postcode, with Ofsted and contact details.", status:"beta", c:"#fff0d6", pkg:"@humanagency/school-digest", repo:"github.com/humanagencyco/school-digest" },
   { id:"lifeadmin", type:"personal", emo:"📅", name:"Life admin reminders", desc:"MOT, road tax, passport, insurance. Your renewal dates in one place, with calendar reminders.", status:"ready", c:"#e2f6e9", pkg:"", repo:"", link:"/factory/admin/" },
@@ -715,6 +715,7 @@ async function loadTeasers() {
       return d.pubs && d.pubs.length ? line(`${d.pubs.length} pubs nearby`) : line("No pubs found", false);
     },
     trains: async () => {
+      if (myTrains()) return jobs.track();
       const near = await getJSON(`${API}/api/train/nearest-by-postcode?postcode=${encodeURIComponent(pc)}`);
       return line(`Nearest: ${esc(near.name)}, ${near.distance_km} km`);
     },
@@ -932,7 +933,7 @@ function renderSecNav() {
 function render() {
   renderFilters();
   const filtered = MODULES.filter(m => liveFilter === "all" || (liveFilter === "live" ? m.status === "ready" : m.status === "beta"));
-  const list = filtered.filter(m => !layout.hide.includes(m.id))
+  const list = filtered.filter(m => !m.hidden && !layout.hide.includes(m.id))
     .sort((a, b) => (layout.pin.includes(b.id) ? 1 : 0) - (layout.pin.includes(a.id) ? 1 : 0));
   renderLiveTog();
   const card = m => `
@@ -1204,7 +1205,11 @@ async function wireLive(m) {
           + `<div class="result"><div><b>${esc(near.name)}</b><small>${near.distance_km} km away</small></div></div>`
           + `<div class="subhead">Next trains${depStation && depStation.name !== near.name ? " from " + esc(depStation.name) : ""}</div>` + trainRows
           + `<div class="sample">Live from the National Rail feed</div>`
-          + `<div class="tdcta" style="margin-top:12px"><button class="tdbtn" type="button" data-open-mod="track">🚆 Track your train</button><small class="muted">Pick two stations and see the trains both ways.</small></div>`);
+        );
+        if (!document.getElementById("trackBox")) {
+          out.insertAdjacentHTML("afterbegin", `<div class="subhead" style="margin-top:0">🚆 Your journey</div>${trackPanel()}<div class="subhead">From your nearest station</div>`);
+          wireTrack();
+        }
       }
       if (m.id === "schools") {
         const d = await getJSON(`${API}/api/factory/schools-near?postcode=${encodeURIComponent(pc)}`);
