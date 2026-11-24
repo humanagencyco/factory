@@ -86,6 +86,15 @@ main { max-width:1100px; margin:0 auto; padding:30px 20px 80px; }
 .result b { font-size:15px; }
 .result small { color:var(--muted); display:block; }
 .price { font-weight:900; font-size:18px; background:var(--sun); border:2px solid var(--ink); border-radius:10px; padding:2px 10px; white-space:nowrap; }
+.life-chips { display:flex; flex-wrap:wrap; gap:6px; margin-top:8px; }
+.life-chips button { border:2px solid var(--ink); background:#fff; border-radius:999px; padding:5px 11px; font:inherit; font-size:13px; font-weight:800; cursor:pointer; color:var(--ink); }
+.life-chips button[aria-pressed="true"] { background:var(--ink); color:#fff; }
+.life-add { display:none; margin-top:10px; gap:8px; flex-wrap:wrap; }
+.life-add.on { display:flex; }
+.life-add input { border:2px solid var(--ink); border-radius:12px; padding:9px 11px; font:inherit; font-weight:700; min-width:0; }
+.life-acts { display:flex; gap:10px; flex-wrap:wrap; margin-top:3px; }
+.life-acts a, .life-acts button { font-size:12px; font-weight:800; background:none; border:0; padding:0; color:#8b5cf6; cursor:pointer; text-decoration:underline; }
+.price.soon { background:var(--sun); } .price.ok { background:#2fd1a4; } .price.late { background:#ff8a8a; }
 .sample { font-size:12px; color:var(--muted); margin-top:8px; }
 .code { background:var(--ink); color:#f5f0ff; border-radius:14px; padding:14px; font:13px/1.55 ui-monospace, Menlo, monospace; overflow:auto; white-space:pre; margin:0; }
 .cmd { display:flex; gap:8px; align-items:center; margin-top:10px; }
@@ -862,7 +871,7 @@ function render() {
   const areaHtml = `<div class="sec" id="sec-area"><h2>🧭 Your area <span>Flood warnings, street crime and reported potholes near ${esc(postcode)}.</span></h2><div class="areacard" id="areaCard">Checking your area…</div></div>`;
   const linksHtml = `<div class="sec" id="sec-official"><h2>🔗 Official sources <span>Not on this page yet? Here's where to go for ${esc(postcode)}.</span></h2>
     <div class="offgrid">${official.map(([e, t, d, u]) => `<a class="offcard" href="${u}" target="_blank" rel="noopener"><span class="offe">${e}</span><b>${t}</b><small>${d}</small><span class="offgo">Open ↗</span></a>`).join("")}</div></div>`;
-  $("binSlot").innerHTML = activeSection === "personal" ? binHtml : "";
+  $("binSlot").innerHTML = "";
   $("grid").innerHTML = SECTIONS.map(([t, title, sub]) => {
     if (t !== activeSection) return "";
     const items = list.filter(m => m.type === t);
@@ -935,7 +944,7 @@ function tryPanel(m) {
   if (m.id === "company") return `<div class="box"><div class="row"><input id="tIn" placeholder="Company or brand, e.g. Tesco" maxlength="60" style="text-transform:none"><button class="btn pink" id="tGo">Check</button></div><div id="tOut" style="margin-top:10px"><div class="sample">Who they are, how they're doing, what people say, and who's hiring. From <b>Intel</b>, our company research tool.</div></div></div>`;
   if (m.id === "vehicle") return `<div class="box"><div class="row"><input id="tIn" placeholder="Registration, e.g. AB12 CDE" maxlength="10"><button class="btn pink" id="tGo">Check</button></div><div id="tOut" style="margin-top:10px"></div></div>`;
   if (m.type === "topic") return `<div class="box"><b>No postcode needed.</b><p style="margin:6px 0 10px;color:var(--muted)">This is for everyone.</p><a class="btn pink" href="${esc(m.link)}" target="_blank" rel="noopener" style="text-decoration:none">Open ${esc(m.name)} ↗</a></div>`;
-  if (m.id === "lifeadmin") return `<div class="box"><b>No login needed.</b><p style="margin:6px 0 10px;color:var(--muted)">Your dates stay in this browser and aren't sent anywhere.</p><a class="btn pink" href="/factory/admin/" style="text-decoration:none">Open reminders</a></div>`;
+  if (m.id === "lifeadmin") return lifePanel();
   if (m.type === "personal") return `<div class="box"><b>Log in to see this.</b><p style="margin:6px 0 10px;color:var(--muted)">Your messages and data stay private. Sign in on Miru to open it.</p><a class="btn pink" href="${esc(m.link)}" target="_blank" rel="noopener" style="text-decoration:none">Sign in to Miru ↗</a></div>`;
   if (m.status === "soon") return `<div class="box"><b>Not ready yet.</b><p style="margin:6px 0 0;color:var(--muted)">We're still choosing a fair way to rank pubs. Tell us what matters to you and we'll use it.</p></div>`;
   if (m.id === "weather") return `<div class="box"><div class="row"><input id="tIn" placeholder="Postcode" maxlength="8" value="${postcode}"><button class="btn pink" id="tGo">Check</button></div><div id="tOut" style="margin-top:10px"></div></div>`;
@@ -1106,11 +1115,103 @@ async function wireLive(m) {
   $("tIn").onkeydown = e => { if (e.key === "Enter") { e.preventDefault(); run(); } };
   run();
 }
+// ---------- Life admin reminders (shares its saved dates with /factory/admin/) ----------
+const LIFE_KEY = "ha-life-admin-v1";
+const LIFE_PRESETS = [
+  ["passport", "🛂", "Passport expires", "https://www.gov.uk/renew-adult-passport", "Renew on GOV.UK"],
+  ["licence", "🪪", "Driving licence photo card", "https://www.gov.uk/renew-driving-licence", "Renew on GOV.UK"],
+  ["carins", "🚗", "Car insurance renewal", "", "Compare before it auto-renews"],
+  ["homeins", "🏠", "Home insurance renewal", "", "Compare before it auto-renews"],
+  ["tv", "📺", "TV licence", "https://www.tvlicensing.co.uk/", "TV Licensing"],
+  ["boiler", "🔥", "Boiler service", "", "Book a Gas Safe engineer"],
+  ["energy", "⚡", "Energy tariff ends", "", "Look at new fixes a few weeks before"],
+  ["other", "📌", "", "", ""],
+];
+const lifeLoad = () => { try { return JSON.parse(localStorage.getItem(LIFE_KEY) || "[]"); } catch (_) { return []; } };
+const lifeSave = v => { try { localStorage.setItem(LIFE_KEY, JSON.stringify(v)); } catch (_) {} };
+const lifeDay = () => { const d = new Date(); d.setHours(0, 0, 0, 0); return d; };
+const lifeParse = x => { const [y, m, d] = x.split("-").map(Number); return new Date(y, m - 1, d); };
+const lifeIso = d => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+const lifeLeft = n => n < 0 ? `${-n}d overdue` : n === 0 ? "Today" : n === 1 ? "Tomorrow" : n < 60 ? `${n} days` : n < 730 ? `${Math.round(n / 30.4)} months` : `${Math.round(n / 365)} years`;
+
+function lifePanel() {
+  return `<div class="box"><b>Find your car's dates</b><p class="sample" style="margin:2px 0 8px">MOT and road tax from live DVLA data.</p>
+      <div class="row"><input id="lifeReg" placeholder="Registration, e.g. AB12 CDE" maxlength="10"><button class="btn pink" id="lifeRegGo">Find</button></div>
+      <div class="sample" id="lifeMsg" aria-live="polite"></div></div>
+    <div class="box"><b>Add a date</b>
+      <div class="life-chips" id="lifeChips">${LIFE_PRESETS.map(p => `<button type="button" data-k="${p[0]}" aria-pressed="false">${p[1]} ${esc(p[2] || "Something else")}</button>`).join("")}</div>
+      <form class="life-add" id="lifeAdd"><input id="lifeName" placeholder="What" style="flex:1 1 160px"><input id="lifeDate" type="date" required><button class="btn pink" type="submit">Add</button></form></div>
+    <div class="box"><b>Coming up</b><div id="lifeList"></div></div>
+    <p class="sample">Saved only in this browser. No login, nothing sent anywhere. <a href="/factory/admin/">Open full page</a></p>`;
+}
+
+function wireLife() {
+  let items = lifeLoad(), picked = null;
+  const add = it => { if (it.key) items = items.filter(x => x.key !== it.key); items.push({ id: Math.random().toString(36).slice(2, 10) + Date.now().toString(36), ...it }); lifeSave(items); draw(); };
+  const draw = () => {
+    items.sort((a, b) => a.date.localeCompare(b.date));
+    $("lifeList").innerHTML = items.length ? items.map(it => {
+      const n = Math.round((lifeParse(it.date) - lifeDay()) / 86400000);
+      return `<div class="result"><div><b>${esc(it.emo)} ${esc(it.name)}</b><small>${lifeParse(it.date).toLocaleDateString("en-GB", { weekday: "short", day: "numeric", month: "short", year: "numeric" })}</small>
+        <div class="life-acts">${it.link ? `<a href="${esc(it.link)}" target="_blank" rel="noopener">${esc(it.tip || "Renew")} ↗</a>` : ""}<button type="button" data-ics="${esc(it.id)}">Add to calendar</button><button type="button" data-del="${esc(it.id)}">Remove</button></div></div>
+        <span class="price ${n < 0 ? "late" : n <= 30 ? "soon" : "ok"}">${lifeLeft(n)}</span></div>`;
+    }).join("") : `<p class="sample">Nothing yet. Find your car's dates or add one above.</p>`;
+  };
+  $("lifeList").onclick = e => {
+    const d = e.target.closest("[data-del]"), c = e.target.closest("[data-ics]");
+    if (d) { items = items.filter(x => x.id !== d.dataset.del); lifeSave(items); draw(); }
+    if (c) { const it = items.find(x => x.id === c.dataset.ics); if (it) lifeIcs(it); }
+  };
+  $("lifeChips").onclick = e => {
+    const b = e.target.closest("button"); if (!b) return;
+    picked = LIFE_PRESETS.find(p => p[0] === b.dataset.k);
+    [...$("lifeChips").children].forEach(x => x.setAttribute("aria-pressed", String(x === b)));
+    $("lifeName").value = picked[2]; $("lifeDate").value = ""; $("lifeAdd").classList.add("on");
+    (picked[2] ? $("lifeDate") : $("lifeName")).focus();
+  };
+  $("lifeAdd").onsubmit = e => {
+    e.preventDefault();
+    const name = $("lifeName").value.trim(), date = $("lifeDate").value;
+    if (!name || !date) return;
+    add({ emo: picked ? picked[1] : "📌", name, date, link: picked ? picked[3] : "", tip: picked ? picked[4] : "" });
+    $("lifeAdd").classList.remove("on"); [...$("lifeChips").children].forEach(x => x.setAttribute("aria-pressed", "false"));
+    toast("Added");
+  };
+  const findCar = async () => {
+    const reg = $("lifeReg").value.replace(/\s+/g, "").toUpperCase(); if (reg.length < 2) return;
+    $("lifeMsg").textContent = "Checking DVLA…";
+    try {
+      const d = await getJSON(`${API}/api/mot?reg=${encodeURIComponent(reg)}`);
+      const label = [d.make, reg].filter(Boolean).join(" ");
+      const when = (f, days) => f && /^\d{4}-\d{2}-\d{2}/.test(f) ? f.slice(0, 10) : (days != null && !isNaN(days) ? (() => { const x = lifeDay(); x.setDate(x.getDate() + Number(days)); return lifeIso(x); })() : null);
+      const mot = when(d.mot_expiry_date || d.mot_expiry || d.mot_due, d.days_left), tax = when(d.tax_due_date || d.tax_due, d.tax_days_left), got = [];
+      if (mot) { add({ key: "mot-" + reg, emo: "🔧", name: `MOT due, ${label}`, date: mot, link: "https://www.gov.uk/getting-an-mot", tip: "Book an MOT" }); got.push("MOT"); }
+      if (tax) { add({ key: "tax-" + reg, emo: "🧾", name: `Road tax due, ${label}`, date: tax, link: "https://www.gov.uk/vehicle-tax", tip: "Tax on GOV.UK" }); got.push("road tax"); }
+      $("lifeMsg").textContent = got.length ? `Added ${got.join(" and ")} for ${label}. Live from DVLA.` : `Found ${label}, but no MOT or tax dates came back.`;
+    } catch (err) { $("lifeMsg").textContent = (err && err.message) || "Couldn't check that right now."; }
+  };
+  $("lifeRegGo").onclick = findCar;
+  $("lifeReg").onkeydown = e => { if (e.key === "Enter") { e.preventDefault(); findCar(); } };
+  draw();
+}
+
+function lifeIcs(it) {
+  const ymd = d => lifeIso(d).replace(/-/g, ""), d = lifeParse(it.date), next = new Date(d); next.setDate(d.getDate() + 1);
+  const f = x => String(x).replace(/[,;\\]/g, m => "\\" + m), stamp = new Date().toISOString().replace(/[-:]/g, "").replace(/\.\d+/, "");
+  const ics = ["BEGIN:VCALENDAR", "VERSION:2.0", "PRODID:-//Human Agency//Life admin//EN", "BEGIN:VEVENT", `UID:${it.id}@humanagency.co`, `DTSTAMP:${stamp}`,
+    `DTSTART;VALUE=DATE:${ymd(d)}`, `DTEND;VALUE=DATE:${ymd(next)}`, `SUMMARY:${f(it.name)}`, `DESCRIPTION:${f((it.tip ? it.tip + ". " : "") + (it.link || ""))}`,
+    "BEGIN:VALARM", "ACTION:DISPLAY", `DESCRIPTION:${f(it.name)} in 2 weeks`, "TRIGGER:-P14D", "END:VALARM",
+    "BEGIN:VALARM", "ACTION:DISPLAY", `DESCRIPTION:${f(it.name)} in 2 days`, "TRIGGER:-P2D", "END:VALARM", "END:VEVENT", "END:VCALENDAR"].join("\r\n");
+  const a = document.createElement("a"); a.href = URL.createObjectURL(new Blob([ics], { type: "text/calendar" }));
+  a.download = it.name.replace(/[^a-z0-9]+/gi, "-").toLowerCase() + ".ics"; document.body.appendChild(a); a.click(); a.remove();
+}
+
 function wireTry(m) {
   if (["pubs","trains","schools"].includes(m.id)) return wireLive(m);
   if (m.id === "track") return wireTrack();
   if (m.id === "bizcheck") return wireBiz();
   if (m.id === "aibiz") return wireAi();
+  if (m.id === "lifeadmin") return wireLife();
   if (m.id === "company") {
     const go = $("tGo"), out = $("tOut");
     const intelUrl = n => `${INTEL}?q=${encodeURIComponent(n)}`;
