@@ -271,6 +271,8 @@ a.bin-btn { display:inline-block; text-decoration:none; }
 .places { display:flex; flex-wrap:wrap; gap:6px; justify-content:center; align-items:center; margin:10px auto 0; max-width:640px; position:relative; }
 .place { border:2px solid var(--ink); background:#fff; color:var(--ink); border-radius:999px; padding:5px 12px; font-weight:800; font-size:13px; cursor:pointer; }
 .place.on { background:var(--ink); color:#fff; }
+.tdextra { background:#fff6d6; border-radius:12px; padding:8px 10px !important; margin-top:6px; }
+.linkbtn { background:none; border:0; padding:0; font:inherit; font-weight:800; color:#8b5cf6; text-decoration:underline; cursor:pointer; }
 .newdot { display:inline-block; width:8px; height:8px; border-radius:50%; background:var(--pink); margin-left:6px; vertical-align:super; }
 .place.here { border-style:dashed; }
 .place.here.on { background:#2fd1a4; color:var(--ink); border-style:solid; }
@@ -588,16 +590,16 @@ const MODULES = [
   { id:"weather", type:"near", emo:"☀️", name:"Weather now", desc:"Current conditions for your postcode.", status:"ready", c:"#fff3b0", pkg:"@humanagency/weather-now", repo:"github.com/humanagencyco/weather-now" },
   { id:"fuel", type:"near", emo:"⛽", name:"Fuel prices", desc:"Cheapest petrol and diesel near a postcode.", status:"ready", c:"#ffd6e5", pkg:"@humanagency/fuel-finder", repo:"github.com/humanagencyco/fuel-finder" },
   { id:"mps", type:"near", emo:"🏛️", name:"MPs & councillors", desc:"Your MP and local councillors, with contact links.", status:"ready", c:"#d9ecff", pkg:"@humanagency/councillors", repo:"github.com/humanagencyco/councillors" },
-  { id:"cafes", type:"near", emo:"☕", name:"Cafés & chai", desc:"Independent cafés, with notes from people who've been.", status:"ready", c:"#ffe8c2", pkg:"@humanagency/places-cafes", repo:"github.com/humanagencyco/places-cafes" },
+  { id:"cafes", type:"near", emo:"☕", name:"Cafés & pubs", desc:"Independent cafés and pubs near you, with hygiene ratings where we have them.", status:"ready", c:"#ffe8c2", pkg:"@humanagency/places-cafes", repo:"github.com/humanagencyco/places-cafes" },
   { id:"trains", type:"near", emo:"🚆", name:"Train times", desc:"Next departures from your nearest station.", status:"beta", c:"#d6f7ec", pkg:"@humanagency/train-times", repo:"github.com/humanagencyco/train-times" },
-  { id:"bizcheck", type:"near", emo:"🏪", name:"Is your business easy to find?", desc:"Free instant check: your Google Maps listing, reviews, website, and whether AI assistants can read your site.", status:"ready", c:"#fff0d6", pkg:"", repo:"" },
-  { id:"aibiz", type:"near", emo:"🤖", name:"AI for your business", desc:"What ChatGPT, Claude and Copilot could do for a small business, and help to set it up.", status:"ready", c:"#efe2ff", pkg:"", repo:"" },
+  { id:"bizcheck", type:"biz", emo:"🏪", name:"Is your business easy to find?", desc:"Free instant check: your Google Maps listing, reviews, website, and whether AI assistants can read your site.", status:"ready", c:"#fff0d6", pkg:"", repo:"" },
+  { id:"aibiz", type:"biz", emo:"🤖", name:"AI for your business", desc:"What ChatGPT, Claude and Copilot could do for a small business, and help to set it up.", status:"ready", c:"#efe2ff", pkg:"", repo:"" },
   { id:"track", type:"near", emo:"🚉", name:"Your journey", desc:"Pick two stations. See the next trains there and back.", status:"ready", c:"#e2f0ff", pkg:"", repo:"", hidden:true },
   { id:"pharmacy", type:"near", emo:"💊", name:"Pharmacies open now", desc:"Open pharmacies nearby, with phone numbers.", status:"beta", c:"#efe2ff", pkg:"@humanagency/pharmacy-finder", repo:"github.com/humanagencyco/pharmacy-finder" },
   { id:"schools", type:"near", emo:"🏫", name:"Nearest schools", desc:"Schools near your postcode, with Ofsted and contact details.", status:"beta", c:"#fff0d6", pkg:"@humanagency/school-digest", repo:"github.com/humanagencyco/school-digest" },
   { id:"lifeadmin", type:"personal", emo:"📅", name:"Life admin reminders", desc:"MOT, road tax, passport, insurance. Your renewal dates in one place, with calendar reminders.", status:"ready", c:"#e2f6e9", pkg:"", repo:"", link:"/factory/admin/" },
   { id:"expenses", type:"personal", emo:"💷", name:"Expense tracker", desc:"Receipts sorted by category and month.", status:"beta", c:"#e4f6ff", pkg:"@humanagency/expense-tracker", repo:"github.com/humanagencyco/expense-tracker" },
-  { id:"pubs", type:"near", emo:"🍺", name:"Best pubs", desc:"Pubs near you, with hygiene ratings where we have them.", status:"beta", c:"#f0e9dd", pkg:"@humanagency/best-pubs", repo:"github.com/humanagencyco/best-pubs" },
+  { id:"pubs", type:"near", hidden:true, emo:"🍺", name:"Best pubs", desc:"Pubs near you, with hygiene ratings where we have them.", status:"beta", c:"#f0e9dd", pkg:"@humanagency/best-pubs", repo:"github.com/humanagencyco/best-pubs" },
 ];
 const LABEL = { ready:"Ready", beta:"Beta", soon:"Coming soon" };
 
@@ -708,7 +710,8 @@ async function loadTeasers() {
     },
     cafes: async () => {
       const list = await getJSON(`${API}/api/myarea/place-search?q=${encodeURIComponent(pc + " cafe")}`);
-      return list.length ? line(`${list.length} cafés found`) : line("No cafés found", false);
+      const pubs = await getJSON(`${API}/api/pubs-nearby?postcode=${encodeURIComponent(pc)}`).then(d => (d.pubs || []).length).catch(() => 0);
+      return list.length || pubs ? line(`${list.length} cafés · ${pubs} pubs nearby`) : line("None found nearby", false);
     },
     pubs: async () => {
       const d = await getJSON(`${API}/api/pubs-nearby?postcode=${encodeURIComponent(pc)}`);
@@ -955,6 +958,7 @@ function render() {
     </article>`;
   const SECTIONS = [
     ["near", "📍 Near you", "Uses the postcode you set above."],
+    ["biz", "🏪 For your business", "Free checks and ideas if you run something local."],
     ["topic", "🌍 Topics", "No postcode needed."],
     ["personal", "🔒 Personal", "Private to you. Some need a Miru login."],
   ];
@@ -975,7 +979,7 @@ function render() {
     <div class="offgrid">${official.map(([e, t, d, u]) => `<a class="offcard" href="${u}" target="_blank" rel="noopener"><span class="offe">${e}</span><b>${t}</b><small>${d}</small><span class="offgo">Open ↗</span></a>`).join("")}</div></div>`;
   $("binSlot").innerHTML = "";
   $("grid").innerHTML = SECTIONS.map(([t, title, sub]) => {
-    if (t !== activeSection) return "";
+    if (t !== activeSection && !(t === "biz" && activeSection === "near")) return "";
     const items = list.filter(m => m.type === t);
     const hidden = filtered.filter(m => m.type === t && layout.hide.includes(m.id)).length;
     const showHidden = hidden ? `<button class="showhidden" type="button" data-showhidden="${t}">Show ${hidden} hidden</button>` : "";
@@ -1430,9 +1434,17 @@ function wireTry(m) {
       if (m.id === "cafes" || m.id === "pharmacy") {
         const pc = normPC($("tIn").value); if (!pc) return badPC();
         const list = await getJSON(`${API}/api/myarea/place-search?q=${encodeURIComponent(pc + (m.id === "pharmacy" ? " pharmacy" : " cafe"))}`);
-        if (!list.length) return show(`<div class="sample">No ${m.id === "pharmacy" ? "pharmacies" : "cafés"} found near ${esc(pc)}.</div>`);
-        show(list.map(r => `<div class="result"><div><b>${esc(r.name)}</b><small>${esc(r.address)}</small></div><small>${esc(r.phone || "")}</small></div>`).join("")
-          + `<div class="sample">Live from Google Places and OpenStreetMap</div>`);
+        const rowsHtml = list.length ? list.map(r => `<div class="result"><div><b>${esc(r.name)}</b><small>${esc(r.address)}</small></div><small>${esc(r.phone || "")}</small></div>`).join("")
+          : `<div class="sample">No ${m.id === "pharmacy" ? "pharmacies" : "cafés"} found near ${esc(pc)}.</div>`;
+        if (m.id === "pharmacy") return show(rowsHtml + `<div class="sample">Live from Google Places and OpenStreetMap</div>`);
+        show(`<div class="subhead" style="margin-top:0">☕ Cafés</div>` + rowsHtml + `<div class="subhead">🍺 Pubs</div><div id="pubsOut"><div class="sample">Finding pubs…</div></div>`);
+        try {
+          const d = await getJSON(`${API}/api/pubs-nearby?postcode=${encodeURIComponent(pc)}`);
+          $("pubsOut").innerHTML = (d.pubs || []).length
+            ? d.pubs.slice(0, 8).map(p => `<div class="result"><div><b>${esc(p.name)}</b><small>${p.distance_km} km${p.website ? ` · <a href="${esc(p.website)}" target="_blank" rel="noopener">Website</a>` : ""}</small></div><small style="text-align:right">${p.fhrs_rating != null ? "Hygiene " + esc(p.fhrs_rating) : ""}${p.phone ? "<br>" + esc(p.phone) : ""}</small></div>`).join("")
+            : `<div class="sample">No pubs found near ${esc(pc)}.</div>`;
+        } catch (_) { $("pubsOut").innerHTML = `<div class="sample">Pubs aren't available right now.</div>`; }
+        $("pubsOut").insertAdjacentHTML("beforeend", `<div class="sample">Live from Google Places, OpenStreetMap and the Food Standards Agency</div>`);
       }
     } catch (e) { fail(e); }
   };
@@ -1654,6 +1666,7 @@ async function loadToday() {
   const OPEN = { wx: "weather", fuel: "fuel", train: "trains", bin: "" };
   el.innerHTML = `<div class="tdhead"><h2>${hereNow ? `Near you now · ${esc(pc)}` : `Today in ${esc(pc)}`}</h2><span class="tddate">${esc(new Date().toLocaleDateString("en-GB", { weekday: "long", day: "numeric", month: "long" }))}</span>${installBtn()}</div>
     <div>${["wx", "fuel", "train", "bin"].map(k => `<div class="tdrow" id="td-${k}"${OPEN[k] ? ` data-open="${OPEN[k]}"` : ""}><span class="tdi">${ICON[k]}</span><span class="tdt muted">Checking…</span></div>`).join("")}</div>
+    <div id="td-extra"></div>
     <div class="tdchanges" id="tdChanges"></div>
     ${familyTip()}
     <div class="remind" id="remind"></div>`;
@@ -1683,10 +1696,37 @@ async function loadToday() {
     put("bin", `${atHome}<b>${esc(cap(b.now.join(" and ").toLowerCase()))} ${esc(b.when)}.</b>${b.later ? ` ${esc(cap(b.later.bin.toLowerCase()))} ${esc(dayWord(b.later.d))}.` : ""}`);
   }).catch(() => put("bin", "Bin days aren't available right now.", true));
 
+  todayExtra(seq);
   const [w, c] = await Promise.all([wx, fuel]);
   if (seq !== todaySeq) return;
   showChanges(pc, { [`fuel_${fuelType}`]: c ? c.price_p : null, [`brand_${fuelType}`]: c ? shortBrand(c.brand) : null, temp: w ? w.temp : null });
 }
+// One extra line in Today, only when something needs you soon. Most days it stays empty.
+async function todayExtra(seq) {
+  const el = () => document.getElementById("td-extra");
+  const days = iso => Math.round((new Date(iso + "T00:00:00") - lifeDay()) / 86400000);
+  const when = n => n < 0 ? `${-n} day${n === -1 ? "" : "s"} overdue` : n === 0 ? "today" : n === 1 ? "tomorrow" : `in ${n} days`;
+  const picks = [];
+  // Renewals you've saved (and car dates, refreshed from DVLA)
+  try {
+    lifeLoad().forEach(x => { const n = days(x.date); if (n <= 14) picks.push({ n, html: `<b>${esc(x.name)} ${when(n)}.</b> ${x.link ? `<a href="${esc(x.link)}" target="_blank" rel="noopener">${esc(x.tip || "Renew")} ↗</a>` : `<button class="linkbtn" type="button" data-open-mod="lifeadmin">See dates</button>`}`, icon: x.emo || "📅" }); });
+  } catch (_) {}
+  // School deadlines Miru found, if signed in
+  try {
+    const m = await fetch(`${API}/api/factory/me/messages`, AUTH).then(r => r.ok ? r.json() : {});
+    (m.messages || []).filter(x => x.deadline).forEach(x => { const n = days(String(x.deadline).slice(0, 10)); if (n >= 0 && n <= 7) picks.push({ n, icon: "📬", html: `<b>${esc(x.child ? x.child + ": " : "")}${esc(x.title || "School message")}</b>, due ${when(n)}.` }); });
+  } catch (_) {}
+  // Bank holidays in the next week (England and Wales)
+  try {
+    const b = await fetch("https://www.gov.uk/bank-holidays.json").then(r => r.json());
+    const next = (b["england-and-wales"].events || []).map(e => ({ ...e, n: days(e.date) })).find(e => e.n >= 0 && e.n <= 6);
+    if (next) picks.push({ n: next.n + 0.5, icon: "🏦", html: `<b>${esc(next.title)} ${when(next.n)}</b> (${new Date(next.date + "T00:00:00").toLocaleDateString("en-GB", { weekday: "long" })}). Bin days and trains may change.` });
+  } catch (_) {}
+  if (seq !== todaySeq || !el()) return;
+  const top = picks.sort((a, b) => a.n - b.n)[0];
+  el().innerHTML = top ? `<div class="tdrow tdextra"><span class="tdi">${top.icon}</span><span class="tdt">${top.html}</span></div>` : "";
+}
+
 function showChanges(pc, nowVals) {
   const all = LS.get(SEEN_KEY, {}), rec = all[pc] || {}, now = Date.now();
   const fresh = rec.cur && now - rec.cur.ts <= WINDOW_MS;
