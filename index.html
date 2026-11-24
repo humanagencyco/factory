@@ -433,6 +433,27 @@ body.back .stepsmore { display:none; }
 .answer b { font-size:15px; }
 .answer small { display:block; color:var(--muted); margin-top:4px; }
 @media (max-width:700px) { .tdhead .install { margin-left:0; } }
+
+/* Phones: tools as compact rows, one line of tabs, no developer filters */
+@media (max-width:600px) {
+  .navrow { margin:22px 0 14px; gap:8px; }
+  .secnav { display:flex; width:100%; flex-wrap:nowrap; box-shadow:3px 3px 0 var(--ink); }
+  .secnav button { flex:1; padding:9px 6px; font-size:14px; white-space:nowrap; }
+  .livetog { display:none !important; }
+  .grid, .rowline { grid-template-columns:1fr !important; gap:10px !important; }
+  .mod { display:grid; grid-template-columns:44px minmax(0,1fr) auto; grid-template-areas:"emo title go" "emo teaser go"; align-items:center; column-gap:12px; row-gap:2px; padding:12px 14px; box-shadow:3px 3px 0 var(--ink); }
+  .mod:hover { transform:none; box-shadow:3px 3px 0 var(--ink); }
+  .mod .emo { grid-area:emo; width:44px; height:44px; font-size:22px; border-radius:14px; }
+  .mod h3 { grid-area:title; font-size:16px; margin:0; }
+  .mod > p, .mod > div:not([class]), .mod .cardtools, .mod .acts .mini { display:none !important; }
+  .mod .teaser { grid-area:teaser; margin:0; min-height:0; font-size:12.5px; }
+  .mod .teaser:empty { display:none; }
+  .mod .acts { grid-area:go; margin:0; }
+  .mod .go { font-size:0; }
+  .mod .go::after { content:"›"; font-size:28px; line-height:1; color:var(--ink); }
+  .sec h2 { font-size:20px !important; }
+  .sec h2 span { display:block; font-size:13px; margin-top:2px; }
+}
 </style>
 <link rel="manifest" href="manifest.webmanifest">
 <meta name="theme-color" content="#fff8f1">
@@ -765,8 +786,7 @@ async function loadPersonal() {
     if (!me.signed_in) { document.body.classList.remove("signedin"); return renderSignIn(box); }
     if (activeSection !== "personal") {
       box.innerHTML = `<div class="sample" style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap">
-        <span>🔒 Signed in. Your school messages, spending and bin day are under <b>Personal</b>.</span>
-        <button class="link" id="goPersonal" style="padding:4px 0">Open Personal →</button></div>`;
+        <span>🔒 Signed in. School messages, what's coming up and your spend are in <button class="link" id="goPersonal" style="background:none;border:0;padding:0;font:inherit;font-weight:900;color:#8b5cf6;text-decoration:underline;cursor:pointer">Personal</button>.</span></div>`;
       $("goPersonal").onclick = () => { activeSection = "personal"; render(); };
       return;
     }
