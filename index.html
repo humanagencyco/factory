@@ -721,6 +721,8 @@ async function loadTeasers() {
   const line = (txt, ok = true) => `<span class="tz ${ok ? "tz-ok" : "tz-no"}">${txt}</span>`;
   const jobs = {
     bizcheck: async () => line("Free, instant, no sign-up"),
+    company: async () => line("Any UK company or brand"),
+    vehicle: async () => line("Any UK registration"),
     aibiz: async () => line("Free ideas for your business"),
     track: async () => {
       const j = myTrains();
@@ -1707,12 +1709,12 @@ async function loadToday() {
   const el = document.getElementById("today"); if (!el) return;
   const pc = postcode, seq = ++todaySeq;
   const ICON = { wx: "🌤️", fuel: "⛽", train: "🚆", bin: "🗑️" };
-  const OPEN = { wx: "weather", fuel: "fuel", train: "trains", bin: "" };
+  const OPEN = { wx: "weather", fuel: "fuel", train: "trains", bin: "bins" };
   el.innerHTML = `<div class="tdhead"><h2>${hereNow ? `Near you now · ${esc(pc)}` : `Today in ${esc(pc)}`}</h2><span class="tddate">${esc(new Date().toLocaleDateString("en-GB", { weekday: "long", day: "numeric", month: "long" }))}</span>${installBtn()}</div>
     <div>${["wx", "fuel", "train", "bin"].map(k => `<div class="tdrow" id="td-${k}"${OPEN[k] ? ` data-open="${OPEN[k]}"` : ""}><span class="tdi">${ICON[k]}</span><span class="tdt muted">Checking…</span></div>`).join("")}</div>
     <div id="td-extra"></div>
     <div class="tdchanges" id="tdChanges"></div>
-    ${familyTip()}
+    ${V2 ? "" : familyTip()}
     <div class="remind" id="remind"></div>`;
   renderRemind();
   const put = (k, html, muted) => { if (seq !== todaySeq) return; const r = document.getElementById("td-" + k); if (r) r.innerHTML = `<span class="tdi">${ICON[k]}</span><span class="tdt${muted ? " muted" : ""}">${html}</span>`; };
