@@ -630,7 +630,11 @@ const TODAY_IDS = ["weather", "fuel", "trains", "bins"];
 if (V2) {
   document.body.classList.add("v2");
   MODULES.forEach(m => { if (m.id === "company" || m.id === "vehicle") m.type = "near"; });
-  const ab = document.getElementById("v2AreaBox"); if (ab) ab.addEventListener("toggle", () => { if (ab.open && typeof loadArea === "function") loadArea(); });
+  // The footer comes after this script in the page, so wire it once the page has loaded
+  document.addEventListener("DOMContentLoaded", () => {
+    const ab = document.getElementById("v2AreaBox"); if (ab) ab.addEventListener("toggle", () => { if (ab.open && typeof loadArea === "function") loadArea(); });
+    if (typeof render === "function") render();
+  });
   const h = document.querySelector(".hero h1"); if (h) h.innerHTML = "Your area,<br><span>every morning.</span>";
   const l = document.querySelector(".hero .lede"); if (l) l.textContent = "Weather, fuel, trains and bin day for your postcode, in one glance. Set it once and check it with your coffee.";
 }
