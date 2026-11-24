@@ -754,6 +754,18 @@ async function loadPersonal() {
             <div id="kList">${listHtml()}</div>
             <a class="melink" href="https://miru.humanagency.co/" target="_blank" rel="noopener">See all in Miru ↗</a>
           </section>`;
+    await lifeRefreshCars();
+    const dueSoon = [
+      ...lifeLoad().map(x => ({ emo: x.emo, name: x.name, date: x.date, from: "" })),
+      ...all.filter(x => x.deadline).map(x => ({ emo: "📬", name: x.title || "School message", date: String(x.deadline).slice(0, 10), from: [x.child, "found in school messages"].filter(Boolean).join(", ") })),
+    ].filter(x => /^\d{4}-\d{2}-\d{2}$/.test(x.date) && lifeParse(x.date) >= new Date(Date.now() - 7 * 86400000)).sort((a, b) => a.date.localeCompare(b.date)).slice(0, 5);
+    const lifeCard = `
+          <section class="mecard">
+            <h3>📅 Coming up</h3>
+            ${dueSoon.length ? `<ul class="melist">${dueSoon.map(x => { const n = Math.round((lifeParse(x.date) - lifeDay()) / 86400000); return `<li><span class="datepill">${esc(lifeLeft(n))}</span><div class="melbody"><b>${esc(x.emo)} ${esc(x.name)}</b>${x.from ? `<div class="mechips"><span class="chip2 quiet">${esc(x.from)}</span></div>` : ""}</div></li>`; }).join("")}</ul>`
+              : `<p class="muted">Nothing coming up yet. Add your car, passport or insurance dates and they'll show here.</p>`}
+            <button class="melink" type="button" id="openLife" style="background:none;border:0;padding:0;cursor:pointer">Life admin reminders →</button>
+          </section>`;
     const period = esc(spend.period || "this month");
     const total = Number(spend.total || 0);
     box.innerHTML = `
@@ -764,12 +776,15 @@ async function loadPersonal() {
         </div>
         <div class="melayout">
           ${schoolCard}
+          <div style="display:grid;gap:16px">
+          ${lifeCard}
           <section class="mecard spendcard">
             <h3>💷 Spend, ${period}</h3>
             <div class="bignum">£${total.toFixed(2)}</div>
             <p class="muted">${total === 0 ? "No receipts logged yet this month." : "From your logged receipts."}</p>
             <a class="melink" href="https://miru.humanagency.co/" target="_blank" rel="noopener">Add receipts in Miru ↗</a>
           </section>
+          </div>
         </div>
       </div>`;
     box.querySelectorAll(".ktab").forEach(b => b.onclick = () => {
@@ -777,6 +792,7 @@ async function loadPersonal() {
       box.querySelectorAll(".ktab").forEach(x => x.setAttribute("aria-pressed", String(x === b)));
       document.getElementById("kList").innerHTML = listHtml();
     });
+    document.getElementById("openLife").onclick = () => openModule("lifeadmin");
     document.getElementById("pSignOut").onclick = async () => {
       await fetch(`${API}/api/auth/logout`, { method: "POST", credentials: "include" });
       loadPersonal();
@@ -1127,6 +1143,25 @@ const LIFE_PRESETS = [
   ["energy", "⚡", "Energy tariff ends", "", "Look at new fixes a few weeks before"],
   ["other", "📌", "", "", ""],
 ];
+const LIFE_CARS = "ha-life-admin-cars";
+const lifeCars = () => { try { return JSON.parse(localStorage.getItem(LIFE_CARS) || "[]"); } catch (_) { return []; } };
+const lifeKeepCar = reg => { try { const c = lifeCars().filter(x => x !== reg); c.push(reg); localStorage.setItem(LIFE_CARS, JSON.stringify(c.slice(-3))); } catch (_) {} };
+const lifeWhen = (f, days) => f && /^\d{4}-\d{2}-\d{2}/.test(f) ? f.slice(0, 10) : (days != null && !isNaN(days) ? (() => { const x = new Date(); x.setHours(0, 0, 0, 0); x.setDate(x.getDate() + Number(days)); return `${x.getFullYear()}-${String(x.getMonth() + 1).padStart(2, "0")}-${String(x.getDate()).padStart(2, "0")}`; })() : null);
+// Fetch fresh MOT and tax dates for the saved cars and update the list
+async function lifeRefreshCars() {
+  const cars = lifeCars(); if (!cars.length) return;
+  let items = lifeLoad();
+  for (const reg of cars) {
+    try {
+      const d = await getJSON(`${API}/api/mot?reg=${encodeURIComponent(reg)}`);
+      const label = [d.make, reg].filter(Boolean).join(" ");
+      const put = (key, emo, name, date, link, tip) => { if (!date) return; const old = items.find(x => x.key === key); items = items.filter(x => x.key !== key); items.push({ id: old ? old.id : key, key, emo, name, date, link, tip }); };
+      put("mot-" + reg, "🔧", `MOT due, ${label}`, lifeWhen(d.mot_expiry_date || d.mot_expiry || d.mot_due, d.days_left), "https://www.gov.uk/getting-an-mot", "Book an MOT");
+      put("tax-" + reg, "🧾", `Road tax due, ${label}`, lifeWhen(d.tax_due_date || d.tax_due, d.tax_days_left), "https://www.gov.uk/vehicle-tax", "Tax on GOV.UK");
+    } catch (_) {}
+  }
+  lifeSave(items);
+}
 const lifeLoad = () => { try { return JSON.parse(localStorage.getItem(LIFE_KEY) || "[]"); } catch (_) { return []; } };
 const lifeSave = v => { try { localStorage.setItem(LIFE_KEY, JSON.stringify(v)); } catch (_) {} };
 const lifeDay = () => { const d = new Date(); d.setHours(0, 0, 0, 0); return d; };
@@ -1187,10 +1222,12 @@ function wireLife() {
       const mot = when(d.mot_expiry_date || d.mot_expiry || d.mot_due, d.days_left), tax = when(d.tax_due_date || d.tax_due, d.tax_days_left), got = [];
       if (mot) { add({ key: "mot-" + reg, emo: "🔧", name: `MOT due, ${label}`, date: mot, link: "https://www.gov.uk/getting-an-mot", tip: "Book an MOT" }); got.push("MOT"); }
       if (tax) { add({ key: "tax-" + reg, emo: "🧾", name: `Road tax due, ${label}`, date: tax, link: "https://www.gov.uk/vehicle-tax", tip: "Tax on GOV.UK" }); got.push("road tax"); }
-      $("lifeMsg").textContent = got.length ? `Added ${got.join(" and ")} for ${label}. Live from DVLA.` : `Found ${label}, but no MOT or tax dates came back.`;
+      if (got.length) lifeKeepCar(reg);
+      $("lifeMsg").textContent = got.length ? `Added ${got.join(" and ")} for ${label}. Live from DVLA, and it will update itself each visit.` : `Found ${label}, but no MOT or tax dates came back.`;
     } catch (err) { $("lifeMsg").textContent = (err && err.message) || "Couldn't check that right now."; }
   };
   $("lifeRegGo").onclick = findCar;
+  lifeRefreshCars().then(() => { items = lifeLoad(); draw(); });
   $("lifeReg").onkeydown = e => { if (e.key === "Enter") { e.preventDefault(); findCar(); } };
   draw();
 }

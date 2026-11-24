@@ -194,8 +194,9 @@ $("carForm").addEventListener("submit", async e => {
     const added = [];
     if (mot) { upsert({ key: "mot-" + reg, emo: CAR.mot.emo, name: `MOT due, ${label}`, date: mot, link: CAR.mot.link, tip: CAR.mot.tip }); added.push("MOT"); }
     if (tax) { upsert({ key: "tax-" + reg, emo: CAR.tax.emo, name: `Road tax due, ${label}`, date: tax, link: CAR.tax.link, tip: CAR.tax.tip }); added.push("road tax"); }
+    if (added.length) { try { const c = JSON.parse(localStorage.getItem("ha-life-admin-cars") || "[]").filter(x => x !== reg); c.push(reg); localStorage.setItem("ha-life-admin-cars", JSON.stringify(c.slice(-3))); } catch (_) {} }
     $("carMsg").textContent = added.length
-      ? `Added ${added.join(" and ")} for ${label}. Live from DVLA.`
+      ? `Added ${added.join(" and ")} for ${label}. Live from DVLA, and it will update itself each visit.`
       : `Found ${label}, but DVLA didn't give MOT or tax dates. ${d.mot_status ? "MOT: " + d.mot_status + ". " : ""}${d.tax_status ? "Tax: " + d.tax_status + "." : ""}`;
   } catch (err) { $("carMsg").textContent = err.message || "Couldn't check that right now."; }
 });
@@ -220,6 +221,20 @@ $("addForm").addEventListener("submit", e => {
   $("aCancel").onclick();
 });
 
+// Refresh MOT and tax for saved cars each visit
+(async () => {
+  let cars = []; try { cars = JSON.parse(localStorage.getItem("ha-life-admin-cars") || "[]"); } catch (_) {}
+  for (const reg of cars) {
+    try {
+      const r = await fetch(`${API}/api/mot?reg=${encodeURIComponent(reg)}`); if (!r.ok) continue;
+      const d = await r.json(), label = [d.make, reg].filter(Boolean).join(" ");
+      const when = (f, days) => f && /^\d{4}-\d{2}-\d{2}/.test(f) ? f.slice(0, 10) : (days != null && !isNaN(days) ? (() => { const x = today(); x.setDate(x.getDate() + Number(days)); return iso(x); })() : null);
+      const mot = when(d.mot_expiry_date || d.mot_expiry || d.mot_due, d.days_left), tax = when(d.tax_due_date || d.tax_due, d.tax_days_left);
+      if (mot) upsert({ key: "mot-" + reg, emo: CAR.mot.emo, name: `MOT due, ${label}`, date: mot, link: CAR.mot.link, tip: CAR.mot.tip });
+      if (tax) upsert({ key: "tax-" + reg, emo: CAR.tax.emo, name: `Road tax due, ${label}`, date: tax, link: CAR.tax.link, tip: CAR.tax.tip });
+    } catch (_) {}
+  }
+})();
 render();
 </script>
 </body>
