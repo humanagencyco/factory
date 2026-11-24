@@ -271,6 +271,7 @@ a.bin-btn { display:inline-block; text-decoration:none; }
 .places { display:flex; flex-wrap:wrap; gap:6px; justify-content:center; align-items:center; margin:10px auto 0; max-width:640px; position:relative; }
 .place { border:2px solid var(--ink); background:#fff; color:var(--ink); border-radius:999px; padding:5px 12px; font-weight:800; font-size:13px; cursor:pointer; }
 .place.on { background:var(--ink); color:#fff; }
+.newdot { display:inline-block; width:8px; height:8px; border-radius:50%; background:var(--pink); margin-left:6px; vertical-align:super; }
 .place.here { border-style:dashed; }
 .place.here.on { background:#2fd1a4; color:var(--ink); border-style:solid; }
 .place.add { border-style:dashed; background:transparent; }
@@ -877,7 +878,8 @@ function markPrep(k) { if (!prepOn) return; prepState[k] = true; drawPrep(PREP_S
 function startPrep() { prepOn = true; prepState = { pc: true }; drawPrep(false); }
 function renderSecNav() {
   const tabs = [["near","📍 Near you"],["topic","🌍 Topics"],["personal","🔒 Personal"]];
-  $("secnav").innerHTML = tabs.map(([k,l]) => `<button role="tab" data-s="${k}" aria-selected="${k===activeSection}">${l}</button>`).join("");
+  const fresh = k => MODULES.filter(m => m.type === k && NEWMODS.has(m.id)).map(m => m.name);
+  $("secnav").innerHTML = tabs.map(([k,l]) => { const n = fresh(k); return `<button role="tab" data-s="${k}" aria-selected="${k===activeSection}"${n.length ? ` title="New: ${esc(n.join(", "))}"` : ""}>${l}${n.length ? `<span class="newdot" aria-label="new"></span>` : ""}</button>`; }).join("");
   $("secnav").querySelectorAll("button").forEach(b => b.onclick = () => { activeSection = b.dataset.s; render(); });
 }
 function render() {
@@ -1656,7 +1658,6 @@ function showChanges(pc, nowVals) {
     if (wb && ib && wb !== ib) chips.push(`<span class="chg">Cheapest is now ${esc(ib)} (was ${esc(wb)})</span>`);
     if (p.temp != null && clean.temp != null && Math.abs(clean.temp - p.temp) >= 4) chips.push(`<span class="chg">${clean.temp > p.temp ? "🌡️ Warmer" : "🧣 Colder"} than ${since.replace(/^since /, "on ")} by ${Math.abs(clean.temp - p.temp)}°C</span>`);
   }
-  NEWMODS.forEach(id => { const m = MODULES.find(x => x.id === id); if (m) chips.push(`<span class="chg">✨ New here: ${esc(m.name)}</span>`); });
   if (!p && !chips.length) chips.push(`<span class="chg quiet">Come back tomorrow and we'll show you what's changed.</span>`);
   out.innerHTML = chips.join("");
 }
