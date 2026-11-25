@@ -767,7 +767,8 @@ async function loadTeasers() {
     },
     schools: async () => {
       const d = await getJSON(`${API}/api/factory/schools-near?postcode=${encodeURIComponent(pc)}`);
-      return d.schools && d.schools.length ? line(`${d.schools.length} schools nearby`) : line("No schools found", false);
+      const list = openSchools(d.schools);
+      return list.length ? line(`Nearest: ${esc(list[0].name)}, ${list[0].distance_km} km`) : line("No schools found", false);
     },
     bins: async () => {
       const b = await todayBins(homePc());
@@ -1284,9 +1285,10 @@ async function wireLive(m) {
       }
       if (m.id === "schools") {
         const d = await getJSON(`${API}/api/factory/schools-near?postcode=${encodeURIComponent(pc)}`);
-        if (!d.schools.length) return show(`<div class="sample">No schools found near ${esc(pc)}.</div>`);
-        show(d.schools.map(r => `<div class="result"><div><b>${esc(r.name)}</b><small>${esc(r.postcode)} · ${r.distance_km} km${r.type ? " · " + esc(r.type) : ""}</small></div><div class="ofsted">${r.ofsted_rating ? `<span class="chip2">Ofsted: ${esc(r.ofsted_rating)}</span>` : `<span class="chip2 quiet">Not yet rated</span>`}${r.ofsted_report ? ` <a href="${esc(r.ofsted_report)}" target="_blank" rel="noopener">Report ↗</a>` : ""}</div></div>`).join("")
-          + `<div class="sample">Live from the DfE school register. Since November 2025 Ofsted gives schools a report card with a grade for each area instead of one overall word, so older inspections show the last one-word grade. Tap a report for the detail.</div>`);
+        const list = openSchools(d.schools);
+        if (!list.length) return show(`<div class="sample">No schools found near ${esc(pc)}.</div>`);
+        show(list.map(r => `<div class="result"><div><b>${esc(r.name)}</b><small>${esc(r.postcode)} · ${r.distance_km} km${r.type ? " · " + esc(r.type) : ""}</small></div><div class="ofsted">${r.ofsted_rating ? `<span class="chip2 quiet">Last one-word grade: ${esc(r.ofsted_rating)}</span> ` : ""}<a href="${esc(r.ofsted_report)}" target="_blank" rel="noopener">Ofsted report ↗</a></div></div>`).join("")
+          + `<div class="sample">From the DfE school register, within about 5 km. Ofsted stopped giving one overall grade in September 2024 and now uses report cards with a grade for each area, so open the report for the latest inspection.</div>`);
       }
     } catch (e) { fail(e); }
   };
@@ -1431,6 +1433,12 @@ async function housePrices(pcIn) {
   } catch (e) { out.innerHTML = `<div class="sample">Couldn't get house prices right now. Try again in a minute.</div>`; }
 }
 
+// The DfE register keeps closed schools and old records (before a school became an academy) next to the open one.
+// Those have no Ofsted link, so keep only records with one, once per name. Children's centres aren't schools.
+function openSchools(list) {
+  const seen = new Set();
+  return (list || []).filter(r => r.ofsted_report && !/children'?s cent(re|er)/i.test(r.name) && !seen.has(r.name.toLowerCase()) && seen.add(r.name.toLowerCase()));
+}
 function wireTry(m) {
   if (["pubs","trains","schools"].includes(m.id)) return wireLive(m);
   if (m.id === "track") return wireTrack();
