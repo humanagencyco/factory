@@ -80,7 +80,8 @@ const load = () => { try { return JSON.parse(localStorage.getItem(KEY) || "[]");
 const save = v => { try { localStorage.setItem(KEY, JSON.stringify(v)); } catch (_) {} };
 let leads = load().map(l => (l.v === 2 ? l : { ...l, v: 2, pts: (typeof l.score === "number" ? 10 - l.score : 3) + (l.gaps || []).reduce((s, x) => s + x[1], 0) }));
 // Leads saved while the checker was busy: mark them as a quick view so they can be rechecked
-leads.forEach(l => { if (l.score === "?" && l.quick === undefined) { l.quick = true; l.gaps = (l.gaps || []).filter(g => !/^Not easy to find on Google Maps|^No website/.test(g[0])); l.pts = 3 + l.gaps.reduce((s, x) => s + x[1], 0); } });
+leads.forEach(l => { if (l.score === "?" && (l.quick === undefined || l.v !== 3)) { l.v = 3; l.quick = true; l.quick = true; l.gaps = (l.gaps || []).filter(g => !/^Not easy to find on Google Maps|^No website|^Website/.test(g[0])); l.pts = 3 + l.gaps.reduce((s, x) => s + x[1], 0); } });
+save(leads);
 
 // Start from the postcode Factory already knows
 try { $("pc").value = localStorage.getItem("factory_postcode") || ""; } catch (_) {}
@@ -165,7 +166,7 @@ function render() {
   $("count").textContent = leads.length ? `Your leads (${leads.length})` : "Your leads";
   $("list").innerHTML = leads.length ? leads.map((l, i) => `<div class="lead">
       <div><b class="n">${esc(l.name)}</b> <span class="meta">${esc(l.type)}${l.town ? " · " + esc(l.town) : ""}</span>
-        <div class="meta">${l.phone ? `📞 <a href="tel:${esc(String(l.phone).replace(/\s+/g, ""))}">${esc(String(l.phone))}</a> · ` : ""}${l.site ? `<a href="${esc(l.site)}" target="_blank" rel="noopener">Website ↗</a> · ` : "No website · "}${l.rating ? `${esc(l.rating)}★ from ${esc(l.reviews || 0)} reviews` : "No Google rating"}${l.maps ? ` · <a href="${esc(l.maps)}" target="_blank" rel="noopener">Maps ↗</a>` : ""}</div></div>
+        <div class="meta">${l.phone ? `📞 <a href="tel:${esc(String(l.phone).replace(/\s+/g, ""))}">${esc(String(l.phone))}</a> · ` : ""}${l.site ? `<a href="${esc(l.site)}" target="_blank" rel="noopener">Website ↗</a> · ` : l.quick ? "Website not checked yet · " : "No website · "}${l.rating ? `${esc(l.rating)}★ from ${esc(l.reviews || 0)} reviews` : "No Google rating"}${l.maps ? ` · <a href="${esc(l.maps)}" target="_blank" rel="noopener">Maps ↗</a>` : ""}</div></div>
       <span class="opp ${level(l.pts)}" title="${l.quick ? "Quick view from the search. Tap Run full check for the website and AI checks." : ""}">${level(l.pts) === "high" ? "Big opportunity" : level(l.pts) === "med" ? "Some gaps" : "In good shape"} · ${l.quick ? "quick view" : esc(l.score) + "/10"}</span>
       ${l.gaps.length ? `<ul class="gaps">${l.gaps.slice(0, 4).map(g => `<li>${esc(g[0])}</li>`).join("")}</ul>` : ""}
       <div class="acts">
@@ -212,9 +213,11 @@ $("f").onsubmit = async e => {
     if (!found.length) { $("status").textContent = "No new businesses found. Try another type or postcode."; go.disabled = false; return; }
     // 1. Instant: rank everyone from the search data (rating, reviews, website). No checks used.
     found.forEach(p => {
-      const d = { google: { found: true, rating: p.rating, reviews: p.review_count, website: p.website }, website: p.website ? { url: p.website } : null };
-      const gaps = gapsFor(d);
-      leads.push({ name: p.name, type, pc: pcOf(p.address) || pc, town: townOf(p.address), phone: String(p.phone || ""), site: p.website || "", maps: "", rating: p.rating || "", reviews: p.review_count || 0, dist: p.dist_km || "", score: "?", quick: true, gaps, pts: 3 + gaps.reduce((s, x) => s + x[1], 0), status: "To contact", v: 2, added: new Date().toISOString().slice(0, 10) });
+      // The search doesn't say whether there's a website, so only judge what it does tell us
+      const gaps = [];
+      if ((p.review_count || 0) < 25) gaps.push([`Only ${p.review_count || 0} Google reviews`, 2]);
+      if (p.rating && p.rating < 4.2) gaps.push([`Google rating ${p.rating}, below most local rivals`, 2]);
+      leads.push({ name: p.name, type, pc: pcOf(p.address) || pc, town: townOf(p.address), phone: String(p.phone || ""), site: p.website || "", maps: "", rating: p.rating || "", reviews: p.review_count || 0, dist: p.dist_km || "", score: "?", quick: true, gaps, pts: 3 + gaps.reduce((s, x) => s + x[1], 0), status: "To contact", v: 3, added: new Date().toISOString().slice(0, 10) });
     });
     save(leads); render();
     // 2. Full check on the three most promising. The checker allows only a few an hour.
