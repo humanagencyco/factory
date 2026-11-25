@@ -258,7 +258,15 @@ const LANG = { en: "English", fr: "French", de: "German", es: "Spanish", it: "It
 const median = a => { a = a.filter(Boolean).sort((x, y) => x - y); return a.length ? (a.length % 2 ? a[(a.length - 1) / 2] : (a[a.length / 2 - 1] + a[a.length / 2]) / 2) : null; };
 const listPrices = d => [...((d.catalog_intelligence || {}).top_products || []).map(p => p.price), ...((d.pricing_intelligence || {}).competitor_prices || []).map(p => p.price)].map(num).filter(Boolean);
 
-async function wikiBrand(name) {
+const wikiCache = {};
+function wikiBrand(name) { return (wikiCache[name.toLowerCase()] ||= wikiBrandFetch(name).catch(e => { delete wikiCache[name.toLowerCase()]; throw e; })); }
+// "Magnum" alone finds condoms and wine bottles too; ask for "Magnum ice cream"
+async function brandQuery(name) {
+  try { const w = await wikiBrand(name); const q = w && w.qualifier; if (q && !name.toLowerCase().includes(q)) return `${name} ${q}`; } catch (_) {}
+  return name;
+}
+const brandDataFor = async name => brandData(await brandQuery(name));
+async function wikiBrandFetch(name) {
   const W = "https://en.wikipedia.org/w/api.php?format=json&origin=*&";
   const s = await getJSON(W + `action=query&list=search&srlimit=3&srsearch=${encodeURIComponent(name + " brand")}`);
   const hit = (s.query?.search || []).find(x => x.title.toLowerCase().startsWith(name.toLowerCase()));
@@ -266,10 +274,15 @@ async function wikiBrand(name) {
   const p = await getJSON(W + `action=query&prop=pageprops|langlinks&lllimit=500&titles=${encodeURIComponent(hit.title)}`);
   const pg = Object.values(p.query.pages)[0];
   const out = { title: hit.title, langs: (pg.langlinks || []).map(l => [l.lang, l["*"]]) };
+  const paren = (hit.title.match(/\(([^)]+)\)/) || [])[1] || "";
+  if (paren && !/brand|company|plc|ltd|group|band|film|song|album|novel/i.test(paren)) out.qualifier = paren.toLowerCase();
   const qid = pg.pageprops?.wikibase_item;
   if (qid) {
     const e = await getJSON(`https://www.wikidata.org/wiki/Special:EntityData/${qid}.json`);
     const c = e.entities[qid].claims || {};
+    const descr = (e.entities[qid].descriptions?.en?.value || "").toLowerCase();
+    if (!out.qualifier) { const m = descr.match(/^(?:a |an )?(?:british |american |swedish |german |french |italian |japanese )?(?:brand|line|range|make) of ([a-z -]+?)(?: by | from | made | produced | owned |,|$)/) || descr.match(/^(?:a |an )?([a-z -]+?) brand\b/); if (m && m[1].split(" ").length <= 3 && !/^(global|international|consumer|personal|british|american)$/.test(m[1].trim())) out.qualifier = m[1].trim(); }
+    out.description = descr;
     const ids = k => (c[k] || []).map(x => x.mainsnak.datavalue?.value?.id).filter(Boolean);
     const want = [...ids("P127"), ...ids("P495"), ...ids("P31"), ...ids("P452")];
     let labels = {};
@@ -295,7 +308,7 @@ async function wikiBrand(name) {
 async function loadGlance(name) {
   const el = document.getElementById("glance");
   if (!el) return;
-  const [d, w] = await Promise.all([brandData(name).catch(() => null), wikiBrand(name).catch(() => null)]);
+  const [d, w] = await Promise.all([brandDataFor(name).catch(() => null), wikiBrand(name).catch(() => null)]);
   const cat = (d && d.catalog_intelligence) || {};
   const titles = ((cat.top_products || []).map(p => p.title).concat(((d && d.pricing_intelligence || {}).competitor_prices || []).map(p => p.product))).join(" ").toLowerCase();
   const reviews = num(cat.review_count) || 0, langs = w ? w.langs.length + 1 : 0;
@@ -353,7 +366,7 @@ const money2 = n => "£" + n.toFixed(2);
 
 // ---------- Brand vs brand (type "Dove vs Nivea vs Sure") ----------
 async function brandFacts(name) {
-  const [d, w] = await Promise.all([brandData(name).catch(() => null), wikiBrand(name).catch(() => null)]);
+  const [d, w] = await Promise.all([brandDataFor(name).catch(() => null), wikiBrand(name).catch(() => null)]);
   const cat = (d && d.catalog_intelligence) || {}, pi = (d && d.pricing_intelligence) || {};
   const top = Array.isArray(cat.top_products) ? cat.top_products : [];
   const listings = [...top.map(p => ({ title: p.title, price: num(p.price), shop: p.source })), ...(pi.competitor_prices || []).map(p => ({ title: p.product, price: num(p.price), shop: p.retailer }))].filter(x => x.title);
@@ -583,7 +596,7 @@ async function loadOpportunities(name) {
   const el = document.getElementById("opps");
   if (!el) return;
   let d, h;
-  try { d = await brandData(name); } catch (e) { el.innerHTML = `<p class="note">Not available right now.</p>`; return; }
+  try { d = await brandDataFor(name); } catch (e) { el.innerHTML = `<p class="note">Not available right now.</p>`; return; }
   try { h = await hiringData(name); } catch (_) { h = null; }
   const cat = d.catalog_intelligence || {}, pi = d.pricing_intelligence || {}, ai = d.ai_visibility || {};
   const top = Array.isArray(cat.top_products) ? cat.top_products : [];
@@ -707,11 +720,17 @@ async function loadBrand(name) {
   const pr = document.getElementById("products"), nw = document.getElementById("news");
   if (!pr || !nw) return;
   try {
-    const d = await brandData(name);
+    const d = await brandDataFor(name);
     const cat = d.catalog_intelligence || {};
-    const top = Array.isArray(cat.top_products) ? cat.top_products : [];
+    const q = await brandQuery(name), kind = q !== name ? q.slice(name.length).trim() : "";
+    // Keep products that are this brand's kind of thing (Magnum ice cream, not Magnum boots), and never adult products by accident
+    const adult = /condom|lubricant|sex toy|vibrator/i;
+    const kindRe = kind ? new RegExp(kind.split(/\s+/).map(w => w.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")).join("|"), "i") : null;
+    let top = (Array.isArray(cat.top_products) ? cat.top_products : []).filter(p => !adult.test(p.title) || adult.test(kind));
+    if (kindRe && top.some(p => kindRe.test(p.title))) top = top.filter(p => kindRe.test(p.title));
     pr.innerHTML = top.length
-      ? priceSummary(d.pricing_intelligence || {}, cat, top)
+      ? (kind ? `<p class="note">Showing <b>${esc(name)} ${esc(kind)}</b>. Searching just "${esc(name)}" mixes in other products with the same name.</p>` : "")
+        + priceSummary(d.pricing_intelligence || {}, cat, top)
         + `<div class="prods">${(top.filter(p => new RegExp("\\b" + name.replace(/[.*+?^${}()|[\]\\]/g, "\\$&") + "\\b", "i").test(p.title)).length ? top.filter(p => new RegExp("\\b" + name.replace(/[.*+?^${}()|[\]\\]/g, "\\$&") + "\\b", "i").test(p.title)) : top).slice(0, 6).map(p => `<details class="prod"><summary><b>${esc(p.title)}</b> · ${esc(p.price || "")}${p.rating ? ` · ${esc(p.rating)}★` : ""} <span class="note">${esc(p.source || "")}</span></summary>
             <div class="prodbody">
               <p>${p.rating ? `Rated <b>${esc(p.rating)}★</b>${p.reviews ? ` from <b>${Number(String(p.reviews).replace(/[^0-9]/g, "") || 0).toLocaleString("en-GB")}</b> reviews` : ""} on Google Shopping` : "No Google Shopping rating yet"}${p.source ? `, sold by ${esc(p.source)}` : ""}${p.price ? ` at ${esc(p.price)}` : ""}.</p>
