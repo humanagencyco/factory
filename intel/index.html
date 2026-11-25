@@ -459,7 +459,7 @@ function todoHtml(d) {
     if (!d.has_product_schema) t.push(`<b>Describe products in a form machines read.</b> Add product details (name, size, price, stock, barcode, rating) as structured data on every product page.`);
     if (!d.has_org_schema) t.push(`<b>Say who you are, clearly.</b> Add brand details as structured data: official name, logo, website, social links.`);
   }
-  t.push(`<b>Answer the questions people ask AI.</b> "Best deodorant for sensitive skin?" Product pages need plain facts: what it's for, who it suits, ingredients, sizes, how it compares.`);
+  t.push(`<b>Answer the questions people ask AI.</b> People ask "which one is best for me?". Product pages need plain facts: what it's for, who it suits, what's in it, sizes, and how it compares.`);
   t.push(`<b>Keep listings the same everywhere.</b> AI blends what Tesco, Boots, Amazon and your site say. Matching names, sizes and photos mean it gets your products right.`);
   t.push(`<b>Get more recent reviews, and reply to them.</b> Assistants lean on review volume and what reviewers say.`);
   t.push(`<b>Check what AI says about you each month.</b> Ask ChatGPT, Gemini and Perplexity your category questions, and note whether you're named and how.`);
@@ -475,8 +475,14 @@ async function loadAiReady(name, domainIn) {
   const wire = () => { const f = document.getElementById("aiForm"); if (f) f.onsubmit = e => { e.preventDefault(); const v = document.getElementById("aiDom").value.trim(); if (v) { el.innerHTML = `<p class="note">Checking ${esc(v)}…</p>`; loadAiReady(name, v); } }; };
   if (!domain) { el.innerHTML = ask("We couldn't find the brand's website. Add it to check."); return wire(); }
   try {
-    const r = await fetch(`/factory/api/aiready.php?domain=${encodeURIComponent(domain)}`);
-    const d = await r.json();
+    // Prefer the UK site when the listed one is another country's (nivea.es → nivea.co.uk)
+    let r, d;
+    if (!domainIn && !/\.(uk|com)$/.test(domain)) {
+      const uk = domain.split(".")[0] + ".co.uk";
+      r = await fetch(`/factory/api/aiready.php?domain=${encodeURIComponent(uk)}`); d = await r.json().catch(() => ({}));
+      if (r.ok && d.opens) domain = uk; else d = null;
+    }
+    if (!d) { r = await fetch(`/factory/api/aiready.php?domain=${encodeURIComponent(domain)}`); d = await r.json(); }
     if (!r.ok || !d.opens) { el.innerHTML = ask(`${esc(domain)} turned our check away. Big brand sites often block automated visitors, and that can catch AI assistants too. You can see what it allows at <a href="https://${esc(domain)}/robots.txt" target="_blank" rel="noopener">${esc(domain)}/robots.txt ↗</a>, or try another address for the brand.`) + todoHtml(null); return wire(); }
     const blocked = d.ai_bots.filter(b => b.blocked).map(b => b.name);
     const verdict = blocked.length >= 3 ? "Mostly closed to AI assistants" : blocked.length ? "Partly open to AI assistants" : "Open to AI assistants";
