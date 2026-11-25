@@ -121,6 +121,7 @@ dialog::backdrop{background:rgba(36,24,74,.4);backdrop-filter:blur(3px)}
     <div class="foot" style="margin-top:0">
       <label class="link" style="cursor:pointer">📷 Scan the barcode<input type="file" id="snap" accept="image/*" capture="environment" hidden></label>
       <label class="link" style="cursor:pointer">🧾 Read my library slip<input type="file" id="slip" accept="image/*" capture="environment" hidden></label>
+      <button class="link" id="pasteList" style="cursor:pointer">📋 Paste a list</button>
       <button class="close" id="go">Find</button>
     </div>
     <p class="by" id="scanMsg" style="margin:6px 0 0"></p>
@@ -684,7 +685,7 @@ function openDetail(id) {
 }
 
 document.querySelectorAll(".pills button").forEach(b => b.onclick = () => { state.shelf = b.dataset.s; render(); });
-$("addBtn").onclick = () => { $("hits").innerHTML = ""; $("add").showModal(); $("q").focus(); };
+$("addBtn").onclick = () => { $("hits").innerHTML = ""; $("scanMsg").textContent = ""; $("add").showModal(); $("q").focus(); };
 $("closeAdd").onclick = () => $("add").close();
 $("go").onclick = async () => {
   $("hits").innerHTML = "<p>Looking…</p>";
@@ -749,6 +750,54 @@ $("snap").onchange = async e => {
     else { $("scanMsg").textContent = "Couldn't read that barcode. Try a closer, straighter photo, or type the number."; }
   } catch (err) { $("scanMsg").textContent = "The scanner isn't available right now. Type the number instead."; }
   e.target.value = "";
+};
+// Paste a list: one book per line, "Title ~ Author" (a tab or " by " works too). Lots of books in one go.
+// An optional third part picks the shelf for that line: reading, read, library or someday.
+const SHELF_WORDS = { reading: "reading", read: "read", library: "tb", "from the library": "tb", tb: "tb", someday: "wish", wish: "wish" };
+function parseList(text) {
+  return text.split(/\r?\n/).map(l => l.trim()).filter(Boolean).map(l => {
+    let parts = l.split(/\s*[~\t|]\s*/);
+    if (parts.length === 1 && / by /i.test(l)) parts = l.split(/ by /i);
+    const [title, author = "", shelf = ""] = parts.map(p => p.trim());
+    return { title, author, shelf: SHELF_WORDS[shelf.toLowerCase()] || "" };
+  }).filter(b => b.title);
+}
+$("pasteList").onclick = () => {
+  let shelf = "read";
+  $("sugg").innerHTML = "";
+  $("scanMsg").textContent = "One book per line: Title ~ Author";
+  $("hits").innerHTML = `<textarea id="bulkText" class="search" rows="8" style="min-height:160px;font-size:16px"
+      placeholder="The Wild Robot ~ Peter Brown&#10;Matilda ~ Roald Dahl"></textarea>
+    <div class="lab" style="font-weight:800">Put them on</div>
+    <div class="chips" id="bulkShelf">${["reading","read","tb","wish"].map(k => `<button class="chip ${k === shelf ? "on" : ""}" data-bs="${k}">${LABEL[k]}</button>`).join("")}</div>
+    <button id="bulkGo" class="add" style="margin-top:6px">Add these books</button>`;
+  $("bulkShelf").querySelectorAll("[data-bs]").forEach(b => b.onclick = () => {
+    shelf = b.dataset.bs;
+    $("bulkShelf").querySelectorAll("[data-bs]").forEach(x => x.classList.toggle("on", x === b));
+  });
+  $("bulkGo").onclick = async () => {
+    const r = currentReader(); if (!r) return;
+    const have = new Set(state.books.map(b => b.title.trim().toLowerCase()));
+    const list = parseList($("bulkText").value);
+    const todo = list.filter(b => { const k = b.title.toLowerCase(); if (have.has(k)) return false; have.add(k); return true; });
+    if (!todo.length) { $("scanMsg").textContent = list.length ? "They're all on your shelves already." : "Type or paste some books first."; return; }
+    $("bulkGo").disabled = true;
+    let done = 0, failed = 0;
+    for (const b of todo) {
+      $("scanMsg").textContent = `Adding ${done + failed + 1} of ${todo.length}…`;
+      const s = b.shelf || shelf;
+      try {
+        const row = await api("/api/books/list", { method: "POST", body: JSON.stringify({ household: household(), reader: r.id,
+          title: b.title, author: b.author, cover: "", shelf: s, rating: 0, finished: null, notes: "", book_id: null, due: null }) });
+        state.books.unshift({ id: row.id, title: b.title, author: b.author, cover: "", shelf: s, rating: 0, finished: "", notes: "",
+          added: today(), due: "", summary: "" });
+        done++;
+      } catch (e) { failed++; }
+    }
+    $("add").close(); $("hits").innerHTML = ""; $("scanMsg").textContent = ""; state.shelf = shelf; render();
+    const skipped = list.length - todo.length;
+    celebrate(`${done} books added 📚` + (skipped ? ` (${skipped} already there)` : "") + (failed ? ` · ${failed} didn't save, try those again` : ""));
+  };
 };
 $("find").oninput = e => { state.q = e.target.value; render(); };
 
