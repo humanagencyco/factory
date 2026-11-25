@@ -2110,10 +2110,21 @@ function bizResult(d) {
     ${h}
     ${d.fixes && d.fixes.length ? `<div class="subhead" style="margin-top:12px">Your top ${d.fixes.length === 1 ? "fix" : d.fixes.length + " fixes"}</div><ol class="bzfix">${d.fixes.map(f => `<li>${esc(f)}</li>`).join("")}</ol>` : `<div class="sample">Nothing big to fix. Nice work.</div>`}`;
 }
+// Already easy to find? Then visibility isn't the problem, time is. Pitch what they'd actually want.
+const PRICES_FOUND = `<ul class="prices">
+  <li><b>AI Starter</b>, 90 minutes one-to-one: ChatGPT, Claude or Copilot set up for your business, so replies to messages, booking questions, menus and posts take minutes, not evenings. <b>£149</b></li>
+  <li><b>Stay Found</b>, monthly care: draft replies to every new review in your voice, a Google post each week, and a short note each month on what customers praise and grumble about. <b>From £49 a month</b></li>
+</ul>`;
 function bizHelp(body, scan) {
-  return `<div class="bzhelp" id="bzHelp"><b>Happy to do these yourself? Great, the fixes are above.</b>
+  const pct = scan && scan.out_of ? Math.round(100 * scan.score / scan.out_of) : 0;
+  const found = pct >= 80;
+  return `<div class="bzhelp" id="bzHelp">${found
+      ? `<b>You're easy to find. The next win is time, not visibility.</b>
+    <p class="muted" style="margin:2px 0 8px;font-size:13px">Busy places usually lose hours a week to messages, booking questions and review replies. That's where we'd help${scan.fixes && scan.fixes.length ? ", and we'd sort the fix above while we're at it" : ""}.</p>
+    ${PRICES_FOUND}`
+      : `<b>Happy to do these yourself? Great, the fixes are above.</b>
     <p class="muted" style="margin:2px 0 8px;font-size:13px">Rather we did them for you? Here's what it costs.</p>
-    ${PRICES}
+    ${PRICES}`}
     <p class="muted" style="margin:2px 0 8px;font-size:13px">We'll get in touch within 24 hours and agree a fixed price before any work starts. No obligation, no mailing lists.</p>
     <div class="bizf">
       <label>Your WhatsApp or email<input id="bzContact" maxlength="120" style="text-transform:none"></label>
