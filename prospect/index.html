@@ -123,7 +123,7 @@ function gapsFor(d) {
     if (w.social === false || (Array.isArray(w.social) && !w.social.length)) out.push(["No social links on the website", 1]);
   }
   if (g.found && !g.website && w && w.url) out.push(["Google listing doesn't link to the website", 2]);
-  if (g.found && (g.reviews || 0) < 25) out.push([`Only ${g.reviews || 0} Google reviews`, 2]);
+  if (g.found && (g.reviews || 0) < 25) out.push([`Only ${g.reviews || 0} Google review${g.reviews === 1 ? "" : "s"}`, 2]);
   if (g.found && g.rating && g.rating < 4.2) out.push([`Google rating ${g.rating}, below most local rivals`, 2]);
   return out.sort((a, b) => b[1] - a[1]);
 }
@@ -215,7 +215,7 @@ $("f").onsubmit = async e => {
     found.forEach(p => {
       // The search doesn't say whether there's a website, so only judge what it does tell us
       const gaps = [];
-      if ((p.review_count || 0) < 25) gaps.push([`Only ${p.review_count || 0} Google reviews`, 2]);
+      if ((p.review_count || 0) < 25) gaps.push([`Only ${p.review_count || 0} Google review${p.review_count === 1 ? "" : "s"}`, 2]);
       if (p.rating && p.rating < 4.2) gaps.push([`Google rating ${p.rating}, below most local rivals`, 2]);
       leads.push({ name: p.name, type, pc: pcOf(p.address) || pc, town: townOf(p.address), phone: String(p.phone || ""), site: p.website || "", maps: "", rating: p.rating || "", reviews: p.review_count || 0, dist: p.dist_km || "", score: "?", quick: true, gaps, pts: 3 + gaps.reduce((s, x) => s + x[1], 0), status: "To contact", v: 3, added: new Date().toISOString().slice(0, 10) });
     });
