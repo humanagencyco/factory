@@ -500,7 +500,7 @@ body.back .stepsmore { display:none; }
   <div class="step"><div class="n" style="background:var(--sky)">2</div><h3>Check Today</h3><p>Weather, cheapest fuel, your next train and bin day at a glance.</p></div>
   <div class="step"><div class="n" style="background:var(--mint)">3</div><h3>Get reminders</h3><p>Bins the night before and fuel drops, on WhatsApp or your phone.</p></div>
 </section>
-<p class="stepsmore"><a href="#how" data-how>How it works</a> · Building something? <a href="#how-build" data-how>Every tool comes with its code</a></p>
+<p class="stepsmore"><a href="#how" data-how>How it works</a> · Building something? <a href="#how-build" data-how>See how the tools are made</a></p>
 
 <main class="page">
   <div class="onboard" id="onboard" hidden>
@@ -546,7 +546,7 @@ body.back .stepsmore { display:none; }
       <ol>
         <li><b>Try</b> any card with a real postcode. It's live public data.</li>
         <li><b>Take</b> it: share a link with the postcode filled in, or add it to your home screen.</li>
-        <li><b>Build</b> on it: tap <b>&lt;/&gt; Code</b> on a card to install the package and run the example.</li>
+        <li><b>See how it's made</b>: open a tool and tap <b>Build</b> for where the data comes from.</li>
       </ol>
     </div>
     <div class="howcol">
@@ -562,7 +562,7 @@ body.back .stepsmore { display:none; }
 </section>
 
 <section class="v2foot" aria-label="More">
-  <p class="v2build">🛠️ <b>Building something?</b> Every tool comes with its code. Open any tool and tap <b>Build</b>.</p>
+  <p class="v2build">🛠️ <b>Building something?</b> Open any tool and tap <b>Build</b> to see where its data comes from.</p>
   <p class="v2links"><a href="#whatsnew" data-how>✨ What's new</a> · <a href="#how" data-how>❓ How it works</a></p>
   <details class="v2more" id="v2AreaBox"><summary>🧭 Your area: flood warnings, street crime, reported potholes</summary><div id="v2Area"></div></details>
   <details class="v2more"><summary>🔗 Useful links for your postcode</summary><p class="v2l" id="v2Links"></p></details>
@@ -995,7 +995,7 @@ function render() {
       <div class="acts">
         <span class="go">Open →</span>
         ${m.type !== "personal" ? `<button class="mini" type="button" data-act="share" aria-label="Share ${esc(m.name)}">🔗 Share</button>` : ""}
-        ${m.pkg || m.repo ? `<button class="mini" type="button" data-act="build" aria-label="Get the code for ${esc(m.name)}">&lt;/&gt; Code</button>` : ""}
+
       </div>
     </article>`;
   const SECTIONS = V2 ? [
@@ -1539,18 +1539,36 @@ function takePanel(m) {
     <div class="opt"><span class="i">🧩</span><div><b>Use it inside your own site</b><small>Paste a small embed code into any page.</small></div><button class="btn ghost" data-toast="Embed code is coming in the next release">Embed</button></div>
   </div>`;
 }
+// Where each tool's data comes from. The npm packages and starter repos aren't published, so we don't send people to them.
+const MADE = {
+  weather: "Open-Meteo, a free weather service",
+  fuel: "Fuel Finder, the UK's official fuel price data",
+  bins: "your council's bin collection data",
+  mps: "public records of MPs and councillors",
+  cafes: "Google Places, OpenStreetMap and the Food Standards Agency",
+  pubs: "OpenStreetMap and the Food Standards Agency",
+  trains: "the National Rail live feed",
+  track: "the National Rail live feed",
+  pharmacy: "Google Places and OpenStreetMap",
+  schools: "the Department for Education school register",
+  company: "Companies House, plus our Intel research",
+  vehicle: "DVLA vehicle records",
+  bizcheck: "the business's Google listing and its own website",
+  leads: "Google listings, each business's website, and our free business check",
+  aibiz: "our own plain-English guidance",
+  lifeadmin: "DVLA for MOT and tax dates. Everything else you add stays in your browser",
+  expenses: "your receipts in Miru, behind your login",
+  "school-msgs": "your school emails in Miru, behind your login",
+};
 function buildPanel(m) {
-  if (!m.pkg) return `<div class="box"><b>Source</b><p style="margin:6px 0 10px;color:var(--muted)">${m.type === "personal" ? "This runs on Miru and needs a login, so there's no public code to copy." : "The content is open for anyone to read and reuse."}</p>${m.repo ? `<a class="btn pink" href="https://${esc(m.repo)}" target="_blank" rel="noopener" style="text-decoration:none">Open repo ↗</a>` : ""}</div>`;
-  const example = m.id === "fuel"
-    ? `import { fetchFuelPrices } from "${m.pkg}";\n\nconst data = await fetchFuelPrices({ postcode: "TW1 1AA" });\nfor (const s of data.stations.slice(0, 3)) {\n  console.log(s.brand, s.petrol);\n}`
-    : `import { find } from "${m.pkg}";\n\nconst results = await find({ postcode: "TW1 1AA" });\nconsole.log(results);`;
-  return `<p style="margin:0 0 6px"><b>Install</b></p>
-  <div class="cmd"><code>npm install ${esc(m.pkg)}</code><button class="btn" data-copy="npm install ${esc(m.pkg)}">Copy</button></div>
-  <p style="margin:16px 0 6px"><b>Try the example</b></p>
-  <pre class="code">${esc(example)}</pre>
-  <div class="opts" style="margin-top:14px">
-    <div class="opt"><span class="i">🛠️</span><div><b>Remix the starter</b><small>A ready project with credentials set up in a .env file.</small></div><a class="btn pink" href="https://${m.repo}" target="_blank" rel="noopener" style="text-decoration:none">Open repo ↗</a></div>
-  </div>`;
+  const src = MADE[m.id];
+  const repo = m.id === "guides" || m.id === "reading"
+    ? `<p style="margin:10px 0 0">The guides live in a public GitHub repo you can read.</p><p style="margin:8px 0 0"><a class="btn" href="https://github.com/humanagencyco/ai-humanagency" target="_blank" rel="noopener">Open repo ↗</a></p>` : "";
+  return `<div class="box"><b>How it's made</b>
+    ${src ? `<p style="margin:6px 0 0">Live data from <b>${esc(src)}</b>, run through Human Agency's own service.</p>` : ""}
+    ${repo || `<p style="margin:10px 0 0;color:var(--muted)">The code isn't published as a package yet.</p>`}
+  </div>
+  <div class="box"><b>Want one like this?</b><p style="margin:6px 0 10px;color:var(--muted)">We build small, useful tools on live data for businesses and communities.</p><a class="btn pink" href="https://humanagency.co/" target="_blank" rel="noopener">Talk to us ↗</a></div>`;
 }
 
 document.addEventListener("click", e => {
