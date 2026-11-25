@@ -638,7 +638,7 @@ async function loadBrand(name) {
     const top = Array.isArray(cat.top_products) ? cat.top_products : [];
     pr.innerHTML = top.length
       ? priceSummary(d.pricing_intelligence || {}, cat, top)
-        + `<div class="prods">${top.slice(0, 6).map(p => `<details class="prod"><summary><b>${esc(p.title)}</b> · ${esc(p.price || "")}${p.rating ? ` · ${esc(p.rating)}★` : ""} <span class="note">${esc(p.source || "")}</span></summary>
+        + `<div class="prods">${(top.filter(p => new RegExp("\\b" + name.replace(/[.*+?^${}()|[\]\\]/g, "\\$&") + "\\b", "i").test(p.title)).length ? top.filter(p => new RegExp("\\b" + name.replace(/[.*+?^${}()|[\]\\]/g, "\\$&") + "\\b", "i").test(p.title)) : top).slice(0, 6).map(p => `<details class="prod"><summary><b>${esc(p.title)}</b> · ${esc(p.price || "")}${p.rating ? ` · ${esc(p.rating)}★` : ""} <span class="note">${esc(p.source || "")}</span></summary>
             <div class="prodbody">
               <p>${p.rating ? `Rated <b>${esc(p.rating)}★</b>${p.reviews ? ` from <b>${Number(String(p.reviews).replace(/[^0-9]/g, "") || 0).toLocaleString("en-GB")}</b> reviews` : ""} on Google Shopping` : "No Google Shopping rating yet"}${p.source ? `, sold by ${esc(p.source)}` : ""}${p.price ? ` at ${esc(p.price)}` : ""}.</p>
               <p class="links"><a href="https://www.google.com/search?tbm=shop&q=${encodeURIComponent(p.title)}" target="_blank" rel="noopener">Compare prices and reviews ↗</a> <a href="https://www.google.com/search?q=${encodeURIComponent(p.title + " reviews")}" target="_blank" rel="noopener">What people say ↗</a></p>

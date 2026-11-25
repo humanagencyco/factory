@@ -18,12 +18,28 @@ if ($ip === $d || !filter_var($ip, FILTER_VALIDATE_IP, FILTER_FLAG_NO_PRIV_RANGE
 $dir = sys_get_temp_dir() . '/ha-aiready';
 if (!is_dir($dir)) @mkdir($dir, 0700, true);
 $key = $dir . '/' . sha1($d) . '.json';
-if (is_file($key) && time() - filemtime($key) < 86400) { header('X-Cache: hit'); readfile($key); exit; }
+if (empty($_GET['fresh']) && is_file($key) && time() - filemtime($key) < 86400) { header('X-Cache: hit'); readfile($key); exit; }
 
 function grab($url, $max = 600000) {
-  $ctx = stream_context_create(['http' => ['timeout' => 12, 'follow_location' => 1, 'max_redirects' => 3, 'ignore_errors' => true,
-    'header' => "User-Agent: Mozilla/5.0 (compatible; HumanAgencyCheck/1.0; +https://humanagency.co/factory/)\r\nAccept-Language: en-GB\r\n"],
-    'ssl' => ['verify_peer' => true]]);
+  // Look like a normal browser: many big brand sites turn away anything that doesn't
+  $ua = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0 Safari/537.36';
+  if (function_exists('curl_init')) {
+    $ch = curl_init($url);
+    $buf = '';
+    curl_setopt_array($ch, [
+      CURLOPT_FOLLOWLOCATION => true, CURLOPT_MAXREDIRS => 4, CURLOPT_TIMEOUT => 12, CURLOPT_CONNECTTIMEOUT => 6,
+      CURLOPT_USERAGENT => $ua, CURLOPT_ENCODING => '', CURLOPT_PROTOCOLS => CURLPROTO_HTTPS | CURLPROTO_HTTP,
+      CURLOPT_REDIR_PROTOCOLS => CURLPROTO_HTTPS | CURLPROTO_HTTP,
+      CURLOPT_HTTPHEADER => ['Accept: text/html,application/xhtml+xml,text/plain;q=0.9,*/*;q=0.8', 'Accept-Language: en-GB,en;q=0.9'],
+      CURLOPT_WRITEFUNCTION => function ($c, $chunk) use (&$buf, $max) { $buf .= $chunk; return strlen($buf) > $max ? 0 : strlen($chunk); },
+    ]);
+    curl_exec($ch);
+    $code = (int)curl_getinfo($ch, CURLINFO_RESPONSE_CODE);
+    curl_close($ch);
+    return [$code, $buf];
+  }
+  $ctx = stream_context_create(['http' => ['timeout' => 12, 'follow_location' => 1, 'max_redirects' => 4, 'ignore_errors' => true,
+    'header' => "User-Agent: $ua\r\nAccept-Language: en-GB\r\n"]]);
   $fp = @fopen($url, 'r', false, $ctx);
   if (!$fp) return [0, ''];
   $meta = stream_get_meta_data($fp); $code = 0;
@@ -34,7 +50,9 @@ function grab($url, $max = 600000) {
 }
 
 // robots.txt: which AI crawlers are blocked from the whole site
+$base = $d;
 [$rc, $robots] = grab("https://$d/robots.txt", 200000);
+if (!($rc >= 200 && $rc < 300)) { [$rc2, $r2] = grab("https://www.$d/robots.txt", 200000); if ($rc2 >= 200 && $rc2 < 300) { $base = "www.$d"; $rc = $rc2; $robots = $r2; } }
 $bots = ['GPTBot' => 'ChatGPT', 'OAI-SearchBot' => 'ChatGPT search', 'ClaudeBot' => 'Claude', 'PerplexityBot' => 'Perplexity', 'Google-Extended' => 'Google Gemini', 'CCBot' => 'Common Crawl'];
 $groups = []; $cur = [];
 foreach (preg_split('/\r?\n/', $rc >= 200 && $rc < 300 ? $robots : '') as $line) {
@@ -56,11 +74,12 @@ $ai = [];
 foreach ($bots as $ua => $label) $ai[] = ['bot' => $ua, 'name' => $label, 'blocked' => blocked($groups, $ua)];
 
 // llms.txt
-[$lc, $llms] = grab("https://$d/llms.txt", 20000);
+[$lc, $llms] = grab("https://$base/llms.txt", 20000);
 $hasLlms = $lc >= 200 && $lc < 300 && stripos($llms, '<html') === false && strlen(trim($llms)) > 20;
 
 // Home page: secure, title, description and structured data
-[$hc, $html] = grab("https://$d/");
+[$hc, $html] = grab("https://$base/");
+if (!($hc >= 200 && $hc < 400) && $base === $d) [$hc, $html] = grab("https://www.$d/");
 $types = [];
 if (preg_match_all('#<script[^>]+application/ld\+json[^>]*>(.*?)</script>#is', $html, $mm)) {
   foreach ($mm[1] as $j) {
