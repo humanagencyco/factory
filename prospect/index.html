@@ -170,6 +170,7 @@ async function fullCheck(l) {
     if (!r.ok || typeof d.score !== "number") return "fail";
     const gaps = gapsFor(d), g = d.google || {}, w = d.website || {};
     Object.assign(l, { quick: false, score: d.score, gaps, pts: 10 - d.score + gaps.reduce((s, x) => s + x[1], 0), site: (w && w.url) || g.website || l.site, maps: g.maps_url || l.maps, rating: g.rating || l.rating, reviews: g.reviews || l.reviews, phone: String(l.phone || g.phone || "") });
+    await chCheck(l);
     save(leads); render(); return "ok";
   } catch (_) { return "fail"; }
 }
@@ -181,6 +182,7 @@ function render() {
       <div><b class="n">${esc(l.name)}</b> <span class="meta">${esc(l.type)}${l.town ? " · " + esc(l.town) : ""}</span>
         <div class="meta">${l.phone ? `📞 <a href="tel:${esc(String(l.phone).replace(/\s+/g, ""))}">${esc(String(l.phone))}</a> · ` : ""}${l.site ? `<a href="${esc(l.site)}" target="_blank" rel="noopener">Website ↗</a> · ` : l.quick ? "Website not checked yet · " : "No website · "}${l.rating ? `${esc(l.rating)}★ from ${esc(l.reviews || 0)} reviews` : "No Google rating"}${l.maps ? ` · <a href="${esc(l.maps)}" target="_blank" rel="noopener">Maps ↗</a>` : ""}${l.cat ? ` · <a href="${esc(l.cat)}" target="_blank" rel="noopener" title="See who's listed on Checkatrade for this trade">Checkatrade ↗</a>` : ""}</div></div>
       <span class="opp ${level(l.pts)}" title="${l.quick ? "Quick view from the search. Tap Run full check for the website and AI checks." : ""}">${level(l.pts) === "high" ? "Big opportunity" : level(l.pts) === "med" ? "Some gaps" : "In good shape"} · ${l.quick ? "quick view" : esc(l.score) + "/10"}</span>
+      ${chTag(l)}
       ${l.gaps.length ? `<ul class="gaps">${l.gaps.slice(0, 4).map(g => `<li>${esc(g[0])}</li>`).join("")}</ul>` : ""}
       <div class="acts">
         <button class="btn light" type="button" data-intro="${i}">Write intro</button>
@@ -203,15 +205,31 @@ $("list").onclick = async e => {
   }
 };
 // ---------- Assisted intro: AI drafts, you edit and send ----------
-const CH = [["instagram", "Instagram DM"], ["whatsapp", "WhatsApp"], ["facebook", "Facebook"], ["email", "Email"]];
+const CH = [["call", "Phone call"], ["comment", "Public comment"], ["instagram", "Instagram DM"], ["whatsapp", "WhatsApp"], ["facebook", "Facebook"], ["email", "Email"]];
+const PRIVATE = ["instagram", "whatsapp", "facebook", "email"];
+// Registered company or (probably) a sole trader? Sole traders count as individuals under PECR, so cold DMs, texts and emails need their OK.
+async function chCheck(l) {
+  if (l.ch && l.ch.status !== "unknown") return l.ch;
+  try { const d = await fetch(`${API}/api/factory/company-type?name=${encodeURIComponent(l.name)}&pc=${encodeURIComponent(l.pc || "")}`).then(r => r.ok ? r.json() : null); if (d && d.status) { l.ch = d; save(leads); } } catch (_) {}
+  return l.ch || { status: "unknown" };
+}
+const chTried = new Set();
+const soleTrader = l => l.ch && l.ch.status === "not_found";
+function chTag(l) {
+  if (!l.ch || l.ch.status === "unknown") return "";
+  return l.ch.status === "company" ? `<div class="meta">🏢 <a href="${esc(l.ch.url)}" target="_blank" rel="noopener">Registered company</a>: a personal email is fine, with a way to opt out.</div>`
+    : `<div class="meta">👤 Not on Companies House under this name, so likely a sole trader: call or comment publicly rather than cold DM, text or email.</div>`;
+}
 function waNumber(p) { const d = String(p || "").replace(/\D/g, ""); return /^07\d{9}$/.test(d) ? "44" + d.slice(1) : /^447\d{9}$/.test(d) ? d : ""; }
-function composer(i) {
+async function composer(i) {
   const l = leads[i], box = $("msg" + i);
+  if (!chTried.has(l)) { chTried.add(l); box.classList.add("on"); box.innerHTML = `<p class="meta">Checking Companies House…</p>`; await chCheck(l); render(); return composer(leads.indexOf(l)); }
   if (box.classList.contains("on") && box.querySelector(".cmp")) { box.classList.remove("on"); box.innerHTML = ""; return; }
-  l.channel = l.channel || "instagram";
+  l.channel = l.channel || (soleTrader(l) ? "call" : "instagram");
   box.classList.add("on");
   box.innerHTML = `<div class="cmp">
-    <div class="row">${CH.map(([k, t]) => `<button type="button" class="ch${l.channel === k ? " on" : ""}" data-ch="${k}">${t}</button>`).join("")}</div>
+    <div class="row">${CH.map(([k, t]) => `<button type="button" class="ch${l.channel === k ? " on" : ""}" data-ch="${k}">${t}${soleTrader(l) && PRIVATE.includes(k) ? " ⚠️" : ""}</button>`).join("")}</div>
+    ${soleTrader(l) ? `<p class="meta" style="margin:0 0 8px">⚠️ Likely a sole trader. UK rules (PECR) treat them like individuals, so marketing by DM, WhatsApp, text or email needs their OK first. A phone call (check they're not on the TPS or CTPS list) or a public comment is the safer start.</p>` : ""}
     <input data-note placeholder="Something you noticed about them? e.g. won Mobile Hairstylist of the Year" maxlength="200" value="${esc(l.note || "")}" style="text-transform:none;margin-bottom:8px">
     <div class="row"><button type="button" class="btn go" data-draft>✨ Draft it</button><small>AI writes a first go in your tone. You edit and send it yourself.</small></div>
     <div data-out></div></div>`;
@@ -223,11 +241,11 @@ function composer(i) {
     const wa = waNumber(l.phone);
     out.innerHTML = `${l.channel === "email" ? `<p class="sub">Subject: <span data-subj>${esc(l.subject)}</span></p>` : ""}<textarea data-text aria-label="Your message">${esc(l.draft)}</textarea>
       <div class="row" style="margin-top:8px"><button type="button" class="btn light" data-tw="shorter">Shorter</button><button type="button" class="btn light" data-tw="warmer">Warmer</button><button type="button" class="btn light" data-tw="bolder">Bolder</button><button type="button" class="btn light" data-tw="">Try again</button></div>
-      <div class="row"><button type="button" class="btn go" data-copy>Copy</button>${l.channel === "whatsapp" && wa ? `<a class="btn light" data-open target="_blank" rel="noopener" style="text-decoration:none">Open WhatsApp</a>` : ""}${l.channel === "email" ? `<a class="btn light" data-open style="text-decoration:none">Open in email</a>` : ""}${l.channel === "instagram" ? `<a class="btn light" target="_blank" rel="noopener" href="https://www.instagram.com/direct/inbox/" style="text-decoration:none">Open Instagram</a>` : ""}${l.channel === "facebook" ? `<a class="btn light" target="_blank" rel="noopener" href="https://www.facebook.com/search/pages/?q=${encodeURIComponent(l.name)}" style="text-decoration:none">Find on Facebook</a>` : ""}<small data-said></small></div>`;
+      <div class="row"><button type="button" class="btn go" data-copy>Copy</button>${l.channel === "whatsapp" && wa ? `<a class="btn light" data-open target="_blank" rel="noopener" style="text-decoration:none">Open WhatsApp</a>` : ""}${l.channel === "email" ? `<a class="btn light" data-open style="text-decoration:none">Open in email</a>` : ""}${l.channel === "instagram" ? `<a class="btn light" target="_blank" rel="noopener" href="https://www.instagram.com/direct/inbox/" style="text-decoration:none">Open Instagram</a>` : ""}${l.channel === "facebook" ? `<a class="btn light" target="_blank" rel="noopener" href="https://www.facebook.com/search/pages/?q=${encodeURIComponent(l.name)}" style="text-decoration:none">Find on Facebook</a>` : ""}${l.channel === "call" && l.phone ? `<a class="btn light" href="tel:${esc(String(l.phone).replace(/\s+/g, ""))}" style="text-decoration:none">Call ${esc(l.phone)}</a>` : ""}<small data-said></small></div>`;
     const ta = out.querySelector("[data-text]"), open = out.querySelector("[data-open]");
     const link = () => { if (!open) return; open.href = l.channel === "email" ? `mailto:?subject=${encodeURIComponent(l.subject)}&body=${encodeURIComponent(ta.value)}` : `https://wa.me/${wa}?text=${encodeURIComponent(ta.value)}`; };
     ta.oninput = () => { l.draft = ta.value; save(leads); link(); }; link();
-    out.querySelector("[data-copy]").onclick = async () => { try { await navigator.clipboard.writeText((l.channel === "email" && l.subject ? "Subject: " + l.subject + "\n\n" : "") + ta.value); out.querySelector("[data-said]").textContent = "Copied. Paste it in, then set the status to Contacted."; } catch (_) { ta.select(); } };
+    out.querySelector("[data-copy]").onclick = async () => { try { await navigator.clipboard.writeText((l.channel === "email" && l.subject ? "Subject: " + l.subject + "\n\n" : "") + ta.value); out.querySelector("[data-said]").textContent = l.channel === "comment" ? "Copied. Paste it under one of their posts." : l.channel === "call" ? "Copied. Keep it open while you call." : "Copied. Paste it in, then set the status to Contacted."; } catch (_) { ta.select(); } };
     out.querySelectorAll("[data-tw]").forEach(b => b.onclick = () => draft(b.dataset.tw));
   };
   const draft = async (tweak = "") => {
