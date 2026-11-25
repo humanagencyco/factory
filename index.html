@@ -1093,7 +1093,7 @@ function tryPanel(m) {
   if (m.id === "bizcheck") return bizPanel();
   if (m.id === "aibiz") return aiPanel();
   if (m.id === "company") return `<div class="box"><div class="row"><input id="tIn" placeholder="Company or brand, e.g. Tesco" maxlength="60" style="text-transform:none"><button class="btn pink" id="tGo">Check</button></div><div id="tOut" style="margin-top:10px"><div class="sample">Who they are, how they're doing, what people say, and who's hiring. From <b>Intel</b>, our company research tool.</div></div></div>`;
-  if (m.id === "vehicle") return `<div class="box"><div class="row"><input id="tIn" placeholder="Registration, e.g. AB12 CDE" maxlength="10"><button class="btn pink" id="tGo">Check</button></div><div id="tOut" style="margin-top:10px"></div></div>`;
+  if (m.id === "vehicle") return `<div class="box"><div class="row"><input id="tIn" placeholder="Registration, e.g. AB12 CDE" maxlength="10" value="${esc((lifeCars().slice(-1)[0]) || "")}"><button class="btn pink" id="tGo">Check</button></div><div id="tOut" style="margin-top:10px"></div></div>`;
   if (m.type === "topic") return `<div class="box"><b>No postcode needed.</b><p style="margin:6px 0 10px;color:var(--muted)">This is for everyone.</p><a class="btn pink" href="${esc(m.link)}" target="_blank" rel="noopener" style="text-decoration:none">Open ${esc(m.name)} ↗</a></div>`;
   if (m.id === "lifeadmin") return lifePanel();
   if (m.id === "bins") return `<div class="bin-card" id="binCard"></div><p class="sample">Your address is saved in this browser only. Turn on a WhatsApp reminder the evening before in the Today box.</p>`;
@@ -1159,7 +1159,8 @@ async function binDates(uprn, label) {
       return;
     }
     const pretty = iso => { const x = new Date(iso + "T12:00:00"); return isNaN(x) ? iso : x.toLocaleDateString("en-GB", { weekday: "long", day: "numeric", month: "long", year: "numeric" }); };
-    const items = (d.collections || []).map(c => `<li><b>${esc(c.bin)}</b> · ${esc(pretty(c.date))}</li>`).join("");
+    const t0 = new Date(); t0.setHours(0, 0, 0, 0);
+    const items = (d.collections || []).filter(c => new Date(c.date + "T00:00:00") >= t0).map(c => `<li><b>${esc(c.bin)}</b> · ${esc(pretty(c.date))}</li>`).join("");
     out.innerHTML = items
       ? `<ul class="facts">${items}</ul><p class="sources">Source: ${esc(d.source || "the council")}. Checked ${esc(d.checked || "today")}.</p>`
       : `<p class="bin-note">No collection dates found for that address.</p>`;
@@ -1312,7 +1313,7 @@ const lifeLeft = n => n < 0 ? `${-n}d overdue` : n === 0 ? "Today" : n === 1 ? "
 
 function lifePanel() {
   return `<div class="box"><b>Find your car's dates</b><p class="sample" style="margin:2px 0 8px">MOT and road tax from live DVLA data.</p>
-      <div class="row"><input id="lifeReg" placeholder="Registration, e.g. AB12 CDE" maxlength="10"><button class="btn pink" id="lifeRegGo">Find</button></div>
+      <div class="row"><input id="lifeReg" placeholder="Registration, e.g. AB12 CDE" maxlength="10" value="${esc((lifeCars().slice(-1)[0]) || "")}"><button class="btn pink" id="lifeRegGo">Find</button></div>
       <div class="sample" id="lifeMsg" aria-live="polite"></div></div>
     <div class="box"><b>Add a date</b>
       <div class="life-chips" id="lifeChips">${LIFE_PRESETS.map(p => `<button type="button" data-k="${p[0]}" aria-pressed="false">${p[1]} ${esc(p[2] || "Something else")}</button>`).join("")}</div>
@@ -1446,7 +1447,7 @@ function wireTry(m) {
         const c = w.current;
         show(`<div class="result"><div><b>${esc(place.result.postcode)}</b><small>${esc(place.result.admin_district || "")}</small></div><span class="price">${Math.round(c.temperature_2m)}°C</span></div>`
           + `<div class="result"><div><b>${esc(wxText(c.weather_code))}</b><small>Feels like ${Math.round(c.apparent_temperature)}°C</small></div><small>Wind ${Math.round(c.wind_speed_10m)} km/h</small></div>`
-          + `<div class="sample">Live from Open-Meteo · ${esc(c.time)}</div>`);
+          + `<div class="sample">Live from Open-Meteo, updated ${esc((() => { const t = new Date(c.time); return isNaN(t) ? c.time : t.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" }); })())}</div>`);
       }
       if (m.id === "fuel") {
         const pc = normPC($("tIn").value); if (!pc) return badPC();
@@ -1687,7 +1688,7 @@ async function todayTrain(pc) {
 async function todayBins(pc) {
   const s = savedBin(); if (!s || s.postcode !== pc) return null;
   const d = await getJSON(`${API}/api/bins/dates?postcode=${encodeURIComponent(pc)}&uprn=${encodeURIComponent(s.uprn)}`);
-  const a = new Date(); a.setHours(0, 0, 0, 0);
+  const a = new Date(); const late = a.getHours() >= 18; a.setHours(0, 0, 0, 0); if (late) a.setDate(a.getDate() + 1);
   const up = (d.collections || []).map(c => ({ bin: c.bin, d: new Date(c.date + "T00:00:00") })).filter(c => !isNaN(c.d) && c.d >= a).sort((x, y) => x.d - y.d);
   if (!up.length) return { none: true };
   const first = up[0].d.getTime();
