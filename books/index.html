@@ -676,6 +676,7 @@ function render() {
       <div class="bname">${esc(b.title)}</div>
       <div class="bmeta">${esc(b.author)}</div>
       ${starsOf(b.rating)}
+      ${b.shelf === "read" && b.finished ? `<div class="bmeta">Read ${esc(new Date(b.finished.slice(0, 10) + "T12:00:00").toLocaleDateString("en-GB", { month: "short", year: "numeric" }))}</div>` : ""}
       ${(b.shelf === "tb" || b.shelf === "reading") && b.due ? `<div class="bmeta">Due back ${esc(new Date(b.due + "T12:00:00").toLocaleDateString("en-GB", { day: "numeric", month: "short" }))}</div>` : ""}
     </button>`;
   const groups = groupsOf(list);
