@@ -54,7 +54,7 @@ input,select{width:100%;border:2px solid var(--ink);border-radius:12px;padding:1
 
   <section class="card">
     <form class="form" id="f">
-      <div><label for="pc">Postcode</label><input id="pc" maxlength="8" placeholder="KT16 0DA"></div>
+      <div><label for="pc">Postcode</label><input id="pc" maxlength="8" placeholder="KT16 0DA"><button type="button" id="here" style="background:none;border:0;padding:4px 0 0;font:inherit;font-size:13px;font-weight:800;color:var(--violet);cursor:pointer;text-decoration:underline">📍 Use my location</button></div>
       <div><label for="type">Type of business</label><input id="type" placeholder="e.g. hairdresser, plumber, café"></div>
       <div><label for="n">How many</label><select id="n"><option>5</option><option selected>10</option><option>15</option></select></div>
       <button class="btn go" id="go" type="submit">Find leads</button>
@@ -82,6 +82,21 @@ let leads = load().map(l => (l.v === 2 ? l : { ...l, v: 2, pts: (typeof l.score 
 
 // Start from the postcode Factory already knows
 try { $("pc").value = localStorage.getItem("factory_postcode") || ""; } catch (_) {}
+
+// Use where you are now, for when you're out on a high street
+$("here").onclick = () => {
+  const b = $("here");
+  if (!navigator.geolocation) { $("status").textContent = "Location isn't available here. Type a postcode."; return; }
+  b.textContent = "📍 Finding you…";
+  navigator.geolocation.getCurrentPosition(async p => {
+    try {
+      const r = await fetch(`https://api.postcodes.io/postcodes?lon=${p.coords.longitude.toFixed(5)}&lat=${p.coords.latitude.toFixed(5)}&limit=1&radius=1000`).then(x => x.json());
+      const pc = r && r.result && r.result[0] && r.result[0].postcode;
+      if (pc) { $("pc").value = pc; $("status").textContent = `Using ${pc}, where you are now.`; } else $("status").textContent = "Couldn't find a postcode here. Type it instead.";
+    } catch (_) { $("status").textContent = "Couldn't find a postcode here. Type it instead."; }
+    b.textContent = "📍 Use my location";
+  }, () => { b.textContent = "📍 Use my location"; $("status").textContent = "Location is off for this site. Type a postcode."; }, { timeout: 10000, maximumAge: 300000 });
+};
 
 // Trades that tend to have the biggest gaps and the most admin
 const TYPES = ["hairdresser", "barber", "beauty salon", "café", "restaurant", "takeaway", "plumber", "electrician", "builder", "garage", "florist", "dentist", "physio", "gym", "nursery", "estate agent", "accountant", "dog groomer"];
