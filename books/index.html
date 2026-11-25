@@ -31,6 +31,11 @@ button:focus-visible,input:focus-visible,label:focus-within{outline:3px solid va
 .pill[aria-pressed="true"] .n{background:rgba(255,255,255,.2)}
 .search{width:100%;font:inherit;font-size:18px;padding:13px 18px;border-radius:18px;border:2px solid var(--line);background:#fff;color:var(--ink);margin-bottom:18px}
 .search::placeholder{color:#a79fc4}
+.views{display:flex;gap:8px;flex-wrap:wrap;margin:-6px 0 18px}
+.views .chip{font-size:15px;padding:6px 12px}
+.grp{grid-column:1/-1;margin:10px 0 -6px;font-size:20px;font-weight:800;display:flex;align-items:baseline;gap:8px}
+.grp:first-child{margin-top:0}
+.grp small{font-size:15px;color:var(--muted);font-weight:700}
 .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:18px}
 .book{border:0;background:none;padding:0;cursor:pointer;text-align:left;font:inherit;color:inherit;display:flex;flex-direction:column;gap:8px}
 .cover{position:relative;aspect-ratio:2/3;border-radius:16px;overflow:hidden;background:linear-gradient(160deg,#ffd6e8,#cfe6ff);box-shadow:0 12px 26px rgba(36,24,74,.16);transition:transform .15s}
@@ -106,6 +111,12 @@ dialog::backdrop{background:rgba(36,24,74,.4);backdrop-filter:blur(3px)}
   </div>
 
   <input class="search" id="find" type="search" placeholder="Search the books already on your shelves" aria-label="Search the books already on your shelves">
+  <div class="views" role="group" aria-label="Show books">
+    <button class="chip" data-v="added">🆕 Newest</button>
+    <button class="chip" data-v="az">🔤 A–Z</button>
+    <button class="chip" data-v="author">✍️ By author</button>
+    <button class="chip" data-v="year">🗓️ By year</button>
+  </div>
   <div class="grid" id="list" aria-live="polite"></div>
   <div id="forYou" style="margin-top:22px"></div>
 
@@ -624,12 +635,30 @@ function visible() {
     // Every word typed must match something in the title, author or notes (small typos allowed)
     const words = q.split(/\s+/).filter(w => w && !STOP.has(w));
     list = list.filter(b => {
-      const hay = [b.title, b.author, b.notes].join(" ").toLowerCase();
+      const hay = [b.title, b.author, b.notes, yearOf(b)].join(" ").toLowerCase();
       const hayWords = hay.replace(/[^a-z0-9 ]/g, " ").split(/\s+/).filter(Boolean);
-      return words.every(w => hay.includes(w) || wordMatches(w, hayWords));
+      return words.every(w => hay.includes(w) || (!/^\d+$/.test(w) && wordMatches(w, hayWords)));   // years must match exactly
     });
   }
-  return list.sort((a, b) => ((b.finished || b.added || "") > (a.finished || a.added || "") ? 1 : -1));
+  const newest = (a, b) => ((b.finished || b.added || "") > (a.finished || a.added || "") ? 1 : -1);
+  if (state.sort === "az") return list.sort((a, b) => sortTitle(a).localeCompare(sortTitle(b)));
+  if (state.sort === "author") return list.sort((a, b) => surname(a.author).localeCompare(surname(b.author)) || sortTitle(a).localeCompare(sortTitle(b)));
+  return list.sort(newest);
+}
+// Helpers for the views: the year she read it (or added it), and names to sort by
+function yearOf(b) { return (b.finished || b.added || "").slice(0, 4); }
+function sortTitle(b) { return (b.title || "").replace(/^(the|a|an)\s+/i, "").toLowerCase(); }
+function surname(a) { return (a || "").trim().split(/\s+/).pop().toLowerCase(); }
+// Author and year views: the same books, under a heading for each author or year
+function groupsOf(list) {
+  if (state.sort !== "author" && state.sort !== "year") return null;
+  const key = b => state.sort === "year" ? (yearOf(b) || "Not sure when") : (b.author || "Unknown author");
+  const groups = new Map();
+  for (const b of list) { const k = key(b); if (!groups.has(k)) groups.set(k, []); groups.get(k).push(b); }
+  const out = [...groups.entries()];
+  if (state.sort === "year") out.sort((a, b) => (/^\d/.test(b[0]) - /^\d/.test(a[0])) || b[0].localeCompare(a[0]));
+  else out.sort((a, b) => (b[1].length - a[1].length) || surname(a[0]).localeCompare(surname(b[0])));
+  return out;
 }
 function starsOf(n) { return `<div class="stars" aria-label="${n || 0} stars">${[1,2,3,4,5].map(i => `<span class="${i <= (n || 0) ? "on" : ""}">★</span>`).join("")}</div>`; }
 
@@ -637,7 +666,8 @@ function render() {
   document.querySelectorAll(".pills button").forEach(b => b.setAttribute("aria-pressed", String(b.dataset.s === state.shelf)));
   ["reading","read","tb","wish"].forEach(k => { const el = $("n-" + k); if (el) el.textContent = "(" + state.books.filter(b => b.shelf === k).length + ")"; });
   const list = visible();
-  $("list").innerHTML = list.length ? list.map(b => `
+  document.querySelectorAll(".views [data-v]").forEach(b => b.classList.toggle("on", b.dataset.v === state.sort));
+  const card = b => `
     <button class="book" data-open="${esc(b.id)}" aria-label="${esc(b.title)}">
       <div class="cover">
         ${b.cover ? `<img alt="" src="${esc(b.cover)}">` : `<div class="ph">📕</div>`}
@@ -647,7 +677,11 @@ function render() {
       <div class="bmeta">${esc(b.author)}</div>
       ${starsOf(b.rating)}
       ${b.shelf === "tb" && b.due ? `<div class="bmeta">Due back ${esc(new Date(b.due + "T12:00:00").toLocaleDateString("en-GB", { day: "numeric", month: "short" }))}</div>` : ""}
-    </button>`).join("")
+    </button>`;
+  const groups = groupsOf(list);
+  $("list").innerHTML = list.length
+    ? (groups ? groups.map(([name, books]) => `<h3 class="grp">${esc(name)} <small>${books.length} ${books.length === 1 ? "book" : "books"}</small></h3>` + books.map(card).join("")).join("")
+              : list.map(card).join(""))
     : `<div class="empty" style="grid-column:1/-1">${state.books.some(b => b.shelf === state.shelf) ? "Nothing matches your search." : "No books here yet. Tap the big + Add button to add your first one! 🎉"}</div>`;
   $("list").querySelectorAll("[data-open]").forEach(btn => btn.onclick = () => openDetail(btn.dataset.open));
   renderForYou();
@@ -826,6 +860,11 @@ $("pasteList").onclick = () => {
   };
 };
 $("find").oninput = e => { state.q = e.target.value; render(); };
+// Remember the chosen view on this device
+try { state.sort = localStorage.getItem("hu_view") || "added"; } catch (e) {}
+document.querySelectorAll(".views [data-v]").forEach(b => b.onclick = () => {
+  state.sort = b.dataset.v; try { localStorage.setItem("hu_view", state.sort); } catch (e) {} render();
+});
 
 init();
 </script>
