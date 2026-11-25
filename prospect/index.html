@@ -78,7 +78,7 @@ const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": 
 const KEY = "ha-local-leads-v1";
 const load = () => { try { return JSON.parse(localStorage.getItem(KEY) || "[]"); } catch (_) { return []; } };
 const save = v => { try { localStorage.setItem(KEY, JSON.stringify(v)); } catch (_) {} };
-let leads = load();
+let leads = load().map(l => (l.v === 2 ? l : { ...l, v: 2, pts: (typeof l.score === "number" ? 10 - l.score : 3) + (l.gaps || []).reduce((s, x) => s + x[1], 0) }));
 
 // Start from the postcode Factory already knows
 try { $("pc").value = localStorage.getItem("factory_postcode") || ""; } catch (_) {}
@@ -109,7 +109,7 @@ function gapsFor(d) {
   if (g.found && g.rating && g.rating < 4.2) out.push([`Google rating ${g.rating}, below most local rivals`, 2]);
   return out.sort((a, b) => b[1] - a[1]);
 }
-const level = pts => pts >= 6 ? "high" : pts >= 3 ? "med" : "low";
+const level = pts => pts >= 8 ? "high" : pts >= 4 ? "med" : "low";
 
 // A short intro in plain words. Meant to be edited before sending.
 function intro(l) {
@@ -179,7 +179,7 @@ $("f").onsubmit = async e => {
         const r = await fetch(`${API}/api/factory/business-scan`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ business: p.name, postcode: pcOf(p.address) || pc, website: "" }) });
         const d = await r.json();
         const gaps = gapsFor(d), g = d.google || {}, w = d.website || {};
-        leads.push({ name: p.name, type, town: townOf(p.address), phone: p.phone || g.phone || "", site: (w && w.url) || g.website || "", maps: g.maps_url || "", rating: g.rating || "", reviews: g.reviews || 0, score: d.score ?? "?", gaps, pts: gaps.reduce((s, x) => s + x[1], 0), status: "To contact", added: new Date().toISOString().slice(0, 10) });
+        leads.push({ name: p.name, type, town: townOf(p.address), phone: p.phone || g.phone || "", site: (w && w.url) || g.website || "", maps: g.maps_url || "", rating: g.rating || "", reviews: g.reviews || 0, score: d.score ?? "?", gaps, pts: (typeof d.score === "number" ? 10 - d.score : 3) + gaps.reduce((s, x) => s + x[1], 0), status: "To contact", v: 2, added: new Date().toISOString().slice(0, 10) });
         save(leads); render();
       } catch (_) {}
     }
