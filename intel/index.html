@@ -81,6 +81,18 @@ footer{color:var(--muted);font-size:13px;padding:30px 0 50px;text-align:center}
   footer{padding:16px 0 0}
 }
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}
+.prods .prod{border-top:1px dashed #0002;padding:8px 0}
+.prods .prod:first-child{border-top:0}
+.prods summary{cursor:pointer;list-style:none}
+.prods summary::-webkit-details-marker{display:none}
+.prods summary::after{content:" ›";font-weight:900;color:var(--muted)}
+.prods .prod[open] summary::after{content:" ⌄"}
+.prodbody{padding:6px 0 2px 12px;font-size:14px}
+.prodbody p{margin:4px 0}
+.prodbody .links a,.links a{margin-right:14px}
+.aigrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:8px;margin:8px 0}
+.aibot{border:2px solid var(--ink);border-radius:12px;padding:8px 10px;font-size:13px;background:#fff}
+.aibot b{display:block;font-size:14px}
 </style>
 </head>
 <body>
@@ -157,6 +169,7 @@ function renderCompany(c) {
         <div><b>${esc(c.display_name)}</b><p class="note">Logo from the company's own website domain.</p></div>
       </div>
       <h3>Products seen online in the UK</h3><div id="products"><p class="note">Looking up product listings…</p></div>
+      <h3>Ready for AI assistants?</h3><div id="aiready"><p class="note">Checking the brand's website…</p></div>
       <h3>Commercial opportunities for the brand in the UK</h3><div id="opps"><p class="note">Reading the listings for opportunities…</p></div>
       <h3>In the news</h3><div id="news"><p class="note">Counting recent coverage…</p></div>
       <h3>Christmas adverts</h3><p class="note">Not checked yet. <a href="https://www.youtube.com/results?search_query=${encodeURIComponent(c.display_name + ' Christmas advert')}" target="_blank" rel="noopener">Search YouTube for ${esc(c.display_name)} Christmas adverts ↗</a> (unchecked results).</p>
@@ -262,6 +275,7 @@ async function wikiBrand(name) {
     out.owner = out.listed ? null : ids("P127").map(i => labels[i]).filter(Boolean)[0];
     out.origin = ids("P495").map(i => labels[i]).filter(Boolean)[0];
     out.since = ((c.P571 || [])[0]?.mainsnak.datavalue?.value?.time || "").slice(1, 5);
+    out.website = ((c.P856 || []).map(x => x.mainsnak.datavalue?.value).filter(Boolean)[0]) || "";
   }
   // Wikipedia reads per language over the last three full months
   const end = new Date(); end.setDate(0); const start = new Date(end); start.setMonth(start.getMonth() - 2); start.setDate(1);
@@ -436,6 +450,33 @@ function wireShare(title) {
   };
 }
 
+// ---------- Is the brand ready for AI assistants? ----------
+async function loadAiReady(name, domainIn) {
+  const el = document.getElementById("aiready"); if (!el) return;
+  let domain = domainIn;
+  if (!domain) { try { const w = await wikiBrand(name); domain = w && w.website ? new URL(w.website).hostname.replace(/^www\./, "") : ""; } catch (_) {} }
+  const ask = (msg) => `<p class="note">${msg}</p><form id="aiForm" style="display:flex;gap:8px;flex-wrap:wrap"><input id="aiDom" placeholder="Brand website, e.g. dove.com" style="flex:1;min-width:180px" value="${esc(domain || "")}"><button class="btn" type="submit">Check</button></form>`;
+  const wire = () => { const f = document.getElementById("aiForm"); if (f) f.onsubmit = e => { e.preventDefault(); const v = document.getElementById("aiDom").value.trim(); if (v) { el.innerHTML = `<p class="note">Checking ${esc(v)}…</p>`; loadAiReady(name, v); } }; };
+  if (!domain) { el.innerHTML = ask("We couldn't find the brand's website. Add it to check."); return wire(); }
+  try {
+    const r = await fetch(`/factory/api/aiready.php?domain=${encodeURIComponent(domain)}`);
+    const d = await r.json();
+    if (!r.ok || !d.opens) { el.innerHTML = ask(`We couldn't open ${esc(domain)}. Check the address.`); return wire(); }
+    const blocked = d.ai_bots.filter(b => b.blocked).map(b => b.name);
+    const verdict = blocked.length >= 3 ? "Mostly closed to AI assistants" : blocked.length ? "Partly open to AI assistants" : "Open to AI assistants";
+    el.innerHTML = `<p><b>${esc(verdict)}.</b> ${blocked.length ? `${esc(d.domain)} tells ${esc(blocked.join(", "))} not to read the site, so those assistants can't learn about its products first hand. They'll rely on shops and reviews instead.` : `${esc(d.domain)} lets the main AI assistants read the site.`}</p>
+      <div class="aigrid">${d.ai_bots.map(b => `<div class="aibot"><b>${b.blocked ? "🚫" : "✅"} ${esc(b.name)}</b>${b.blocked ? "Blocked" : "Allowed"}</div>`).join("")}</div>
+      <ul class="facts">
+        <li>Brand and contact details in a form AI and search can read: <b>${d.has_org_schema ? "Yes" : "No"}</b></li>
+        <li>Product details in that form: <b>${d.has_product_schema ? "Yes" : "Not on the home page"}</b></li>
+        <li>llms.txt, a newer guide for AI tools: <b>${d.llms_txt ? "Yes" : "No"}</b> <span class="note">(optional, few use it yet)</span></li>
+      </ul>
+      ${d.description ? `<p class="note">How the site describes itself: "${esc(d.description)}"</p>` : ""}
+      <p class="links"><a href="https://uk.trustpilot.com/review/${encodeURIComponent(d.domain)}" target="_blank" rel="noopener">Reviews on Trustpilot ↗</a> <a href="https://www.google.com/search?q=${encodeURIComponent(name + " reviews")}" target="_blank" rel="noopener">Reviews on Google ↗</a></p>
+      <p class="sources">Checked live: ${esc(d.domain)}'s robots.txt, llms.txt and home page. Website from Wikidata. Trustpilot scores aren't copied here because Trustpilot doesn't allow it, so the link opens their page.</p>`;
+  } catch (_) { el.innerHTML = ask("Couldn't run the check right now."); wire(); }
+}
+
 // ---------- Brand: commercial opportunities ----------
 // Lenses, each tied to a well known way of looking at brand growth:
 //  1. Be easy to buy: physical availability (Byron Sharp, How Brands Grow, 2010)
@@ -597,7 +638,12 @@ async function loadBrand(name) {
     const top = Array.isArray(cat.top_products) ? cat.top_products : [];
     pr.innerHTML = top.length
       ? priceSummary(d.pricing_intelligence || {}, cat, top)
-        + `<ul class="facts">${top.slice(0, 6).map(p => `<li>${esc(p.title)} · ${esc(p.price || "")}${p.rating ? ` · ${esc(p.rating)}★` : ""} <span class="note">${esc(p.source || "")}</span></li>`).join("")}</ul>
+        + `<div class="prods">${top.slice(0, 6).map(p => `<details class="prod"><summary><b>${esc(p.title)}</b> · ${esc(p.price || "")}${p.rating ? ` · ${esc(p.rating)}★` : ""} <span class="note">${esc(p.source || "")}</span></summary>
+            <div class="prodbody">
+              <p>${p.rating ? `Rated <b>${esc(p.rating)}★</b>${p.reviews ? ` from <b>${Number(String(p.reviews).replace(/[^0-9]/g, "") || 0).toLocaleString("en-GB")}</b> reviews` : ""} on Google Shopping` : "No Google Shopping rating yet"}${p.source ? `, sold by ${esc(p.source)}` : ""}${p.price ? ` at ${esc(p.price)}` : ""}.</p>
+              <p class="links"><a href="https://www.google.com/search?tbm=shop&q=${encodeURIComponent(p.title)}" target="_blank" rel="noopener">Compare prices and reviews ↗</a> <a href="https://www.google.com/search?q=${encodeURIComponent(p.title + " reviews")}" target="_blank" rel="noopener">What people say ↗</a></p>
+              <p class="note">Whether AI assistants can read about it depends on the brand's website and each shop's site. See "Ready for AI assistants?" below for the brand.</p>
+            </div></details>`).join("")}</div>
          <p class="sources">Source: Google Shopping UK listings, live. Prices in pounds from UK sellers. ${esc(cat.total_skus ?? top.length)} listings found. Not a full range.</p>`
       : `<p class="note">No product listings found right now.</p>`;
     const ai = d.ai_visibility || {};
@@ -670,7 +716,7 @@ function render(c) {
   if (c.status === "pending" || c.status === "enriching") return waitForResearch(c.display_name, lookup);
   if (c.status === "ready") {
     const n = c.display_name;
-    pageReady = Promise.allSettled([loadHiring(n), loadAnalysis(n), loadBrand(n), loadOpportunities(n), GLANCE ? loadGlance(n) : null]);
+    pageReady = Promise.allSettled([loadHiring(n), loadAnalysis(n), loadBrand(n), loadOpportunities(n), loadAiReady(n), GLANCE ? loadGlance(n) : null]);
     wireShare(n);
   }
 }
