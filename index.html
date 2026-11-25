@@ -1105,7 +1105,12 @@ function tryPanel(m) {
   if (m.id === "aibiz") return aiPanel();
   if (m.id === "company") return `<div class="box"><div class="row"><input id="tIn" placeholder="Company or brand, e.g. Tesco" maxlength="60" style="text-transform:none"><button class="btn pink" id="tGo">Check</button></div><div id="tOut" style="margin-top:10px"><div class="sample">Who they are, how they're doing, what people say, and who's hiring. From <b>Intel</b>, our company research tool.</div></div></div>`;
   if (m.id === "vehicle") return `<div class="box"><div class="row"><input id="tIn" placeholder="Registration, e.g. AB12 CDE" maxlength="10" value="${esc((lifeCars().slice(-1)[0]) || "")}"><button class="btn pink" id="tGo">Check</button></div><div id="tOut" style="margin-top:10px"></div></div>`;
-  if (m.type === "topic") return `<div class="box"><b>No postcode needed.</b><p style="margin:6px 0 10px;color:var(--muted)">This is for everyone.</p><a class="btn pink" href="${esc(m.link)}" target="_blank" rel="noopener" style="text-decoration:none">Open ${esc(m.name)} ↗</a></div>`;
+  if (m.type === "topic") {
+    const blurb = { guides: "Short guides on using AI well: what it's good at, where it goes wrong, and how to get started. A few minutes each, no jargon.",
+      reading: "Talks and articles on AI we think are worth your time, picked by hand." }[m.id] || m.desc;
+    const ext = /^https?:/.test(m.link || "");
+    return `<div class="box"><p style="margin:0 0 10px">${esc(blurb)}</p><a class="btn pink" href="${esc(m.link)}"${ext ? ' target="_blank" rel="noopener"' : ""} style="text-decoration:none">Open ${esc(m.name)}${ext ? " ↗" : ""}</a></div>`;
+  }
   if (m.id === "lifeadmin") return lifePanel();
   if (m.id === "houses") return `<div class="box"><div class="row"><input id="hpPc" placeholder="Postcode" maxlength="8" value="${esc(homePc())}"><button class="btn pink" id="hpGo">Check</button></div></div><div id="hpOut"></div>`;
   if (m.id === "leads") return `<div class="box"><b>Local leads</b><p class="muted" style="margin:6px 0 10px;font-size:14px">Pick a type of business and a postcode. We find up to 15, rank who needs help most, run the free check on the top three, and write a short intro you can edit and send.</p><a class="btn pink" href="/factory/prospect/" style="text-decoration:none">Open Local leads</a></div>`;
