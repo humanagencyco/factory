@@ -114,8 +114,10 @@ const level = pts => pts >= 8 ? "high" : pts >= 4 ? "med" : "low";
 // A short intro in plain words. Meant to be edited before sending.
 function intro(l) {
   const top = l.gaps.slice(0, 2).map(x => x[0].charAt(0).toLowerCase() + x[0].slice(1));
-  const found = top.length ? `I ran a quick free check on ${l.name} and two things stood out: ${top.join(", and ")}.` : `I ran a quick free check on ${l.name} and it's in good shape, which is rare.`;
-  const ask = top.length ? "Both are quick to fix." : "";
+  const found = top.length === 2 ? `I ran a quick free check on ${l.name} and two things stood out: ${top[0]}, and ${top[1]}.`
+    : top.length === 1 ? `I ran a quick free check on ${l.name} and one thing stood out: ${top[0]}.`
+    : `I ran a quick free check on ${l.name} and it's in good shape, which is rare.`;
+  const ask = top.length === 2 ? "Both are quick to fix." : top.length === 1 ? "It's a quick fix." : "";
   return `Hi ${l.name} team,
 
 I'm Vikram, I'm based nearby and I help local businesses get found online and use AI for the everyday admin, things like replying to messages, reviews and quotes.
