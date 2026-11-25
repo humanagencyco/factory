@@ -778,7 +778,7 @@ async function loadTeasers() {
       return line(`${esc(cap(b.now.join(" and ")))} ${esc(b.when)}`);
     },
     houses: async () => {
-      const d = await getJSON(`/factory/api/houseprices.php?pc=${encodeURIComponent(homePc().replace(/\s+/g, ""))}`);
+      const d = await getJSON(`/factory/api/houseprices.php?v=2&pc=${encodeURIComponent(homePc().replace(/\s+/g, ""))}`);
       if (d.nearby && d.nearby.count >= 5) return line(`Typical sale nearby £${Math.round(d.nearby.median / 1000)}k`);
       if (d.area && d.area.average) return line(`${esc(d.area.name)} average £${Math.round(d.area.average / 1000)}k`);
       return line("No recent sales found", false);
@@ -1415,7 +1415,7 @@ async function housePrices(pcIn) {
   out.innerHTML = `<div class="sample">Looking up sales near ${esc(pc.toUpperCase())}… This can take a few seconds the first time.</div>`;
   const k = n => "£" + Number(n).toLocaleString("en-GB");
   try {
-    const d = await getJSON(`/factory/api/houseprices.php?pc=${encodeURIComponent(pc.replace(/\s+/g, ""))}`);
+    const d = await getJSON(`/factory/api/houseprices.php?v=2&pc=${encodeURIComponent(pc.replace(/\s+/g, ""))}`);
     const n = d.nearby || {}, a = d.area;
     const types = Object.entries(n.by_type || {}).filter(([t]) => t !== "Other").sort((x, y) => y[1].count - x[1].count);
     const month = a && a.month ? new Date(a.month + "-01").toLocaleDateString("en-GB", { month: "long", year: "numeric" }) : "";
