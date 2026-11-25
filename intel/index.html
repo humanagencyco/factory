@@ -450,6 +450,22 @@ function wireShare(title) {
   };
 }
 
+// What the brand should do, in order, based on what the check found
+function todoHtml(d) {
+  const t = [];
+  if (d) {
+    const blockedSearch = d.ai_bots.filter(b => b.blocked && /ChatGPT search|Perplexity|Gemini/.test(b.name)).map(b => b.name);
+    if (blockedSearch.length) t.push(`<b>Let AI search in.</b> Unblock ${esc(blockedSearch.join(", "))}. These fetch pages to answer shoppers' questions. You can still block crawlers that only collect training data.`);
+    if (!d.has_product_schema) t.push(`<b>Describe products in a form machines read.</b> Add product details (name, size, price, stock, barcode, rating) as structured data on every product page.`);
+    if (!d.has_org_schema) t.push(`<b>Say who you are, clearly.</b> Add brand details as structured data: official name, logo, website, social links.`);
+  }
+  t.push(`<b>Answer the questions people ask AI.</b> "Best deodorant for sensitive skin?" Product pages need plain facts: what it's for, who it suits, ingredients, sizes, how it compares.`);
+  t.push(`<b>Keep listings the same everywhere.</b> AI blends what Tesco, Boots, Amazon and your site say. Matching names, sizes and photos mean it gets your products right.`);
+  t.push(`<b>Get more recent reviews, and reply to them.</b> Assistants lean on review volume and what reviewers say.`);
+  t.push(`<b>Check what AI says about you each month.</b> Ask ChatGPT, Gemini and Perplexity your category questions, and note whether you're named and how.`);
+  return `<div class="subhead" style="margin:12px 0 6px;font-weight:800">What the brand should do</div><ol class="facts" style="padding-left:20px">${t.map(x => `<li style="margin:4px 0">${x}</li>`).join("")}</ol>`;
+}
+
 // ---------- Is the brand ready for AI assistants? ----------
 async function loadAiReady(name, domainIn) {
   const el = document.getElementById("aiready"); if (!el) return;
@@ -461,7 +477,7 @@ async function loadAiReady(name, domainIn) {
   try {
     const r = await fetch(`/factory/api/aiready.php?domain=${encodeURIComponent(domain)}`);
     const d = await r.json();
-    if (!r.ok || !d.opens) { el.innerHTML = ask(`We couldn't open ${esc(domain)}. Check the address.`); return wire(); }
+    if (!r.ok || !d.opens) { el.innerHTML = ask(`${esc(domain)} turned our check away. Big brand sites often block automated visitors, and that can catch AI assistants too. You can see what it allows at <a href="https://${esc(domain)}/robots.txt" target="_blank" rel="noopener">${esc(domain)}/robots.txt ↗</a>, or try another address for the brand.`) + todoHtml(null); return wire(); }
     const blocked = d.ai_bots.filter(b => b.blocked).map(b => b.name);
     const verdict = blocked.length >= 3 ? "Mostly closed to AI assistants" : blocked.length ? "Partly open to AI assistants" : "Open to AI assistants";
     el.innerHTML = `<p><b>${esc(verdict)}.</b> ${blocked.length ? `${esc(d.domain)} tells ${esc(blocked.join(", "))} not to read the site, so those assistants can't learn about its products first hand. They'll rely on shops and reviews instead.` : `${esc(d.domain)} lets the main AI assistants read the site.`}</p>
@@ -472,6 +488,7 @@ async function loadAiReady(name, domainIn) {
         <li>llms.txt, a newer guide for AI tools: <b>${d.llms_txt ? "Yes" : "No"}</b> <span class="note">(optional, few use it yet)</span></li>
       </ul>
       ${d.description ? `<p class="note">How the site describes itself: "${esc(d.description)}"</p>` : ""}
+      ${todoHtml(d)}
       <p class="links"><a href="https://uk.trustpilot.com/review/${encodeURIComponent(d.domain)}" target="_blank" rel="noopener">Reviews on Trustpilot ↗</a> <a href="https://www.google.com/search?q=${encodeURIComponent(name + " reviews")}" target="_blank" rel="noopener">Reviews on Google ↗</a></p>
       <p class="sources">Checked live: ${esc(d.domain)}'s robots.txt, llms.txt and home page. Website from Wikidata. Trustpilot scores aren't copied here because Trustpilot doesn't allow it, so the link opens their page.</p>`;
   } catch (_) { el.innerHTML = ask("Couldn't run the check right now."); wire(); }
