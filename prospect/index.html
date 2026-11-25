@@ -180,9 +180,14 @@ $("f").onsubmit = async e => {
   const go = $("go"); go.disabled = true;
   try {
     $("status").textContent = `Looking for ${type} near ${pc}…`;
-    // The search gives about five places per query, so widen it with nearby wording
-    const queries = [`${pc} ${type}`, `${type} near ${pc}`, `${type} ${pc.split(" ")[0]}`];
     const seen = new Set(leads.map(l => l.name.toLowerCase())), found = [];
+    // Miru's Local Finder gives up to 15 places with ratings, reviews and websites
+    try {
+      const fr = await fetch(`/factory/api/finder.php?pc=${encodeURIComponent(pc.replace(/\s+/g, ""))}&q=${encodeURIComponent(type)}`).then(r => r.ok ? r.json() : null);
+      ((fr && fr.results) || []).forEach(p => { const k = String(p.name).toLowerCase(); if (!seen.has(k) && found.length < n) { seen.add(k); found.push(p); } });
+    } catch (_) {}
+    // Fall back to the smaller place search if that comes back short
+    const queries = found.length >= n ? [] : [`${pc} ${type}`, `${type} near ${pc}`, `${type} ${pc.split(" ")[0]}`];
     for (const q of queries) {
       if (found.length >= n) break;
       const list = await fetch(`${API}/api/myarea/place-search?q=${encodeURIComponent(q)}`).then(r => r.json()).catch(() => []);
@@ -193,10 +198,10 @@ $("f").onsubmit = async e => {
       const p = found[i];
       $("status").textContent = `Checking ${i + 1} of ${found.length}: ${p.name}…`;
       try {
-        const r = await fetch(`${API}/api/factory/business-scan`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ business: p.name, postcode: pcOf(p.address) || pc, website: "" }) });
+        const r = await fetch(`${API}/api/factory/business-scan`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ business: p.name, postcode: pcOf(p.address) || pc, website: p.website || "" }) });
         const d = await r.json();
         const gaps = gapsFor(d), g = d.google || {}, w = d.website || {};
-        leads.push({ name: p.name, type, town: townOf(p.address), phone: p.phone || g.phone || "", site: (w && w.url) || g.website || "", maps: g.maps_url || "", rating: g.rating || "", reviews: g.reviews || 0, score: d.score ?? "?", gaps, pts: (typeof d.score === "number" ? 10 - d.score : 3) + gaps.reduce((s, x) => s + x[1], 0), status: "To contact", v: 2, added: new Date().toISOString().slice(0, 10) });
+        leads.push({ name: p.name, type, town: townOf(p.address), phone: p.phone || g.phone || "", site: (w && w.url) || g.website || "", maps: g.maps_url || "", rating: g.rating || p.rating || "", reviews: g.reviews || p.review_count || 0, dist: p.dist_km || "", score: d.score ?? "?", gaps, pts: (typeof d.score === "number" ? 10 - d.score : 3) + gaps.reduce((s, x) => s + x[1], 0), status: "To contact", v: 2, added: new Date().toISOString().slice(0, 10) });
         save(leads); render();
       } catch (_) {}
     }
