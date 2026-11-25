@@ -49,10 +49,23 @@ function grab($url, $max = 600000) {
   return [$code, $body];
 }
 
+// When a site blocks our server, use the Internet Archive's latest public copy instead
+$fromArchive = false;
+function grabArchived($url, $max = 600000) {
+  [$c, $b] = grab('https://web.archive.org/web/2id_/' . $url, $max);
+  return [$c, $b];
+}
+
 // robots.txt: which AI crawlers are blocked from the whole site
 $base = $d;
 [$rc, $robots] = grab("https://$d/robots.txt", 200000);
 if (!($rc >= 200 && $rc < 300)) { [$rc2, $r2] = grab("https://www.$d/robots.txt", 200000); if ($rc2 >= 200 && $rc2 < 300) { $base = "www.$d"; $rc = $rc2; $robots = $r2; } }
+if (!($rc >= 200 && $rc < 300) || stripos($robots, '<html') !== false) {
+  foreach (["https://www.$d/robots.txt", "https://$d/robots.txt"] as $u) {
+    [$ac, $ab] = grabArchived($u, 200000);
+    if ($ac >= 200 && $ac < 300 && stripos($ab, '<html') === false && stripos($ab, 'user-agent') !== false) { $rc = $ac; $robots = $ab; $fromArchive = true; $base = parse_url($u, PHP_URL_HOST); break; }
+  }
+}
 $bots = ['GPTBot' => 'ChatGPT', 'OAI-SearchBot' => 'ChatGPT search', 'ClaudeBot' => 'Claude', 'PerplexityBot' => 'Perplexity', 'Google-Extended' => 'Google Gemini', 'CCBot' => 'Common Crawl'];
 $groups = []; $cur = [];
 foreach (preg_split('/\r?\n/', $rc >= 200 && $rc < 300 ? $robots : '') as $line) {
@@ -80,6 +93,9 @@ $hasLlms = $lc >= 200 && $lc < 300 && stripos($llms, '<html') === false && strle
 // Home page: secure, title, description and structured data
 [$hc, $html] = grab("https://$base/");
 if (!($hc >= 200 && $hc < 400) && $base === $d) [$hc, $html] = grab("https://www.$d/");
+if (!($hc >= 200 && $hc < 400) || strlen($html) < 2000) {
+  foreach (["https://www.$d/", "https://$d/"] as $u) { [$ac, $ab] = grabArchived($u); if ($ac >= 200 && $ac < 300 && strlen($ab) > 2000) { $hc = $ac; $html = $ab; $fromArchive = true; break; } }
+}
 $types = [];
 if (preg_match_all('#<script[^>]+application/ld\+json[^>]*>(.*?)</script>#is', $html, $mm)) {
   foreach ($mm[1] as $j) {
@@ -105,6 +121,7 @@ $out = [
   'title' => mb_substr(trim(html_entity_decode(strip_tags($t[1] ?? ''))), 0, 120),
   'description' => mb_substr(trim(html_entity_decode($desc[1] ?? '')), 0, 220),
   'checked' => gmdate('c'),
+  'from_archive' => $fromArchive,
 ];
 $body = json_encode($out);
 if ($out['opens']) @file_put_contents($key, $body);
