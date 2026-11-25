@@ -10,7 +10,7 @@ if (!preg_match('/^[A-Z]{1,2}[0-9][A-Z0-9]?[0-9][A-Z]{2}$/', $pc)) { http_respon
 
 $dir = sys_get_temp_dir() . '/ha-houses';
 if (!is_dir($dir)) @mkdir($dir, 0700, true);
-$key = $dir . '/' . $pc . '.json';
+$key = $dir . '/v2-' . $pc . '.json';
 if (is_file($key) && time() - filemtime($key) < 7 * 86400) { header('Cache-Control: public, max-age=86400'); header('X-Cache: hit'); readfile($key); exit; }
 
 function getj($url, $accept = 'application/json', $timeout = 25) {
@@ -28,7 +28,7 @@ function sparql($q) {
 $p = getj('https://api.postcodes.io/postcodes/' . rawurlencode($pc));
 if (!$p || empty($p['result'])) { http_response_code(404); echo json_encode(['error' => "Couldn't find that postcode."]); exit; }
 $r = $p['result'];
-$near = getj('https://api.postcodes.io/postcodes?lon=' . $r['longitude'] . '&lat=' . $r['latitude'] . '&radius=800&limit=60');
+$near = getj('https://api.postcodes.io/postcodes?lon=' . $r['longitude'] . '&lat=' . $r['latitude'] . '&radius=2000&limit=100');
 $pcs = [$r['postcode']];
 foreach (($near['result'] ?? []) as $n) $pcs[] = $n['postcode'];
 $pcs = array_values(array_unique($pcs));
