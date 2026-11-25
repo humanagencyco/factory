@@ -46,6 +46,7 @@ input,select{width:100%;border:2px solid var(--ink);border-radius:12px;padding:1
 :focus-visible{outline:3px solid var(--sky);outline-offset:2px}
 @media (max-width:720px){.form{grid-template-columns:1fr 1fr}.form .go{grid-column:1/-1}.lead{grid-template-columns:1fr}.opp{justify-self:start}}
 .locin{position:relative;display:block}.locin input{padding-right:46px!important}.locbtn{position:absolute;right:6px;top:50%;transform:translateY(-50%);width:34px;height:34px;display:grid;place-items:center;border:0;border-radius:999px;background:transparent;cursor:pointer;font-size:17px;line-height:1;padding:0}.locbtn:hover,.locbtn:focus-visible{background:#f1e9ff}.locbtn:disabled{opacity:.5;cursor:wait}
+.cmp{white-space:normal}.cmp .row{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin:0 0 8px}.cmp .ch{border:2px solid var(--ink);background:#fff;border-radius:999px;padding:5px 11px;font:inherit;font-size:13px;font-weight:800;cursor:pointer}.cmp .ch.on{background:var(--ink);color:#fff}.cmp textarea{width:100%;min-height:150px;border:2px solid var(--ink);border-radius:12px;padding:10px 12px;font:inherit;font-size:14px;line-height:1.45;background:#fff;color:var(--ink);box-sizing:border-box}.cmp .sub{font-weight:800;font-size:13px;margin:0 0 6px}.cmp small{color:var(--muted)}
 </style>
 </head>
 <body>
@@ -193,6 +194,7 @@ function render() {
 
 $("list").onclick = async e => {
   const b = e.target.closest("button"); if (!b) return;
+  if (b.dataset.intro != null) return composer(+b.dataset.intro);
   if (b.dataset.del != null) { leads.splice(+b.dataset.del, 1); save(leads); render(); }
   if (b.dataset.re != null) {
     b.textContent = "Checking…"; b.disabled = true;
@@ -200,6 +202,49 @@ $("list").onclick = async e => {
     if (res !== "ok") { b.disabled = false; b.textContent = res === "limit" ? "Hourly limit hit, try later" : "Couldn't check, try again"; }
   }
 };
+// ---------- Assisted intro: AI drafts, you edit and send ----------
+const CH = [["instagram", "Instagram DM"], ["whatsapp", "WhatsApp"], ["facebook", "Facebook"], ["email", "Email"]];
+function waNumber(p) { const d = String(p || "").replace(/\D/g, ""); return /^07\d{9}$/.test(d) ? "44" + d.slice(1) : /^447\d{9}$/.test(d) ? d : ""; }
+function composer(i) {
+  const l = leads[i], box = $("msg" + i);
+  if (box.classList.contains("on") && box.querySelector(".cmp")) { box.classList.remove("on"); box.innerHTML = ""; return; }
+  l.channel = l.channel || "instagram";
+  box.classList.add("on");
+  box.innerHTML = `<div class="cmp">
+    <div class="row">${CH.map(([k, t]) => `<button type="button" class="ch${l.channel === k ? " on" : ""}" data-ch="${k}">${t}</button>`).join("")}</div>
+    <input data-note placeholder="Something you noticed about them? e.g. won Mobile Hairstylist of the Year" maxlength="200" value="${esc(l.note || "")}" style="text-transform:none;margin-bottom:8px">
+    <div class="row"><button type="button" class="btn go" data-draft>✨ Draft it</button><small>AI writes a first go in your tone. You edit and send it yourself.</small></div>
+    <div data-out></div></div>`;
+  const cmp = box.querySelector(".cmp"), out = cmp.querySelector("[data-out]");
+  cmp.querySelectorAll("[data-ch]").forEach(b => b.onclick = () => { l.channel = b.dataset.ch; save(leads); cmp.querySelectorAll("[data-ch]").forEach(x => x.classList.toggle("on", x === b)); if (l.draft) draft(); });
+  const note = cmp.querySelector("[data-note]"); note.onchange = () => { l.note = note.value.trim(); save(leads); };
+  const show = (d) => {
+    l.draft = d.message; l.subject = d.subject || ""; save(leads);
+    const wa = waNumber(l.phone);
+    out.innerHTML = `${l.channel === "email" ? `<p class="sub">Subject: <span data-subj>${esc(l.subject)}</span></p>` : ""}<textarea data-text aria-label="Your message">${esc(l.draft)}</textarea>
+      <div class="row" style="margin-top:8px"><button type="button" class="btn light" data-tw="shorter">Shorter</button><button type="button" class="btn light" data-tw="warmer">Warmer</button><button type="button" class="btn light" data-tw="bolder">Bolder</button><button type="button" class="btn light" data-tw="">Try again</button></div>
+      <div class="row"><button type="button" class="btn go" data-copy>Copy</button>${l.channel === "whatsapp" && wa ? `<a class="btn light" data-open target="_blank" rel="noopener" style="text-decoration:none">Open WhatsApp</a>` : ""}${l.channel === "email" ? `<a class="btn light" data-open style="text-decoration:none">Open in email</a>` : ""}${l.channel === "instagram" ? `<a class="btn light" target="_blank" rel="noopener" href="https://www.instagram.com/direct/inbox/" style="text-decoration:none">Open Instagram</a>` : ""}${l.channel === "facebook" ? `<a class="btn light" target="_blank" rel="noopener" href="https://www.facebook.com/search/pages/?q=${encodeURIComponent(l.name)}" style="text-decoration:none">Find on Facebook</a>` : ""}<small data-said></small></div>`;
+    const ta = out.querySelector("[data-text]"), open = out.querySelector("[data-open]");
+    const link = () => { if (!open) return; open.href = l.channel === "email" ? `mailto:?subject=${encodeURIComponent(l.subject)}&body=${encodeURIComponent(ta.value)}` : `https://wa.me/${wa}?text=${encodeURIComponent(ta.value)}`; };
+    ta.oninput = () => { l.draft = ta.value; save(leads); link(); }; link();
+    out.querySelector("[data-copy]").onclick = async () => { try { await navigator.clipboard.writeText((l.channel === "email" && l.subject ? "Subject: " + l.subject + "\n\n" : "") + ta.value); out.querySelector("[data-said]").textContent = "Copied. Paste it in, then set the status to Contacted."; } catch (_) { ta.select(); } };
+    out.querySelectorAll("[data-tw]").forEach(b => b.onclick = () => draft(b.dataset.tw));
+  };
+  const draft = async (tweak = "") => {
+    out.innerHTML = `<p class="meta">${tweak ? "Reworking it…" : "Writing a first draft…"}</p>`;
+    l.note = note.value.trim(); save(leads);
+    try {
+      const r = await fetch(`${API}/api/factory/lead-intro`, { method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ lead: { name: l.name, type: l.type, town: l.town, rating: l.rating, reviews: l.reviews, site: l.site, gaps: l.gaps }, channel: l.channel, me: ($("me").value || "").trim(), offer: ($("offer").value || "").trim(), note: l.note, tweak, draft: tweak ? l.draft : "" }) });
+      const d = await r.json().catch(() => ({}));
+      if (!r.ok || !d.message) throw new Error(d.error || "");
+      show(d);
+    } catch (e) { show({ message: intro(l), subject: `Quick idea for ${l.name}` }); out.insertAdjacentHTML("afterbegin", `<p class="meta">${esc((!(e instanceof TypeError) && e.message) || "Couldn't reach the writer")}, so here's the standard intro to edit.</p>`); }
+  };
+  cmp.querySelector("[data-draft]").onclick = () => draft();
+  if (l.draft) show({ message: l.draft, subject: l.subject });
+}
+
 $("list").onchange = e => { const s = e.target.closest("[data-st]"); if (!s) return; leads[+s.dataset.st].status = s.value; save(leads); };
 
 $("f").onsubmit = async e => {
