@@ -479,7 +479,7 @@ async function loadAiReady(name, domainIn) {
     const slug = name.toLowerCase().normalize("NFKD").replace(/[\u0300-\u036f]/g, "").replace(/&/g, "and").replace(/[^a-z0-9]+/g, "");
     for (const guess of [slug + ".co.uk", slug + ".com", slug + ".uk"]) {
       el.innerHTML = `<p class="note">Looking for the brand's website (${esc(guess)})…</p>`;
-      try { const g = await fetch(`/factory/api/aiready.php?domain=${encodeURIComponent(guess)}`).then(x => x.ok ? x.json() : null); if (g && g.opens) { domain = guess; guessed = true; break; } } catch (_) {}
+      try { const g = await fetch(`/factory/api/aiready.php?v=2&domain=${encodeURIComponent(guess)}`).then(x => x.ok ? x.json() : null); if (g && g.opens) { domain = guess; guessed = true; break; } } catch (_) {}
     }
   }
   if (!domain) { el.innerHTML = ask("We couldn't find the brand's website. Add it to check."); return wire(); }
@@ -488,10 +488,10 @@ async function loadAiReady(name, domainIn) {
     let r, d;
     if (!domainIn && !/\.(uk|com)$/.test(domain)) {
       const uk = domain.split(".")[0] + ".co.uk";
-      r = await fetch(`/factory/api/aiready.php?domain=${encodeURIComponent(uk)}`); d = await r.json().catch(() => ({}));
+      r = await fetch(`/factory/api/aiready.php?v=2&domain=${encodeURIComponent(uk)}`); d = await r.json().catch(() => ({}));
       if (r.ok && d.opens) domain = uk; else d = null;
     }
-    if (!d) { r = await fetch(`/factory/api/aiready.php?domain=${encodeURIComponent(domain)}`); d = await r.json(); }
+    if (!d) { r = await fetch(`/factory/api/aiready.php?v=2&domain=${encodeURIComponent(domain)}&v=2`); d = await r.json(); }
     if (!r.ok || !d.opens) { el.innerHTML = ask(`${esc(domain)} turned our check away. Big brand sites often block automated visitors, and that can catch AI assistants too. You can see what it allows at <a href="https://${esc(domain)}/robots.txt" target="_blank" rel="noopener">${esc(domain)}/robots.txt ↗</a>, or try another address for the brand.`) + todoHtml(null); return wire(); }
     const blocked = d.ai_bots.filter(b => b.blocked).map(b => b.name);
     const verdict = blocked.length >= 3 ? "Mostly closed to AI assistants" : blocked.length ? "Partly open to AI assistants" : "Open to AI assistants";

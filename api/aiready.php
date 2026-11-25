@@ -2,7 +2,7 @@
 // Is a brand's website ready for AI assistants? Reads robots.txt, llms.txt and the home page.
 // Returns only yes/no findings, never the page itself. Public websites only.
 header('Content-Type: application/json; charset=utf-8');
-header('Cache-Control: public, max-age=3600');
+header('Cache-Control: no-store');
 
 $d = strtolower(trim($_GET['domain'] ?? ''));
 $d = preg_replace('#^https?://#', '', $d);
@@ -18,7 +18,7 @@ if ($ip === $d || !filter_var($ip, FILTER_VALIDATE_IP, FILTER_FLAG_NO_PRIV_RANGE
 $dir = sys_get_temp_dir() . '/ha-aiready';
 if (!is_dir($dir)) @mkdir($dir, 0700, true);
 $key = $dir . '/' . sha1($d) . '.json';
-if (empty($_GET['fresh']) && is_file($key) && time() - filemtime($key) < 86400) { header('X-Cache: hit'); readfile($key); exit; }
+if (empty($_GET['fresh']) && is_file($key) && time() - filemtime($key) < 86400) { header('X-Cache: hit'); header('Cache-Control: public, max-age=3600'); readfile($key); exit; }
 
 function grab($url, $max = 600000) {
   // Look like a normal browser: many big brand sites turn away anything that doesn't
@@ -124,6 +124,6 @@ $out = [
   'from_archive' => $fromArchive,
 ];
 $body = json_encode($out);
-if ($out['opens']) @file_put_contents($key, $body);
+if ($out['opens']) { @file_put_contents($key, $body); header('Cache-Control: public, max-age=3600'); }
 header('X-Cache: miss');
 echo $body;
