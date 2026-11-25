@@ -392,6 +392,7 @@ body.back .stepsmore { display:none; }
 .bizf label { display:flex; flex-direction:column; gap:4px; font-size:13px; font-weight:800; }
 .bizf input { border:2px solid var(--ink); border-radius:12px; padding:8px 10px; font:inherit; font-size:14px; font-weight:600; width:100%; box-sizing:border-box; min-width:0; }
 .bizf label { min-width:0; }
+.locin{position:relative;display:block}.locin input{padding-right:46px!important}.locbtn{position:absolute;right:6px;top:50%;transform:translateY(-50%);width:34px;height:34px;display:grid;place-items:center;border:0;border-radius:999px;background:transparent;cursor:pointer;font-size:17px;line-height:1;padding:0}.locbtn:hover,.locbtn:focus-visible{background:#f1e9ff}.locbtn:disabled{opacity:.5;cursor:wait}
 @media (max-width:600px) { .bizf { grid-template-columns:1fr; } }
 .bizscore { display:flex; gap:14px; align-items:center; margin:12px 0 6px; padding:12px; border:2px solid var(--ink); border-radius:14px; background:#fff8e6; }
 .bzs-n { font-size:34px; font-weight:900; line-height:1; }
@@ -2069,7 +2070,7 @@ function bizPanel() {
     <p class="muted" style="margin:4px 0 10px;font-size:14px">See your Google Maps listing, your website and social links, and whether AI assistants like ChatGPT and Claude are allowed to read your site. With your top fixes. No sign-up.</p>
     <div class="bizf">
       <label>Business name<input id="bzName" maxlength="100" placeholder="e.g. Ben's Ice Cream" style="text-transform:none"></label>
-      <label>Business postcode <small class="muted" style="font-weight:600">(helps us find the right one)</small><input id="bzPc" maxlength="10" value="${esc(postcode)}" placeholder="e.g. GU27 2AB"><button type="button" class="linkbtn" id="bzHere" style="font-size:13px;margin-top:4px">📍 I'm at the business now</button></label>
+      <label>Business postcode <small class="muted" style="font-weight:600">(helps us find the right one)</small><span class="locin"><input id="bzPc" maxlength="10" value="${esc(postcode)}" placeholder="e.g. GU27 2AB"><button type="button" class="locbtn" id="bzHere" title="I'm at the business now: use my location" aria-label="I'm at the business now: use my location">📍</button></span></label>
       <label style="grid-column:1/-1"><span>Website <small class="muted">(optional, we'll look for it)</small></span><input id="bzWeb" maxlength="200" placeholder="e.g. bensicecream.co.uk" style="text-transform:none"></label>
     </div>
     <div class="row" style="gap:8px;margin-top:8px"><button class="btn pink" type="button" id="bzGo">Check my business</button></div>
@@ -2143,15 +2144,15 @@ function wireBiz() {
   const here = document.getElementById("bzHere");
   if (here) here.onclick = () => {
     if (!navigator.geolocation) return msg("Location isn't available here. Type the postcode instead.");
-    here.textContent = "📍 Finding you…";
+    here.textContent = "⏳"; here.disabled = true;
     navigator.geolocation.getCurrentPosition(async p => {
       try {
         const r = await fetch(`https://api.postcodes.io/postcodes?lon=${p.coords.longitude.toFixed(5)}&lat=${p.coords.latitude.toFixed(5)}&limit=1&radius=500`).then(x => x.json());
         const pc = r && r.result && r.result[0] && r.result[0].postcode;
         if (pc) document.getElementById("bzPc").value = pc; else msg("Couldn't find a postcode here. Type it instead.");
       } catch (_) { msg("Couldn't find a postcode here. Type it instead."); }
-      here.textContent = "📍 I'm at the business now";
-    }, () => { here.textContent = "📍 I'm at the business now"; msg("Location is off. Type the postcode instead."); }, { timeout: 10000, maximumAge: 300000 });
+      here.textContent = "📍"; here.disabled = false;
+    }, () => { here.textContent = "📍"; here.disabled = false; msg("Location is off. Type the postcode instead."); }, { timeout: 10000, maximumAge: 300000 });
   };
   document.getElementById("bzGo").onclick = async () => {
     const body = { business: v("bzName"), postcode: v("bzPc"), website: v("bzWeb") };

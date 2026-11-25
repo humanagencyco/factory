@@ -44,6 +44,7 @@ input,select{width:100%;border:2px solid var(--ink);border-radius:12px;padding:1
 .empty{text-align:center;color:var(--muted);padding:20px}
 :focus-visible{outline:3px solid var(--sky);outline-offset:2px}
 @media (max-width:720px){.form{grid-template-columns:1fr 1fr}.form .go{grid-column:1/-1}.lead{grid-template-columns:1fr}.opp{justify-self:start}}
+.locin{position:relative;display:block}.locin input{padding-right:46px!important}.locbtn{position:absolute;right:6px;top:50%;transform:translateY(-50%);width:34px;height:34px;display:grid;place-items:center;border:0;border-radius:999px;background:transparent;cursor:pointer;font-size:17px;line-height:1;padding:0}.locbtn:hover,.locbtn:focus-visible{background:#f1e9ff}.locbtn:disabled{opacity:.5;cursor:wait}
 </style>
 </head>
 <body>
@@ -54,7 +55,7 @@ input,select{width:100%;border:2px solid var(--ink);border-radius:12px;padding:1
 
   <section class="card">
     <form class="form" id="f">
-      <div><label for="pc">Postcode</label><input id="pc" maxlength="8" placeholder="KT16 0DA"><button type="button" id="here" style="background:none;border:0;padding:4px 0 0;font:inherit;font-size:13px;font-weight:800;color:var(--violet);cursor:pointer;text-decoration:underline">📍 Use my location</button></div>
+      <div><label for="pc">Postcode</label><span class="locin"><input id="pc" maxlength="8" placeholder="KT16 0DA"><button type="button" class="locbtn" id="here" title="Use my location" aria-label="Use my location">📍</button></span></div>
       <div><label for="type">Type of business</label><input id="type" placeholder="e.g. hairdresser, plumber, café"></div>
       <div><label for="n">How many</label><select id="n"><option>5</option><option selected>10</option><option>15</option></select></div>
       <button class="btn go" id="go" type="submit">Find leads</button>
@@ -99,15 +100,15 @@ try { $("pc").value = localStorage.getItem("factory_postcode") || ""; } catch (_
 $("here").onclick = () => {
   const b = $("here");
   if (!navigator.geolocation) { $("status").textContent = "Location isn't available here. Type a postcode."; return; }
-  b.textContent = "📍 Finding you…";
+  b.textContent = "⏳"; b.disabled = true;
   navigator.geolocation.getCurrentPosition(async p => {
     try {
       const r = await fetch(`https://api.postcodes.io/postcodes?lon=${p.coords.longitude.toFixed(5)}&lat=${p.coords.latitude.toFixed(5)}&limit=1&radius=1000`).then(x => x.json());
       const pc = r && r.result && r.result[0] && r.result[0].postcode;
       if (pc) { $("pc").value = pc; $("status").textContent = `Using ${pc}, where you are now.`; } else $("status").textContent = "Couldn't find a postcode here. Type it instead.";
     } catch (_) { $("status").textContent = "Couldn't find a postcode here. Type it instead."; }
-    b.textContent = "📍 Use my location";
-  }, () => { b.textContent = "📍 Use my location"; $("status").textContent = "Location is off for this site. Type a postcode."; }, { timeout: 10000, maximumAge: 300000 });
+    b.textContent = "📍"; b.disabled = false;
+  }, () => { b.textContent = "📍"; b.disabled = false; $("status").textContent = "Location is off for this site. Type a postcode."; }, { timeout: 10000, maximumAge: 300000 });
 };
 
 // Trades that tend to have the biggest gaps and the most admin
