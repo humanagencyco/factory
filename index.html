@@ -1556,7 +1556,7 @@ const MADE = {
   bizcheck: "the business's Google listing and its own website",
   leads: "Google listings, each business's website, and our free business check",
   aibiz: "our own plain-English guidance",
-  lifeadmin: "DVLA for MOT and tax dates. Everything else you add stays in your browser",
+  lifeadmin: "DVLA for MOT and tax dates, and anything else you add stays in your browser",
   expenses: "your receipts in Miru, behind your login",
   "school-msgs": "your school emails in Miru, behind your login",
 };
@@ -1565,7 +1565,7 @@ function buildPanel(m) {
   const repo = m.id === "guides" || m.id === "reading"
     ? `<p style="margin:10px 0 0">The guides live in a public GitHub repo you can read.</p><p style="margin:8px 0 0"><a class="btn" href="https://github.com/humanagencyco/ai-humanagency" target="_blank" rel="noopener">Open repo ↗</a></p>` : "";
   return `<div class="box"><b>How it's made</b>
-    ${src ? `<p style="margin:6px 0 0">Live data from <b>${esc(src)}</b>, run through Human Agency's own service.</p>` : ""}
+    ${src ? `<p style="margin:6px 0 0">Data comes from ${esc(src)}. It runs on Human Agency's own service.</p>` : ""}
     ${repo || `<p style="margin:10px 0 0;color:var(--muted)">The code isn't published as a package yet.</p>`}
   </div>
   <div class="box"><b>Want one like this?</b><p style="margin:6px 0 10px;color:var(--muted)">We build small, useful tools on live data for businesses and communities.</p><a class="btn pink" href="https://humanagency.co/" target="_blank" rel="noopener">Talk to us ↗</a></div>`;
