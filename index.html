@@ -622,6 +622,7 @@ const MODULES = [
   { id:"track", type:"near", emo:"🚉", name:"Your journey", desc:"Pick two stations. See the next trains there and back.", status:"ready", c:"#e2f0ff", pkg:"", repo:"", hidden:true },
   { id:"pharmacy", type:"near", emo:"💊", name:"Pharmacies open now", desc:"Open pharmacies nearby, with phone numbers.", status:"beta", c:"#efe2ff", pkg:"@humanagency/pharmacy-finder", repo:"github.com/humanagencyco/pharmacy-finder" },
   { id:"schools", type:"near", emo:"🏫", name:"Nearest schools", desc:"Schools near your postcode, with Ofsted and contact details.", status:"beta", c:"#fff0d6", pkg:"@humanagency/school-digest", repo:"github.com/humanagencyco/school-digest" },
+  { id:"houses", type:"near", emo:"🏠", name:"House prices", desc:"What homes near you sold for, and the average for your area. From HM Land Registry.", status:"beta", c:"#fde7f0", pkg:"", repo:"" },
   { id:"lifeadmin", type:"personal", emo:"📅", name:"Life admin reminders", desc:"MOT, road tax, passport, insurance. Your renewal dates in one place, with calendar reminders.", status:"ready", c:"#e2f6e9", pkg:"", repo:"", link:"/factory/admin/" },
   { id:"expenses", type:"personal", emo:"💷", name:"Expense tracker", desc:"Receipts sorted by category and month.", status:"beta", c:"#e4f6ff", pkg:"@humanagency/expense-tracker", repo:"github.com/humanagencyco/expense-tracker" },
   { id:"pubs", type:"near", hidden:true, emo:"🍺", name:"Best pubs", desc:"Pubs near you, with hygiene ratings where we have them.", status:"beta", c:"#f0e9dd", pkg:"@humanagency/best-pubs", repo:"github.com/humanagencyco/best-pubs" },
@@ -774,6 +775,12 @@ async function loadTeasers() {
       if (b.none) return line("No upcoming collections found", false);
       const cap = x => x.charAt(0).toUpperCase() + x.slice(1).toLowerCase();
       return line(`${esc(cap(b.now.join(" and ")))} ${esc(b.when)}`);
+    },
+    houses: async () => {
+      const d = await getJSON(`/factory/api/houseprices.php?pc=${encodeURIComponent(homePc().replace(/\s+/g, ""))}`);
+      if (d.nearby && d.nearby.median) return line(`Typical sale nearby £${Math.round(d.nearby.median / 1000)}k`);
+      if (d.area && d.area.average) return line(`${esc(d.area.name)} average £${Math.round(d.area.average / 1000)}k`);
+      return line("No recent sales found", false);
     },
     pharmacy: async () => {
       const list = await getJSON(`${API}/api/myarea/place-search?q=${encodeURIComponent(pc + " pharmacy")}`);
@@ -1100,6 +1107,7 @@ function tryPanel(m) {
   if (m.id === "vehicle") return `<div class="box"><div class="row"><input id="tIn" placeholder="Registration, e.g. AB12 CDE" maxlength="10" value="${esc((lifeCars().slice(-1)[0]) || "")}"><button class="btn pink" id="tGo">Check</button></div><div id="tOut" style="margin-top:10px"></div></div>`;
   if (m.type === "topic") return `<div class="box"><b>No postcode needed.</b><p style="margin:6px 0 10px;color:var(--muted)">This is for everyone.</p><a class="btn pink" href="${esc(m.link)}" target="_blank" rel="noopener" style="text-decoration:none">Open ${esc(m.name)} ↗</a></div>`;
   if (m.id === "lifeadmin") return lifePanel();
+  if (m.id === "houses") return `<div class="box"><div class="row"><input id="hpPc" placeholder="Postcode" maxlength="8" value="${esc(homePc())}"><button class="btn pink" id="hpGo">Check</button></div></div><div id="hpOut"></div>`;
   if (m.id === "leads") return `<div class="box"><b>Local leads</b><p class="muted" style="margin:6px 0 10px;font-size:14px">Pick a type of business and a postcode. We find up to 15, rank who needs help most, run the free check on the top three, and write a short intro you can edit and send.</p><a class="btn pink" href="/factory/prospect/" style="text-decoration:none">Open Local leads</a></div>`;
   if (m.id === "bins") return `<div class="bin-card" id="binCard"></div><p class="sample">Your address is saved in this browser only. Turn on a WhatsApp reminder the evening before in the Today box.</p>`;
   if (m.type === "personal") return `<div class="box"><b>Log in to see this.</b><p style="margin:6px 0 10px;color:var(--muted)">Your messages and data stay private. Sign in on Miru to open it.</p><a class="btn pink" href="${esc(m.link)}" target="_blank" rel="noopener" style="text-decoration:none">Sign in to Miru ↗</a></div>`;
@@ -1273,7 +1281,7 @@ async function wireLive(m) {
         const d = await getJSON(`${API}/api/factory/schools-near?postcode=${encodeURIComponent(pc)}`);
         if (!d.schools.length) return show(`<div class="sample">No schools found near ${esc(pc)}.</div>`);
         show(d.schools.map(r => `<div class="result"><div><b>${esc(r.name)}</b><small>${esc(r.postcode)} · ${r.distance_km} km${r.type ? " · " + esc(r.type) : ""}</small></div><div class="ofsted">${r.ofsted_rating ? `<span class="chip2">Ofsted: ${esc(r.ofsted_rating)}</span>` : `<span class="chip2 quiet">Not yet rated</span>`}${r.ofsted_report ? ` <a href="${esc(r.ofsted_report)}" target="_blank" rel="noopener">Report ↗</a>` : ""}</div></div>`).join("")
-          + `<div class="sample">Live from the DfE school register</div>`);
+          + `<div class="sample">Live from the DfE school register. Since November 2025 Ofsted gives schools a report card with a grade for each area instead of one overall word, so older inspections show the last one-word grade. Tap a report for the detail.</div>`);
       }
     } catch (e) { fail(e); }
   };
@@ -1393,12 +1401,38 @@ function lifeIcs(it) {
   a.download = it.name.replace(/[^a-z0-9]+/gi, "-").toLowerCase() + ".ics"; document.body.appendChild(a); a.click(); a.remove();
 }
 
+// House prices near a postcode (HM Land Registry, through our own bridge)
+async function housePrices(pcIn) {
+  const out = $("hpOut"), pc = String(pcIn || "").trim();
+  if (!pc) return;
+  out.innerHTML = `<div class="sample">Looking up sales near ${esc(pc.toUpperCase())}… This can take a few seconds the first time.</div>`;
+  const k = n => "£" + Number(n).toLocaleString("en-GB");
+  try {
+    const d = await getJSON(`/factory/api/houseprices.php?pc=${encodeURIComponent(pc.replace(/\s+/g, ""))}`);
+    const n = d.nearby || {}, a = d.area;
+    const types = Object.entries(n.by_type || {}).filter(([t]) => t !== "Other").sort((x, y) => y[1].count - x[1].count);
+    const month = a && a.month ? new Date(a.month + "-01").toLocaleDateString("en-GB", { month: "long", year: "numeric" }) : "";
+    out.innerHTML = (n.count ? `<div class="box"><b>Near ${esc(d.postcode)}</b>
+        <div class="bignum" style="margin:4px 0">${k(n.median)}</div>
+        <p class="sample" style="margin:0">The middle price of ${n.count} home${n.count === 1 ? "" : "s"} sold in the nearest ${n.postcodes_checked} postcodes over the last two years.</p>
+        ${types.length ? types.map(([t, v]) => `<div class="result"><div><b>${esc(t)}</b><small>${v.count} sold</small></div><span class="price">${k(v.median)}</span></div>`).join("") : ""}
+      </div>` : `<div class="box"><b>Near ${esc(d.postcode || pc)}</b><p class="sample">No sales recorded in the nearest postcodes in the last two years.</p></div>`)
+      + (a && a.average ? `<div class="box"><b>${esc(a.name)} average</b><div class="bignum" style="margin:4px 0">${k(a.average)}</div>
+        <p class="sample" style="margin:0">${month ? `${esc(month)}. ` : ""}${a.annual_change != null ? `${a.annual_change > 0 ? "Up" : a.annual_change < 0 ? "Down" : "No change"} ${Math.abs(a.annual_change)}% on a year before.` : ""}</p>
+        ${Object.entries(a.by_type || {}).filter(([, v]) => v).map(([t, v]) => `<div class="result"><div><b>${esc(t)}</b></div><span class="price">${k(v)}</span></div>`).join("")}
+      </div>` : "")
+      + ((n.recent || []).length ? `<div class="subhead">Recent sales nearby</div>` + n.recent.map(x => `<div class="result"><div><b>${k(x.price)}</b><small>${esc(x.type)}${x.street ? " · " + esc(x.street) : ""} · ${esc(x.postcode)}</small></div><small>${new Date(x.date).toLocaleDateString("en-GB", { month: "short", year: "numeric" })}</small></div>`).join("") : "")
+      + `<div class="sample">From HM Land Registry, which records sales a few weeks after they complete. Contains HM Land Registry data © Crown copyright, Open Government Licence.</div>`;
+  } catch (e) { out.innerHTML = `<div class="sample">Couldn't get house prices right now. Try again in a minute.</div>`; }
+}
+
 function wireTry(m) {
   if (["pubs","trains","schools"].includes(m.id)) return wireLive(m);
   if (m.id === "track") return wireTrack();
   if (m.id === "bizcheck") return wireBiz();
   if (m.id === "aibiz") return wireAi();
   if (m.id === "lifeadmin") return wireLife();
+  if (m.id === "houses") { const go = () => housePrices($("hpPc").value); $("hpGo").onclick = go; $("hpPc").onkeydown = e => { if (e.key === "Enter") go(); }; return go(); }
   if (m.id === "bins") { const b = savedBin(); return b && b.postcode === homePc() ? binSaved() : binFind(); }
   if (m.id === "company") {
     const go = $("tGo"), out = $("tOut");
@@ -1550,7 +1584,8 @@ const MADE = {
   trains: "the National Rail live feed",
   track: "the National Rail live feed",
   pharmacy: "Google Places and OpenStreetMap",
-  schools: "the Department for Education school register",
+  schools: "the Department for Education school register, with Ofsted inspection results",
+  houses: "HM Land Registry: what homes sold for, and the UK House Price Index for your area",
   company: "Companies House, plus our Intel research",
   vehicle: "DVLA vehicle records",
   bizcheck: "the business's Google listing and its own website",
