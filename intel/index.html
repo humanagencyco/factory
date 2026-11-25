@@ -170,6 +170,7 @@ function renderCompany(c) {
       </div>
       <h3>Products seen online in the UK</h3><div id="products"><p class="note">Looking up product listings…</p></div>
       <h3>Ready for AI assistants?</h3><div id="aiready"><p class="note">Checking the brand's website…</p></div>
+      <h3>What AI tells shoppers about a product</h3><div id="answers"></div>
       <h3>Commercial opportunities for the brand in the UK</h3><div id="opps"><p class="note">Reading the listings for opportunities…</p></div>
       <h3>In the news</h3><div id="news"><p class="note">Counting recent coverage…</p></div>
       <h3>Christmas adverts</h3><p class="note">Not checked yet. <a href="https://www.youtube.com/results?search_query=${encodeURIComponent(c.display_name + ' Christmas advert')}" target="_blank" rel="noopener">Search YouTube for ${esc(c.display_name)} Christmas adverts ↗</a> (unchecked results).</p>
@@ -511,6 +512,42 @@ async function loadAiReady(name, domainIn) {
   } catch (_) { el.innerHTML = ask("Couldn't run the check right now."); wire(); }
 }
 
+// ---------- What AI tells shoppers (AI Answer Audit, runs on Miru) ----------
+// Only runs when asked: each check costs AI calls. Answers are graded against the brand's own product page.
+const GRADE_ICON = { correct: "✅", partly: "🟡", vague: "⚪", out_of_date: "🟠", wrong: "❌", safety_fail: "⛔", cant_check: "❔", no_answer: "–" };
+function initAnswers(name) {
+  const el = document.getElementById("answers"); if (!el) return;
+  el.innerHTML = `<p class="note">We ask AI assistants six questions shoppers want answered (how to use it, features, ingredients, troubleshooting, tips, support) and check every answer against the brand's own product page.</p>
+    <form id="ansForm" style="display:grid;gap:8px;margin-top:8px">
+      <input id="ansProduct" placeholder="Product, e.g. ${esc(name)} Classic" required>
+      <input id="ansUrl" type="url" placeholder="Link to the product on ${esc(name)}'s own website" required>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center"><select id="ansMarket"><option>UK</option><option>US</option></select><button class="btn" type="submit">Check the answers</button></div>
+    </form>`;
+  document.getElementById("ansForm").onsubmit = async e => {
+    e.preventDefault();
+    const body = { brand: name, product: document.getElementById("ansProduct").value.trim(), url: document.getElementById("ansUrl").value.trim(), market: document.getElementById("ansMarket").value };
+    const out = document.getElementById("ansOut") || el.appendChild(Object.assign(document.createElement("div"), { id: "ansOut" }));
+    out.innerHTML = `<p class="note">Asking the AI assistants and checking their answers. This takes about a minute…</p>`;
+    try {
+      const r = await fetch(`${API}/api/factory/answer-audit`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
+      const d = await r.json().catch(() => ({}));
+      out.innerHTML = r.ok ? answersHtml(d) : `<p class="note">${esc(d.error || "The check didn't finish. Try again in a minute.")}</p>`;
+    } catch (_) { out.innerHTML = `<p class="note">Couldn't reach the check right now.</p>`; }
+  };
+}
+function answersHtml(d) {
+  const bad = d.answers.filter(a => ["safety_fail", "wrong", "out_of_date"].includes(a.grade))
+    .sort((a, b) => (a.grade === "safety_fail" ? -1 : 0) - (b.grade === "safety_fail" ? -1 : 0)).slice(0, 3);
+  const checked = d.answers.filter(a => !["cant_check", "no_answer"].includes(a.grade)).length;
+  const cats = d.categories.map(c => `<div class="aibot"><b>${c.safety_fail ? "⛔" : c.score == null ? "❔" : c.score >= 80 ? "✅" : c.score >= 50 ? "🟡" : "❌"} ${esc(c.label)}</b>${c.score == null ? "Can't check" : c.score + " / 100"}<br><span class="note" style="margin:0">${c.weight}% of shoppers would ask this</span></div>`).join("");
+  return `<p><b>AI Answer Score: ${d.score == null ? "not enough to check" : d.score + " / 100"}</b>${d.capped ? " <b>(capped at 50: a safety answer was wrong)</b>" : ""}</p>
+    <p class="note">${checked} of ${d.answers.length} answers could be checked against the product page. Tools asked: ${esc(d.tools.join(", "))}.${d.brand_source_share != null ? ` ${d.brand_source_share}% of answers with sources used the brand's own website.` : ""}</p>
+    <div class="aigrid">${cats}</div>
+    ${bad.length ? `<div class="subhead" style="margin:12px 0 6px;font-weight:800">What AI gets wrong</div><ol class="facts" style="padding-left:20px">${bad.map(a => `<li style="margin:6px 0"><b>${esc(a.question)}</b><br>${esc(a.tool)} said: "${esc(a.answer.slice(0, 220))}${a.answer.length > 220 ? "…" : ""}"<br><span class="note" style="margin:0">${GRADE_ICON[a.grade]} ${esc(a.grade_label)}: ${esc(a.note)}</span></li>`).join("")}</ol>` : `<p>No wrong answers found in what could be checked.</p>`}
+    <details class="note" style="margin:8px 0"><summary style="cursor:pointer">See every answer</summary><ul class="facts">${d.answers.map(a => `<li><b>${GRADE_ICON[a.grade]} ${esc(a.tool)}: ${esc(a.question)}</b><br>${esc(a.answer || "(no answer)")}${a.note ? `<br><i>${esc(a.note)}</i>` : ""}</li>`).join("")}</ul></details>
+    <p class="sources">Checked against <a href="${esc(d.checked_against)}" target="_blank" rel="noopener">the brand's product page ↗</a> on ${esc(new Date(d.ran_at).toLocaleDateString("en-GB"))}. Grades are made by AI using only that page; questions the page doesn't cover are left out of the score. AI answers vary from one ask to the next.</p>`;
+}
+
 // ---------- Brand: commercial opportunities ----------
 // Lenses, each tied to a well known way of looking at brand growth:
 //  1. Be easy to buy: physical availability (Byron Sharp, How Brands Grow, 2010)
@@ -750,7 +787,7 @@ function render(c) {
   if (c.status === "pending" || c.status === "enriching") return waitForResearch(c.display_name, lookup);
   if (c.status === "ready") {
     const n = c.display_name;
-    pageReady = Promise.allSettled([loadHiring(n), loadAnalysis(n), loadBrand(n), loadOpportunities(n), loadAiReady(n), GLANCE ? loadGlance(n) : null]);
+    pageReady = Promise.allSettled([loadHiring(n), loadAnalysis(n), loadBrand(n), loadOpportunities(n), loadAiReady(n), initAnswers(n), GLANCE ? loadGlance(n) : null]);
     wireShare(n);
   }
 }
