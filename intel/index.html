@@ -262,7 +262,15 @@ const wikiCache = {};
 function wikiBrand(name) { return (wikiCache[name.toLowerCase()] ||= wikiBrandFetch(name).catch(e => { delete wikiCache[name.toLowerCase()]; throw e; })); }
 // "Magnum" alone finds condoms and wine bottles too; ask for "Magnum ice cream"
 async function brandQuery(name) {
-  try { const w = await wikiBrand(name); const q = w && w.qualifier; if (q && !name.toLowerCase().includes(q)) return `${name} ${q}`; } catch (_) {}
+  try {
+    const w = await wikiBrand(name); const q = w && w.qualifier;
+    if (q && !name.toLowerCase().includes(q)) {
+      // Only narrow if the plain search really does include this kind of product (stops "Lynx snowmobile")
+      const bare = await brandData(name).catch(() => null);
+      const titles = [...(bare?.catalog_intelligence?.top_products || []).map(p => p.title), ...(bare?.pricing_intelligence?.competitor_prices || []).map(p => p.product)].join(" ").toLowerCase();
+      if (q.split(/\s+/).some(word => word.length > 2 && titles.includes(word))) return `${name} ${q}`;
+    }
+  } catch (_) {}
   return name;
 }
 const brandDataFor = async name => brandData(await brandQuery(name));
@@ -275,7 +283,7 @@ async function wikiBrandFetch(name) {
   const pg = Object.values(p.query.pages)[0];
   const out = { title: hit.title, langs: (pg.langlinks || []).map(l => [l.lang, l["*"]]) };
   const paren = (hit.title.match(/\(([^)]+)\)/) || [])[1] || "";
-  if (paren && !/brand|company|plc|ltd|group|band|film|song|album|novel/i.test(paren)) out.qualifier = paren.toLowerCase();
+  if (paren && !/brand|company|plc|ltd|group|band|film|song|album|novel|disambiguation/i.test(paren)) out.qualifier = paren.toLowerCase();
   const qid = pg.pageprops?.wikibase_item;
   if (qid) {
     const e = await getJSON(`https://www.wikidata.org/wiki/Special:EntityData/${qid}.json`);
