@@ -152,7 +152,7 @@ function render() {
   $("count").textContent = leads.length ? `Your leads (${leads.length})` : "Your leads";
   $("list").innerHTML = leads.length ? leads.map((l, i) => `<div class="lead">
       <div><b class="n">${esc(l.name)}</b> <span class="meta">${esc(l.type)}${l.town ? " · " + esc(l.town) : ""}</span>
-        <div class="meta">${l.phone ? `📞 <a href="tel:${esc(l.phone.replace(/\s+/g, ""))}">${esc(l.phone)}</a> · ` : ""}${l.site ? `<a href="${esc(l.site)}" target="_blank" rel="noopener">Website ↗</a> · ` : "No website · "}${l.rating ? `${esc(l.rating)}★ from ${esc(l.reviews || 0)} reviews` : "No Google rating"}${l.maps ? ` · <a href="${esc(l.maps)}" target="_blank" rel="noopener">Maps ↗</a>` : ""}</div></div>
+        <div class="meta">${l.phone ? `📞 <a href="tel:${esc(String(l.phone).replace(/\s+/g, ""))}">${esc(String(l.phone))}</a> · ` : ""}${l.site ? `<a href="${esc(l.site)}" target="_blank" rel="noopener">Website ↗</a> · ` : "No website · "}${l.rating ? `${esc(l.rating)}★ from ${esc(l.reviews || 0)} reviews` : "No Google rating"}${l.maps ? ` · <a href="${esc(l.maps)}" target="_blank" rel="noopener">Maps ↗</a>` : ""}</div></div>
       <span class="opp ${level(l.pts)}" title="${l.quick ? "Quick view from the search. The full check didn't run, so tap Recheck." : ""}">${level(l.pts) === "high" ? "Big opportunity" : level(l.pts) === "med" ? "Some gaps" : "In good shape"} · ${l.quick ? "quick view" : esc(l.score) + "/10"}</span>
       ${l.gaps.length ? `<ul class="gaps">${l.gaps.slice(0, 4).map(g => `<li>${esc(g[0])}</li>`).join("")}</ul>` : ""}
       <div class="acts">
@@ -220,7 +220,7 @@ $("f").onsubmit = async e => {
         const quick = !r.ok || typeof d.score !== "number";
         if (quick) d = { google: { found: true, rating: p.rating, reviews: p.review_count, website: p.website, phone: p.phone }, website: p.website ? { url: p.website } : null };
         const gaps = gapsFor(d), g = d.google || {}, w = d.website || {};
-        leads.push({ name: p.name, type, pc: pcOf(p.address) || pc, town: townOf(p.address), phone: p.phone || g.phone || "", site: (w && w.url) || g.website || "", maps: g.maps_url || "", rating: g.rating || p.rating || "", reviews: g.reviews || p.review_count || 0, dist: p.dist_km || "", score: quick ? "?" : d.score, quick, gaps, pts: (typeof d.score === "number" ? 10 - d.score : 3) + gaps.reduce((s, x) => s + x[1], 0), status: "To contact", v: 2, added: new Date().toISOString().slice(0, 10) });
+        leads.push({ name: p.name, type, pc: pcOf(p.address) || pc, town: townOf(p.address), phone: String(p.phone || g.phone || ""), site: (w && w.url) || g.website || "", maps: g.maps_url || "", rating: g.rating || p.rating || "", reviews: g.reviews || p.review_count || 0, dist: p.dist_km || "", score: quick ? "?" : d.score, quick, gaps, pts: (typeof d.score === "number" ? 10 - d.score : 3) + gaps.reduce((s, x) => s + x[1], 0), status: "To contact", v: 2, added: new Date().toISOString().slice(0, 10) });
         save(leads); render();
       } catch (_) {}
       await new Promise(res => setTimeout(res, 1200)); // be gentle with the checker
