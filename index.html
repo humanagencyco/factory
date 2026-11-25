@@ -613,10 +613,11 @@ const MODULES = [
   { id:"weather", type:"near", emo:"☀️", name:"Weather now", desc:"Current conditions for your postcode.", status:"ready", c:"#fff3b0", pkg:"@humanagency/weather-now", repo:"github.com/humanagencyco/weather-now" },
   { id:"fuel", type:"near", emo:"⛽", name:"Fuel prices", desc:"Cheapest petrol and diesel near a postcode.", status:"ready", c:"#ffd6e5", pkg:"@humanagency/fuel-finder", repo:"github.com/humanagencyco/fuel-finder" },
   { id:"mps", type:"near", emo:"🏛️", name:"MPs & councillors", desc:"Your MP and local councillors, with contact links.", status:"ready", c:"#d9ecff", pkg:"@humanagency/councillors", repo:"github.com/humanagencyco/councillors" },
+  { id:"local", type:"near", emo:"🔧", name:"Local services near you", desc:"Plumbers, electricians, hairdressers and more near your postcode, with Google ratings and how to get in touch.", status:"beta", c:"#e2f6e9", pkg:"", repo:"" },
   { id:"cafes", type:"near", emo:"☕", name:"Cafés & pubs", desc:"Independent cafés and pubs near you, with hygiene ratings where we have them.", status:"ready", c:"#ffe8c2", pkg:"@humanagency/places-cafes", repo:"github.com/humanagencyco/places-cafes" },
   { id:"trains", type:"near", emo:"🚆", name:"Train times", desc:"Next departures from your nearest station.", status:"beta", c:"#d6f7ec", pkg:"@humanagency/train-times", repo:"github.com/humanagencyco/train-times" },
   { id:"bizcheck", type:"biz", emo:"🏪", name:"Is your business easy to find?", desc:"Free instant check: your Google Maps listing, reviews, website, and whether AI assistants can read your site.", status:"ready", c:"#fff0d6", pkg:"", repo:"" },
-  { id:"leads", type:"biz", emo:"🎯", name:"Find local businesses to help", desc:"For freelancers and consultants: find businesses near you, see who's hard to find online, and get an intro to send.", status:"beta", c:"#e2f6e9", pkg:"", repo:"", link:"/factory/prospect/" },
+  { id:"leads", type:"biz", hidden:true, emo:"🎯", name:"Find local businesses to help", desc:"For freelancers and consultants: find businesses near you, see who's hard to find online, and get an intro to send.", status:"beta", c:"#e2f6e9", pkg:"", repo:"", link:"/factory/prospect/" },
   { id:"aibiz", type:"biz", emo:"🤖", name:"AI for your business", desc:"What ChatGPT, Claude and Copilot could do for a small business, and help to set it up.", status:"ready", c:"#efe2ff", pkg:"", repo:"" },
   { id:"track", type:"near", emo:"🚉", name:"Your journey", desc:"Pick two stations. See the next trains there and back.", status:"ready", c:"#e2f0ff", pkg:"", repo:"", hidden:true },
   { id:"pharmacy", type:"near", emo:"💊", name:"Pharmacies open now", desc:"Open pharmacies nearby, with phone numbers.", status:"beta", c:"#efe2ff", pkg:"@humanagency/pharmacy-finder", repo:"github.com/humanagencyco/pharmacy-finder" },
@@ -1106,6 +1107,9 @@ function tryPanel(m) {
   if (m.id === "weather") return `<div class="box"><div class="row"><input id="tIn" placeholder="Postcode" maxlength="8" value="${postcode}"><button class="btn pink" id="tGo">Check</button></div><div id="tOut" style="margin-top:10px"></div></div>`;
   if (m.id === "fuel") return `<div class="box"><div class="row"><input id="tIn" placeholder="Postcode" maxlength="8" value="${postcode}"><button class="btn pink" id="tGo">Check</button></div><div id="tOut" style="margin-top:10px"></div></div>`;
   if (m.id === "mps") return `<div class="box"><div class="row"><input id="tIn" placeholder="Postcode" maxlength="8" value="${homePc()}"><button class="btn pink" id="tGo">Find</button></div><div id="tOut" style="margin-top:10px"></div></div>`;
+  if (m.id === "local") return `<div class="box"><div class="row" style="flex-wrap:wrap"><input id="tIn" placeholder="Postcode" maxlength="8" value="${postcode}" style="flex:0 1 120px"><input id="tType" placeholder="What do you need? e.g. plumber" maxlength="40" style="flex:1 1 180px;text-transform:none"><button class="btn pink" id="tGo">Search</button></div>
+    <div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:8px">${["Plumber","Electrician","Hairdresser","Builder","Cleaner","Car mechanic","Locksmith","Dog groomer","Dentist","Vet"].map(t => `<button type="button" class="sharebtn" data-svc="${t}">${t}</button>`).join("")}</div>
+    <div id="tOut" style="margin-top:10px"><div class="sample">Pick what you need, or type it, and we'll show who's nearby.</div></div></div>`;
   if (m.id === "cafes") return `<div class="box"><div class="row"><input id="tIn" placeholder="Postcode" maxlength="8" value="${postcode}"><button class="btn pink" id="tGo">Search</button></div><div id="tOut" style="margin-top:10px"></div></div>`;
 if (m.id === "pharmacy") return `<div class="box"><div class="row"><input id="tIn" placeholder="Postcode" maxlength="8" value="${postcode}"><button class="btn pink" id="tGo">Search</button></div><div id="tOut" style="margin-top:10px"></div></div>`;
   return `<div class="box"><b>Try it soon.</b><p style="margin:6px 0 0;color:var(--muted)">This module is in beta. The Take and Build tabs already work.</p></div>`;
@@ -1481,6 +1485,25 @@ function wireTry(m) {
         html += `<div class="sample">Councillor data: <a href="https://democracyclub.org.uk/" target="_blank" rel="noopener">Democracy Club</a>, May 2026 election results (<a href="https://creativecommons.org/licenses/by-sa/4.0/" target="_blank" rel="noopener">CC BY-SA 4.0</a>).</div>`;
         show(html);
       }
+      if (m.id === "local") {
+        const pc = normPC($("tIn").value); if (!pc) return badPC();
+        const what = ($("tType").value || "").trim();
+        if (what.length < 2) return show(`<div class="sample">Tell us what you need, e.g. plumber.</div>`);
+        show(`<div class="sample">Finding ${esc(what.toLowerCase())} near ${esc(pc)}…</div>`);
+        let list = [], cat = "";
+        try {
+          const fr = await fetch(`/factory/api/finder.php?pc=${encodeURIComponent(pc.replace(/\s+/g, ""))}&q=${encodeURIComponent(what)}`).then(r => r.ok ? r.json() : null);
+          list = (fr && fr.results) || []; cat = (fr && fr.checkatrade_url) || "";
+        } catch (_) {}
+        if (!list.length) { try { const l = await getJSON(`${API}/api/myarea/place-search?q=${encodeURIComponent(what + " near " + pc)}`); list = Array.isArray(l) ? l : []; } catch (_) {} }
+        if (!list.length) return show(`<div class="sample">Nothing found for "${esc(what)}" near ${esc(pc)}. Try another word, like "heating engineer" instead of "boiler".</div>`);
+        const maps = r => `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(r.name + " " + (r.address || pc))}`;
+        track("local");
+        return show(list.slice(0, 10).map(r => `<div class="result"><div><b>${esc(r.name)}</b><small>${r.rating ? `${esc(r.rating)}★ from ${esc(r.review_count || 0)} review${r.review_count === 1 ? "" : "s"}` : "No Google rating yet"}${r.dist_km ? ` · ${esc(r.dist_km)} km` : ""}${r.address ? `<br>${esc(r.address)}` : ""}</small>
+          <small>${r.phone ? `<a href="tel:${esc(String(r.phone).replace(/\s+/g, ""))}">📞 ${esc(r.phone)}</a> · ` : ""}${r.website ? `<a href="${esc(r.website)}" target="_blank" rel="noopener">Website</a> · ` : ""}<a href="${esc(maps(r))}" target="_blank" rel="noopener">Map and reviews</a></small></div></div>`).join("")
+          + (cat ? `<div class="sample">For trades, you can also read vetted reviews on <a href="${esc(cat)}" target="_blank" rel="noopener">Checkatrade ↗</a>.</div>` : "")
+          + `<div class="sample">Live from Google. Ratings are Google's, not ours. Always get a quote first.</div>`);
+      }
       if (m.id === "cafes" || m.id === "pharmacy") {
         const pc = normPC($("tIn").value); if (!pc) return badPC();
         const list = await getJSON(`${API}/api/myarea/place-search?q=${encodeURIComponent(pc + (m.id === "pharmacy" ? " pharmacy" : " cafe"))}`);
@@ -1500,6 +1523,11 @@ function wireTry(m) {
   };
   go.onclick = run;
   $("tIn").onkeydown = e => { if (e.key === "Enter") { e.preventDefault(); run(); } };
+  if (m.id === "local") {
+    document.querySelectorAll("[data-svc]").forEach(b => b.onclick = () => { $("tType").value = b.dataset.svc; run(); });
+    $("tType").onkeydown = e => { if (e.key === "Enter") { e.preventDefault(); run(); } };
+    return;
+  }
   run();
 }
 
