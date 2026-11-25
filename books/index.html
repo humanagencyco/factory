@@ -676,7 +676,7 @@ function render() {
       <div class="bname">${esc(b.title)}</div>
       <div class="bmeta">${esc(b.author)}</div>
       ${starsOf(b.rating)}
-      ${b.shelf === "tb" && b.due ? `<div class="bmeta">Due back ${esc(new Date(b.due + "T12:00:00").toLocaleDateString("en-GB", { day: "numeric", month: "short" }))}</div>` : ""}
+      ${(b.shelf === "tb" || b.shelf === "reading") && b.due ? `<div class="bmeta">Due back ${esc(new Date(b.due + "T12:00:00").toLocaleDateString("en-GB", { day: "numeric", month: "short" }))}</div>` : ""}
     </button>`;
   const groups = groupsOf(list);
   $("list").innerHTML = list.length
@@ -700,7 +700,7 @@ function openDetail(id) {
     <div class="chips">${shelfBtns}</div>
     <div class="lab">My rating</div>
     <div class="starpick">${rate}</div>
-    ${b.shelf === "tb" ? `<div class="lab">Due back</div><input class="search" type="date" id="due" value="${esc(b.due)}" style="max-width:240px">` : ""}
+    ${b.shelf === "tb" || b.shelf === "reading" ? `<div class="lab">Due back</div><input class="search" type="date" id="due" value="${esc(b.due)}" style="max-width:240px">` : ""}
     ${b.shelf === "read" ? `<div class="lab">Finished on</div><input class="search" type="date" id="fin" value="${esc(b.finished)}" style="max-width:240px">` : ""}
     <div class="lab">What did you think?</div>
     <textarea id="notes" placeholder="Write it here…">${esc(b.notes)}</textarea>
