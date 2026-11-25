@@ -281,7 +281,7 @@ async function wikiBrandFetch(name) {
     const e = await getJSON(`https://www.wikidata.org/wiki/Special:EntityData/${qid}.json`);
     const c = e.entities[qid].claims || {};
     const descr = (e.entities[qid].descriptions?.en?.value || "").toLowerCase();
-    if (!out.qualifier) { const m = descr.match(/^(?:a |an )?(?:british |american |swedish |german |french |italian |japanese )?(?:brand|line|range|make) of ([a-z -]+?)(?: by | from | made | produced | owned |,|$)/) || descr.match(/^(?:a |an )?([a-z -]+?) brand\b/); if (m && m[1].split(" ").length <= 3 && !/^(global|international|consumer|personal|british|american)$/.test(m[1].trim())) out.qualifier = m[1].trim(); }
+    // Only the page title's own label ("Magnum (ice cream)") is trusted to narrow the search; descriptions are too loose
     out.description = descr;
     const ids = k => (c[k] || []).map(x => x.mainsnak.datavalue?.value?.id).filter(Boolean);
     const want = [...ids("P127"), ...ids("P495"), ...ids("P31"), ...ids("P452")];
