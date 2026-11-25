@@ -751,6 +751,31 @@ $("snap").onchange = async e => {
   } catch (err) { $("scanMsg").textContent = "The scanner isn't available right now. Type the number instead."; }
   e.target.value = "";
 };
+// Find a cover for a book we only know by title and author. Only takes a cover when the title words
+// and the author's surname both match, so a near miss leaves the placeholder rather than a wrong picture.
+async function findCover(title, author) {
+  const main = title.replace(/\(book \d+\)/i, " ");
+  const want = keyWords(main);
+  const surname = (author || "").trim().split(/\s+/).pop().toLowerCase();
+  const fits = (t, a) => {
+    if (!t) return false;
+    const tw = t.toLowerCase().replace(/[^a-z0-9 ]/g, " ").split(/\s+/).filter(Boolean);
+    const hit = want.filter(w => wordMatches(w, tw)).length;
+    return want.length && hit >= Math.ceil(want.length * 0.75) && (!surname || (a || "").toLowerCase().includes(surname));
+  };
+  try {
+    const hits = (await algoliaSearch(main + " " + (author || ""), 8)) || [];
+    const h = hits.find(x => x.cover && fits(x.title, x.author));
+    if (h) return h.cover;
+  } catch (e) {}
+  try {
+    const u = `https://openlibrary.org/search.json?title=${encodeURIComponent(main)}&author=${encodeURIComponent(author || "")}&limit=10&fields=title,author_name,cover_i`;
+    const d = await (await fetch(u)).json();
+    const x = (d.docs || []).find(x => x.cover_i && fits(x.title, (x.author_name || []).join(" ")));
+    if (x) return `https://covers.openlibrary.org/b/id/${x.cover_i}-M.jpg`;
+  } catch (e) {}
+  return "";
+}
 // Paste a list: one book per line, "Title ~ Author" (a tab or " by " works too). Lots of books in one go.
 // An optional third part picks the shelf for that line: reading, read, library or someday.
 const SHELF_WORDS = { reading: "reading", read: "read", library: "tb", "from the library": "tb", tb: "tb", someday: "wish", wish: "wish" };
@@ -787,9 +812,10 @@ $("pasteList").onclick = () => {
       $("scanMsg").textContent = `Adding ${done + failed + 1} of ${todo.length}…`;
       const s = b.shelf || shelf;
       try {
+        const cover = await findCover(b.title, b.author);
         const row = await api("/api/books/list", { method: "POST", body: JSON.stringify({ household: household(), reader: r.id,
-          title: b.title, author: b.author, cover: "", shelf: s, rating: 0, finished: null, notes: "", book_id: null, due: null }) });
-        state.books.unshift({ id: row.id, title: b.title, author: b.author, cover: "", shelf: s, rating: 0, finished: "", notes: "",
+          title: b.title, author: b.author, cover, shelf: s, rating: 0, finished: null, notes: "", book_id: null, due: null }) });
+        state.books.unshift({ id: row.id, title: b.title, author: b.author, cover, shelf: s, rating: 0, finished: "", notes: "",
           added: today(), due: "", summary: "" });
         done++;
       } catch (e) { failed++; }
