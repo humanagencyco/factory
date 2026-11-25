@@ -2065,7 +2065,7 @@ function bizPanel() {
     <p class="muted" style="margin:4px 0 10px;font-size:14px">See your Google Maps listing, your website and social links, and whether AI assistants like ChatGPT and Claude are allowed to read your site. With your top fixes. No sign-up.</p>
     <div class="bizf">
       <label>Business name<input id="bzName" maxlength="100" placeholder="e.g. Ben's Ice Cream" style="text-transform:none"></label>
-      <label>Postcode<input id="bzPc" maxlength="10" value="${esc(postcode)}"></label>
+      <label>Business postcode <small class="muted" style="font-weight:600">(helps us find the right one)</small><input id="bzPc" maxlength="10" value="${esc(postcode)}" placeholder="e.g. GU27 2AB"><button type="button" class="linkbtn" id="bzHere" style="font-size:13px;margin-top:4px">📍 I'm at the business now</button></label>
       <label style="grid-column:1/-1"><span>Website <small class="muted">(optional, we'll look for it)</small></span><input id="bzWeb" maxlength="200" placeholder="e.g. bensicecream.co.uk" style="text-transform:none"></label>
     </div>
     <div class="row" style="gap:8px;margin-top:8px"><button class="btn pink" type="button" id="bzGo">Check my business</button></div>
@@ -2125,6 +2125,19 @@ function wireBiz() {
   const box = document.getElementById("bizBox"); if (!box) return;
   const msg = t => { document.getElementById("bzMsg").textContent = t; };
   const v = id => document.getElementById(id).value.trim();
+  const here = document.getElementById("bzHere");
+  if (here) here.onclick = () => {
+    if (!navigator.geolocation) return msg("Location isn't available here. Type the postcode instead.");
+    here.textContent = "📍 Finding you…";
+    navigator.geolocation.getCurrentPosition(async p => {
+      try {
+        const r = await fetch(`https://api.postcodes.io/postcodes?lon=${p.coords.longitude.toFixed(5)}&lat=${p.coords.latitude.toFixed(5)}&limit=1&radius=500`).then(x => x.json());
+        const pc = r && r.result && r.result[0] && r.result[0].postcode;
+        if (pc) document.getElementById("bzPc").value = pc; else msg("Couldn't find a postcode here. Type it instead.");
+      } catch (_) { msg("Couldn't find a postcode here. Type it instead."); }
+      here.textContent = "📍 I'm at the business now";
+    }, () => { here.textContent = "📍 I'm at the business now"; msg("Location is off. Type the postcode instead."); }, { timeout: 10000, maximumAge: 300000 });
+  };
   document.getElementById("bzGo").onclick = async () => {
     const body = { business: v("bzName"), postcode: v("bzPc"), website: v("bzWeb") };
     if (body.business.length < 2) return msg("Tell us the business name.");
