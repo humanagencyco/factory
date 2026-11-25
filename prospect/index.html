@@ -3,8 +3,8 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<meta name="robots" content="noindex,nofollow">
-<title>Local leads | Human Agency</title>
+<meta name="description" content="Find local businesses that need help getting found online or using AI. Free checks, ranked leads and an intro you can send.">
+<title>Local leads: find businesses to help | Human Agency</title>
 <style>
 :root{--ink:#1d1630;--muted:#6c6485;--paper:#fff8f1;--pink:#ff5d8f;--sun:#ffb830;--mint:#2fd1a4;--sky:#5aa9ff;--violet:#8b5cf6;--red:#ff8a8a;--line:#0001}
 *{box-sizing:border-box}body{margin:0;background:var(--paper);color:var(--ink);font:15px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI",Inter,Roboto,sans-serif}
@@ -48,9 +48,9 @@ input,select{width:100%;border:2px solid var(--ink);border-radius:12px;padding:1
 </head>
 <body>
 <div class="wrap">
-  <div class="top"><a href="/factory/">← Agent Factory</a><span class="kicker">🔒 Just for you · not listed</span></div>
+  <div class="top"><a href="/factory/">← Agent Factory</a><span class="kicker">🛠️ For freelancers and consultants</span></div>
   <h1>Local leads</h1>
-  <p class="lede">Find local businesses, run the free check on each one, and see who'd get most from a website or AI help. Each lead comes with a short intro you can edit and send yourself.</p>
+  <p class="lede">Help local businesses with websites, marketing or AI? Find businesses near you, see who's struggling to be found, and get a short intro to send. Free, no sign-up.</p>
 
   <section class="card">
     <form class="form" id="f">
@@ -59,6 +59,11 @@ input,select{width:100%;border:2px solid var(--ink);border-radius:12px;padding:1
       <div><label for="n">How many</label><select id="n"><option>5</option><option selected>10</option><option>15</option></select></div>
       <button class="btn go" id="go" type="submit">Find leads</button>
     </form>
+    <details style="margin-top:10px"><summary style="cursor:pointer;font-weight:800;font-size:14px">✍️ Your details for the intro</summary>
+      <div class="form" style="grid-template-columns:1fr 2fr;margin-top:8px">
+        <div><label for="me">Your name</label><input id="me" maxlength="40" placeholder="e.g. Sam" style="text-transform:none"></div>
+        <div><label for="offer">What you help with</label><input id="offer" maxlength="140" placeholder="help local businesses get found online and use AI for the everyday admin" style="text-transform:none"></div>
+      </div></details>
     <div class="chips" id="chips"></div>
     <div class="status" id="status" aria-live="polite"></div>
   </section>
@@ -67,7 +72,7 @@ input,select{width:100%;border:2px solid var(--ink);border-radius:12px;padding:1
     <div class="bar"><h2 id="count">Your leads</h2>
       <div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn light" id="csv" type="button">Download CSV</button><button class="btn light" id="clear" type="button">Clear list</button></div></div>
     <div id="list"></div>
-    <p class="note">Uses public data only: Google listings and each business's own website. Leads are saved in this browser. You send any message yourself.</p>
+    <p class="note">Uses public data only: Google listings and each business's own website. Leads and your details are saved in this browser only. You send any message yourself. The full check runs a few times an hour per person, so the top three get it first.</p>
   </section>
 </div>
 
@@ -82,6 +87,10 @@ let leads = load().map(l => (l.v === 2 ? l : { ...l, v: 2, pts: (typeof l.score 
 // Leads saved while the checker was busy: mark them as a quick view so they can be rechecked
 leads.forEach(l => { if (l.score === "?" && (l.quick === undefined || l.v !== 3)) { l.v = 3; l.quick = true; l.quick = true; l.gaps = (l.gaps || []).filter(g => !/^Not easy to find on Google Maps|^No website|^Website/.test(g[0])); l.pts = 3 + l.gaps.reduce((s, x) => s + x[1], 0); } });
 save(leads);
+
+// Your details for the intro, remembered in this browser
+try { const m = JSON.parse(localStorage.getItem("ha-leads-me") || "{}"); $("me").value = m.me || ""; $("offer").value = m.offer || ""; } catch (_) {}
+["me", "offer"].forEach(id => $(id).addEventListener("change", () => { try { localStorage.setItem("ha-leads-me", JSON.stringify({ me: $("me").value.trim(), offer: $("offer").value.trim() })); } catch (_) {} }));
 
 // Start from the postcode Factory already knows
 try { $("pc").value = localStorage.getItem("factory_postcode") || ""; } catch (_) {}
@@ -136,16 +145,17 @@ function intro(l) {
     : top.length === 1 ? `I ran a quick free check on ${l.name} and one thing stood out: ${top[0]}.`
     : `I ran a quick free check on ${l.name} and it's in good shape, which is rare.`;
   const ask = top.length === 2 ? "Both are quick to fix." : top.length === 1 ? "It's a quick fix." : "";
+  const me = ($("me").value || "").trim(), offer = ($("offer").value || "").trim() || "help local businesses get found online and use AI for the everyday admin, things like replying to messages, reviews and quotes";
   return `Hi ${l.name} team,
 
-I'm Vikram, I'm based nearby and I help local businesses get found online and use AI for the everyday admin, things like replying to messages, reviews and quotes.
+${me ? `I'm ${me}, ` : "I'm "}based nearby and I ${offer.replace(/^I\s+/i, "")}.
 
 ${found} ${ask}
 
 Happy to show you in 15 minutes, no charge for the chat. You can also run the same check yourself at humanagency.co/factory.
 
-Thanks,
-Vikram`;
+Thanks${me ? `,
+${me}` : ""}`;
 }
 
 // The full business check. Returns "ok", "limit" (too many this hour) or "fail".
@@ -166,7 +176,7 @@ function render() {
   $("count").textContent = leads.length ? `Your leads (${leads.length})` : "Your leads";
   $("list").innerHTML = leads.length ? leads.map((l, i) => `<div class="lead">
       <div><b class="n">${esc(l.name)}</b> <span class="meta">${esc(l.type)}${l.town ? " · " + esc(l.town) : ""}</span>
-        <div class="meta">${l.phone ? `📞 <a href="tel:${esc(String(l.phone).replace(/\s+/g, ""))}">${esc(String(l.phone))}</a> · ` : ""}${l.site ? `<a href="${esc(l.site)}" target="_blank" rel="noopener">Website ↗</a> · ` : l.quick ? "Website not checked yet · " : "No website · "}${l.rating ? `${esc(l.rating)}★ from ${esc(l.reviews || 0)} reviews` : "No Google rating"}${l.maps ? ` · <a href="${esc(l.maps)}" target="_blank" rel="noopener">Maps ↗</a>` : ""}</div></div>
+        <div class="meta">${l.phone ? `📞 <a href="tel:${esc(String(l.phone).replace(/\s+/g, ""))}">${esc(String(l.phone))}</a> · ` : ""}${l.site ? `<a href="${esc(l.site)}" target="_blank" rel="noopener">Website ↗</a> · ` : l.quick ? "Website not checked yet · " : "No website · "}${l.rating ? `${esc(l.rating)}★ from ${esc(l.reviews || 0)} reviews` : "No Google rating"}${l.maps ? ` · <a href="${esc(l.maps)}" target="_blank" rel="noopener">Maps ↗</a>` : ""}${l.cat ? ` · <a href="${esc(l.cat)}" target="_blank" rel="noopener" title="See who's listed on Checkatrade for this trade">Checkatrade ↗</a>` : ""}</div></div>
       <span class="opp ${level(l.pts)}" title="${l.quick ? "Quick view from the search. Tap Run full check for the website and AI checks." : ""}">${level(l.pts) === "high" ? "Big opportunity" : level(l.pts) === "med" ? "Some gaps" : "In good shape"} · ${l.quick ? "quick view" : esc(l.score) + "/10"}</span>
       ${l.gaps.length ? `<ul class="gaps">${l.gaps.slice(0, 4).map(g => `<li>${esc(g[0])}</li>`).join("")}</ul>` : ""}
       <div class="acts">
@@ -201,6 +211,7 @@ $("f").onsubmit = async e => {
     // Miru's Local Finder gives up to 15 places with ratings, reviews and websites
     try {
       const fr = await fetch(`/factory/api/finder.php?pc=${encodeURIComponent(pc.replace(/\s+/g, ""))}&q=${encodeURIComponent(type)}`).then(r => r.ok ? r.json() : null);
+      if (fr && fr.checkatrade_url) window.__cat = fr.checkatrade_url;
       ((fr && fr.results) || []).forEach(p => { const k = String(p.name).toLowerCase(); if (!seen.has(k) && found.length < n) { seen.add(k); found.push(p); } });
     } catch (_) {}
     // Fall back to the smaller place search if that comes back short
@@ -217,7 +228,7 @@ $("f").onsubmit = async e => {
       const gaps = [];
       if ((p.review_count || 0) < 25) gaps.push([`Only ${p.review_count || 0} Google review${p.review_count === 1 ? "" : "s"}`, 2]);
       if (p.rating && p.rating < 4.2) gaps.push([`Google rating ${p.rating}, below most local rivals`, 2]);
-      leads.push({ name: p.name, type, pc: pcOf(p.address) || pc, town: townOf(p.address), phone: String(p.phone || ""), site: p.website || "", maps: "", rating: p.rating || "", reviews: p.review_count || 0, dist: p.dist_km || "", score: "?", quick: true, gaps, pts: 3 + gaps.reduce((s, x) => s + x[1], 0), status: "To contact", v: 3, added: new Date().toISOString().slice(0, 10) });
+      leads.push({ name: p.name, type, pc: pcOf(p.address) || pc, town: townOf(p.address), phone: String(p.phone || ""), site: p.website || "", maps: "", rating: p.rating || "", reviews: p.review_count || 0, dist: p.dist_km || "", score: "?", quick: true, cat: window.__cat || "", gaps, pts: 3 + gaps.reduce((s, x) => s + x[1], 0), status: "To contact", v: 3, added: new Date().toISOString().slice(0, 10) });
     });
     save(leads); render();
     // 2. Full check on the three most promising. The checker allows only a few an hour.

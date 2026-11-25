@@ -615,6 +615,7 @@ const MODULES = [
   { id:"cafes", type:"near", emo:"☕", name:"Cafés & pubs", desc:"Independent cafés and pubs near you, with hygiene ratings where we have them.", status:"ready", c:"#ffe8c2", pkg:"@humanagency/places-cafes", repo:"github.com/humanagencyco/places-cafes" },
   { id:"trains", type:"near", emo:"🚆", name:"Train times", desc:"Next departures from your nearest station.", status:"beta", c:"#d6f7ec", pkg:"@humanagency/train-times", repo:"github.com/humanagencyco/train-times" },
   { id:"bizcheck", type:"biz", emo:"🏪", name:"Is your business easy to find?", desc:"Free instant check: your Google Maps listing, reviews, website, and whether AI assistants can read your site.", status:"ready", c:"#fff0d6", pkg:"", repo:"" },
+  { id:"leads", type:"biz", emo:"🎯", name:"Find local businesses to help", desc:"For freelancers and consultants: find businesses near you, see who's hard to find online, and get an intro to send.", status:"beta", c:"#e2f6e9", pkg:"", repo:"", link:"/factory/prospect/" },
   { id:"aibiz", type:"biz", emo:"🤖", name:"AI for your business", desc:"What ChatGPT, Claude and Copilot could do for a small business, and help to set it up.", status:"ready", c:"#efe2ff", pkg:"", repo:"" },
   { id:"track", type:"near", emo:"🚉", name:"Your journey", desc:"Pick two stations. See the next trains there and back.", status:"ready", c:"#e2f0ff", pkg:"", repo:"", hidden:true },
   { id:"pharmacy", type:"near", emo:"💊", name:"Pharmacies open now", desc:"Open pharmacies nearby, with phone numbers.", status:"beta", c:"#efe2ff", pkg:"@humanagency/pharmacy-finder", repo:"github.com/humanagencyco/pharmacy-finder" },
@@ -721,6 +722,7 @@ async function loadTeasers() {
   const line = (txt, ok = true) => `<span class="tz ${ok ? "tz-ok" : "tz-no"}">${txt}</span>`;
   const jobs = {
     bizcheck: async () => line("Free, instant, no sign-up"),
+    leads: async () => line("Ranked leads with an intro to send"),
     company: async () => line("Any UK company or brand"),
     vehicle: async () => line("Any UK registration"),
     aibiz: async () => line("Free ideas for your business"),
@@ -1096,6 +1098,7 @@ function tryPanel(m) {
   if (m.id === "vehicle") return `<div class="box"><div class="row"><input id="tIn" placeholder="Registration, e.g. AB12 CDE" maxlength="10" value="${esc((lifeCars().slice(-1)[0]) || "")}"><button class="btn pink" id="tGo">Check</button></div><div id="tOut" style="margin-top:10px"></div></div>`;
   if (m.type === "topic") return `<div class="box"><b>No postcode needed.</b><p style="margin:6px 0 10px;color:var(--muted)">This is for everyone.</p><a class="btn pink" href="${esc(m.link)}" target="_blank" rel="noopener" style="text-decoration:none">Open ${esc(m.name)} ↗</a></div>`;
   if (m.id === "lifeadmin") return lifePanel();
+  if (m.id === "leads") return `<div class="box"><b>Local leads</b><p class="muted" style="margin:6px 0 10px;font-size:14px">Pick a type of business and a postcode. We find up to 15, rank who needs help most, run the free check on the top three, and write a short intro you can edit and send.</p><a class="btn pink" href="/factory/prospect/" style="text-decoration:none">Open Local leads</a></div>`;
   if (m.id === "bins") return `<div class="bin-card" id="binCard"></div><p class="sample">Your address is saved in this browser only. Turn on a WhatsApp reminder the evening before in the Today box.</p>`;
   if (m.type === "personal") return `<div class="box"><b>Log in to see this.</b><p style="margin:6px 0 10px;color:var(--muted)">Your messages and data stay private. Sign in on Miru to open it.</p><a class="btn pink" href="${esc(m.link)}" target="_blank" rel="noopener" style="text-decoration:none">Sign in to Miru ↗</a></div>`;
   if (m.status === "soon") return `<div class="box"><b>Not ready yet.</b><p style="margin:6px 0 0;color:var(--muted)">We're still choosing a fair way to rank pubs. Tell us what matters to you and we'll use it.</p></div>`;
