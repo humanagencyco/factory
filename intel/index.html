@@ -473,6 +473,14 @@ async function loadAiReady(name, domainIn) {
   if (!domain) { try { const w = await wikiBrand(name); domain = w && w.website ? new URL(w.website).hostname.replace(/^www\./, "") : ""; } catch (_) {} }
   const ask = (msg) => `<p class="note">${msg}</p><form id="aiForm" style="display:flex;gap:8px;flex-wrap:wrap"><input id="aiDom" placeholder="Brand website, e.g. dove.com" style="flex:1;min-width:180px" value="${esc(domain || "")}"><button class="btn" type="submit">Check</button></form>`;
   const wire = () => { const f = document.getElementById("aiForm"); if (f) f.onsubmit = e => { e.preventDefault(); const v = document.getElementById("aiDom").value.trim(); if (v) { el.innerHTML = `<p class="note">Checking ${esc(v)}…</p>`; loadAiReady(name, v); } }; };
+  // No website on Wikidata? Try the obvious addresses for the brand before asking
+  if (!domain && !domainIn) {
+    const slug = name.toLowerCase().normalize("NFKD").replace(/[\u0300-\u036f]/g, "").replace(/&/g, "and").replace(/[^a-z0-9]+/g, "");
+    for (const guess of [slug + ".co.uk", slug + ".com", slug + ".uk"]) {
+      el.innerHTML = `<p class="note">Looking for the brand's website (${esc(guess)})…</p>`;
+      try { const g = await fetch(`/factory/api/aiready.php?domain=${encodeURIComponent(guess)}`).then(x => x.ok ? x.json() : null); if (g && g.opens) { domain = guess; break; } } catch (_) {}
+    }
+  }
   if (!domain) { el.innerHTML = ask("We couldn't find the brand's website. Add it to check."); return wire(); }
   try {
     // Prefer the UK site when the listed one is another country's (nivea.es → nivea.co.uk)
