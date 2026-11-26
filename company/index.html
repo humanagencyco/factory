@@ -362,7 +362,7 @@ function ruleBrief() {
   const signals = [], questions = [];
   if (total && !site.recruiter) {
     signals.push([`They have ${total} open role${total > 1 ? "s" : ""}${j.uk_total ? `, ${j.uk_total} in the UK` : ""}.`, "Their own job board"]);
-    if (teams[0]) { signals.push([`Most hiring is in ${teams[0].team} (${teams[0].count} of ${roles.length}).`, "Roles by team"]); questions.push(`What's driving the push in ${teams[0].team} right now?`); }
+    if (teams[0]) { signals.push([`Most hiring is in ${teams[0].team} (${teams[0].count} of ${total}).`, "Roles by team"]); questions.push(`What's driving the push in ${teams[0].team} right now?`); }
     if (j.ai_roles) { signals.push([`${j.ai_roles} role${j.ai_roles > 1 ? "s look" : " looks"} AI or data related.`, "Role titles"]); questions.push("Who owns AI today, and what's already in use rather than in pilots?"); }
     else if (total >= 10) { signals.push(["None of the open roles are clearly AI roles.", "Role titles"]); questions.push("How are you approaching AI without dedicated AI hires? Building, buying or waiting?"); }
   }
@@ -382,7 +382,7 @@ function ruleBrief() {
   questions.push(`If you could take one repetitive job off your team's plate tomorrow, what would it be?`);
   return `<p class="label">Suggested from the facts on this page using simple rules, no AI. A starting point, not research.</p>
     ${signals.length ? `<p class="label" style="margin-top:12px">What stands out</p><ul class="facts">${signals.slice(0, 4).map(([p, e]) => `<li>${esc(p)} <span class="ev">Based on: ${esc(e)}</span></li>`).join("")}</ul>` : ""}
-    <p class="label" style="margin-top:16px">Where AI could help ${play ? `a ${esc(play[1])} business like this` : "most organisations"}</p>
+    <p class="label" style="margin-top:16px">Where AI could help ${play ? `${/^[aeiou]/.test(play[1]) ? "an" : "a"} ${esc(play[1])} business like this` : "most organisations"}</p>
     ${ideas.map(([t, why, ev]) => `<div class="idea"><b>${esc(t)}</b>${esc(why)}<p class="ev">Why it fits: ${esc(ev)}</p></div>`).join("")}
     <p class="label" style="margin-top:16px">Good questions to ask them</p><ul class="facts">${[...new Set(questions)].slice(0, 5).map(q => `<li>${esc(q)}</li>`).join("")}</ul>`;
 }
