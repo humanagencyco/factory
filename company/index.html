@@ -315,9 +315,76 @@ async function loadAI(id, qs, w) {
       ${(a.questions || []).length ? `<p class="label" style="margin-top:16px">Good questions to ask them</p><ul class="facts">${a.questions.map(q => `<li>${esc(q)}</li>`).join("")}</ul>` : ""}`;
   } catch (e) {
     if (id !== lookup) return;
-    if (e.message === "not_set_up") { el().closest("section").remove(); return; }
+    if (e.message === "not_set_up") { el().innerHTML = ruleBrief(); return; }
     el().innerHTML = `<p class="note">${e.status === 429 ? esc(e.message) : "The AI brief isn't available right now. Everything below is still live."}</p>`;
   }
+}
+
+// ---------- Free brief: no AI, just patterns in the facts on this page ----------
+const PLAYBOOK = [
+  [/recruit|staffing|talent|headhunt/, "recruitment", [
+    ["Match CVs to open roles in seconds", "Recruiters spend hours reading CVs. AI can shortlist and explain why each person fits.", "They're a recruitment business"],
+    ["Write job adverts and candidate outreach", "First drafts of adverts and personal messages, checked by a consultant before they go out.", "They advertise roles for clients"],
+    ["Prep for client calls automatically", "A one-page brief on each client before the call: what they do, who they're hiring, what's in the news.", "Their work depends on knowing client companies well"]]],
+  [/bank|financ|insur|payment|lend|fintech|invest/, "finance", [
+    ["Answer routine customer questions faster", "Most support questions repeat. AI can draft answers for staff to check, so people focus on the hard ones.", "Financial services handle a lot of customer queries"],
+    ["Speed up checks and reviews", "AI can pull together the evidence for fraud, complaints or compliance reviews so a person can decide quickly.", "Regulated firms spend a lot of time on reviews"],
+    ["Find answers in policy documents", "Staff ask a question and get the answer with the page it came from.", "Banks run on long policies and procedures"]]],
+  [/energy|utilit|power|electric|gas|oil/, "energy", [
+    ["Handle billing questions faster", "Bills and tariffs cause most customer contact. AI can explain a bill in plain words and draft replies.", "Energy firms get a lot of billing queries"],
+    ["Plan field engineer visits better", "Use job notes and history to send the right person with the right parts first time.", "Energy firms run field teams"],
+    ["Turn meter and usage data into tips", "Personal, plain-English advice to customers on cutting their bills.", "They hold customer usage data"]]],
+  [/retail|grocer|supermarket|shop|food|consumer|brand|fmcg|restaurant|delivery/, "retail", [
+    ["Write and fix product content at scale", "Clear, consistent product descriptions across thousands of items.", "Retail and consumer firms list a lot of products"],
+    ["Predict demand more accurately", "Fewer empty shelves and less waste, using sales, weather and local events.", "Stock planning matters in retail and food"],
+    ["Answer customer contact faster", "Where's my order, refunds, substitutions: AI drafts, people approve.", "Consumer brands get high volumes of contact"]]],
+  [/health|clinic|nhs|pharma|medic|care|hospital/, "health", [
+    ["Cut admin time for clinical staff", "Draft letters, summaries and referral notes for clinicians to check.", "Health organisations carry heavy admin"],
+    ["Help with clinical coding", "Suggest codes from notes for a coder to confirm, so backlogs clear faster.", "Coding is slow, skilled work"],
+    ["Search guidance and policies in one place", "Answers with the source page, for staff on shift.", "Health teams rely on lots of guidance"]]],
+  [/software|tech|saas|platform|app|data|digital|ai\b|cloud/, "tech", [
+    ["Speed up engineering work", "Code review, tests and documentation drafted by AI and checked by engineers.", "They're hiring engineers"],
+    ["Turn support tickets into product insight", "Group what customers struggle with so the roadmap follows real pain.", "Tech firms collect lots of feedback"],
+    ["Research sales prospects before calls", "A short brief on each prospect so sales calls start well.", "B2B tech sells to other companies"]]],
+];
+const DEFAULT_IDEAS = [
+  ["Answer the inbox faster", "Draft replies to common questions for staff to check before sending.", "Most organisations repeat the same answers"],
+  ["Find answers across their documents", "Ask a question, get the answer and the page it came from.", "Knowledge is usually spread across many files"],
+  ["Write reports and summaries quicker", "First drafts of meeting notes, updates and reports from the raw material.", "Reporting eats time in most teams"],
+];
+function ruleBrief() {
+  const c = current || {}, w = c.w || {}, site = (c.jobs && c.jobs.site) || {}, j = (c.jobs && c.jobs.jobs) || {}, news = ((c.news && c.news.items) || []);
+  const name = c.name || "they";
+  const text = [w.short, w.industry, w.extract, site.title, site.description, site.about, (site.job_areas || []).join(" ")].join(" ").toLowerCase();
+  const play = site.recruiter ? PLAYBOOK[0] : PLAYBOOK.find(([re]) => re.test(text));
+  const ideas = play ? play[2] : DEFAULT_IDEAS;
+  const roles = j.roles || [], total = j.total || 0, teams = j.teams || [];
+  const signals = [], questions = [];
+  if (total && !site.recruiter) {
+    signals.push([`They have ${total} open role${total > 1 ? "s" : ""}${j.uk_total ? `, ${j.uk_total} in the UK` : ""}.`, "Their own job board"]);
+    if (teams[0]) { signals.push([`Most hiring is in ${teams[0].team} (${teams[0].count} of ${roles.length}).`, "Roles by team"]); questions.push(`What's driving the push in ${teams[0].team} right now?`); }
+    if (j.ai_roles) { signals.push([`${j.ai_roles} role${j.ai_roles > 1 ? "s look" : " looks"} AI or data related.`, "Role titles"]); questions.push("Who owns AI today, and what's already in use rather than in pilots?"); }
+    else if (total >= 10) { signals.push(["None of the open roles are clearly AI roles.", "Role titles"]); questions.push("How are you approaching AI without dedicated AI hires? Building, buying or waiting?"); }
+  }
+  if (site.recruiter) {
+    signals.push([`${name} is a recruitment business${(site.job_areas || []).length ? `, covering ${site.job_areas.join(", ")}` : ""}.`, "Their website"]);
+    questions.push("Which client sectors are busiest for you right now?", "Where does your team lose the most time: sourcing, screening or admin?", "Are clients asking for AI skills in the roles you fill?");
+  }
+  const heads = news.map(n => n.title).join(" | ").toLowerCase();
+  const themes = [
+    [/rais|funding|valuation|investor|ipo|float/, "They've been in the news about raising money.", "What will the new money go into first?"],
+    [/launch|expan|new market|opens|enters/, "Recent news is about launching or expanding.", "What's the biggest risk in the expansion?"],
+    [/cut|layoff|job losses|redundan|restructur/, "Recent news mentions cuts or restructuring.", "Where are you trying to do more with less?"],
+    [/acqui|merger|takeover|buys|deal/, "Recent news mentions a deal or acquisition.", "How is bringing the businesses together going?"],
+    [/\bai\b|artificial intelligence|chatbot|machine learning/, "AI is already showing up in their news.", "What's the AI work in the news actually changing day to day?"],
+  ];
+  for (const [re, sig, q] of themes) if (re.test(heads)) { const hit = news.find(n => re.test(n.title.toLowerCase())); signals.push([sig, `"${hit.title}" (${hit.source})`]); questions.push(q); }
+  questions.push(`If you could take one repetitive job off your team's plate tomorrow, what would it be?`);
+  return `<p class="label">Suggested from the facts on this page using simple rules, no AI. A starting point, not research.</p>
+    ${signals.length ? `<p class="label" style="margin-top:12px">What stands out</p><ul class="facts">${signals.slice(0, 4).map(([p, e]) => `<li>${esc(p)} <span class="ev">Based on: ${esc(e)}</span></li>`).join("")}</ul>` : ""}
+    <p class="label" style="margin-top:16px">Where AI could help ${play ? `a ${esc(play[1])} business like this` : "most organisations"}</p>
+    ${ideas.map(([t, why, ev]) => `<div class="idea"><b>${esc(t)}</b>${esc(why)}<p class="ev">Why it fits: ${esc(ev)}</p></div>`).join("")}
+    <p class="label" style="margin-top:16px">Good questions to ask them</p><ul class="facts">${[...new Set(questions)].slice(0, 5).map(q => `<li>${esc(q)}</li>`).join("")}</ul>`;
 }
 
 function wireShare(name) {
