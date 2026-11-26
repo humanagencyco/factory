@@ -2216,13 +2216,48 @@ const PRICES_FOUND = `<ul class="prices">
   <li><b>AI Starter</b>, 90 minutes one-to-one: ChatGPT, Claude or Copilot set up for your business, so replies to messages, booking questions, menus and posts take minutes, not evenings. <b>£149</b></li>
   <li><b>Stay Found</b>, monthly care: draft replies to every new review in your voice, a Google post each week, and a short note each month on what customers praise and grumble about. <b>From £49 a month</b></li>
 </ul>`;
+// What "the next win" looks like for this kind of business, from Google's category (or the name if Google has none)
+const BIZ_KIND = [
+  { re: /bakery|cake|patisserie|cafe|coffee|tea_house|sandwich|dessert|ice_cream|donut|bagel|confection/i,
+    head: "You're easy to find. The next win is less waste and easier orders.",
+    why: "Places like yours lose money baking or prepping too much on quiet days, and time chasing cake and pre-orders that arrive by phone, DM and in person.",
+    offer: "<b>Orders and waste, sorted</b>: a simple pre-order form with ready replies for celebration cakes and Christmas orders, and a daily guide to how much to make, using your past sales, the weather and the school holidays. <b>Fixed price agreed first</b>" },
+  { re: /restaurant|takeaway|meal_|pizza|fish|chip|kebab|curry|indian|chinese|thai|italian|burger|diner|steak|sushi|food/i,
+    head: "You're easy to find. The next win is fewer phone calls.",
+    why: "Busy kitchens lose time to the same questions: is it gluten free, do you have a table, are you open, can I order for collection.",
+    offer: "<b>Menu and allergen answers</b>: your menu and allergens set up so your team, and an AI assistant on your messages, can answer \"is this gluten free?\" correctly in seconds. <b>Fixed price agreed first</b>" },
+  { re: /hair|barber|beauty|nail|salon|spa|lash|brow|tanning|massage|makeup/i,
+    head: "You're easy to find. The next win is fewer no-shows and fewer DMs.",
+    why: "Booking by DM eats into time with clients, and every no-show is an empty chair you can't get back.",
+    offer: "<b>Bookings without the DMs</b>: online booking with a small deposit and reminder texts the day before, plus ready replies for prices and availability. <b>Fixed price agreed first</b>" },
+  { re: /plumb|electric|roof|contractor|builder|locksmith|painter|decorat|carpent|joiner|heating|gas_engineer|boiler|glazi|landscap|garden|clean|moving|removal|car_repair|mechanic|garage|handyman|pest|drain/i,
+    head: "You're easy to find. The next win is quoting faster.",
+    why: "Jobs go to whoever replies first. Missed calls and slow quotes after a long day lose work you'd have won.",
+    offer: "<b>Quotes in minutes</b>: turn a customer's photos and notes into a clear written quote, and send a friendly reply to missed calls straight away. <b>Fixed price agreed first</b>" },
+  { re: /dentist|dental|physio|doctor|clinic|optic|chiropract|osteo|veterinar|vet|pharmacy|health|therap|podiat/i,
+    head: "You're easy to find. The next win is fewer routine calls.",
+    why: "Reception time goes on the same questions: prices, parking, what to bring, how to book, and whether you take new patients.",
+    offer: "<b>Answers before they ring</b>: clear answers to the common questions on your site and in ready replies, so the phone is free for the calls that matter. <b>Fixed price agreed first</b>" },
+  { re: /pub|bar|inn|brewery|wine|night_club|cocktail/i,
+    head: "You're easy to find. The next win is fuller quiet nights.",
+    why: "Weekends look after themselves. It's quiz nights, live music and midweek offers that need people to hear about them in time.",
+    offer: "<b>Events that fill up</b>: a simple what's-on page, posts for each event and a reminder to regulars, ready to go each week. <b>Fixed price agreed first</b>" },
+  { re: /store|shop|florist|gift|boutique|clothing|book|butcher|deli|grocer|market|jewel|furniture|hardware|pet_store|toy/i,
+    head: "You're easy to find. The next win is the busy seasons.",
+    why: "Christmas, Mother's Day and Valentine's can make your year, if regulars hear about it in time and orders don't get lost.",
+    offer: "<b>Seasons, ready to go</b>: posts, an order or reserve form and a reminder to regulars for each big date, planned a month ahead. <b>Fixed price agreed first</b>" },
+];
+function bizKind(scan, name) {
+  const g = scan && scan.google, key = `${(g && g.kind) || ""} ${name || ""}`;
+  return BIZ_KIND.find(k => k.re.test((g && g.kind) || "")) || BIZ_KIND.find(k => k.re.test(key)) || null;
+}
 function bizHelp(body, scan) {
   const pct = scan && scan.out_of ? Math.round(100 * scan.score / scan.out_of) : 0;
   const found = pct >= 80;
   return `<div class="bzhelp" id="bzHelp">${found
-      ? `<b>You're easy to find. The next win is time, not visibility.</b>
-    <p class="muted" style="margin:2px 0 8px;font-size:13px">Busy places usually lose hours a week to messages, booking questions and review replies. That's where we'd help${scan.fixes && scan.fixes.length ? ", and we'd sort the fix above while we're at it" : ""}.</p>
-    ${PRICES_FOUND}`
+      ? (kind => `<b>${kind ? kind.head : "You're easy to find. The next win is time, not visibility."}</b>
+    <p class="muted" style="margin:2px 0 8px;font-size:13px">${kind ? kind.why : "Busy places usually lose hours a week to messages, booking questions and review replies."} That's where we'd help${scan.fixes && scan.fixes.length ? ", and we'd sort the fix above while we're at it" : ""}.</p>
+    ${kind ? PRICES_FOUND.replace('<ul class="prices">', `<ul class="prices">\n  <li>${kind.offer}</li>`) : PRICES_FOUND}`)(bizKind(scan, (scan.google && scan.google.name) || body.business))
       : `<b>Happy to do these yourself? Great, the fixes are above.</b>
     <p class="muted" style="margin:2px 0 8px;font-size:13px">Rather we did them for you? Here's what it costs.</p>
     ${PRICES}`}
