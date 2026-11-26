@@ -2163,12 +2163,13 @@ function bizPanel() {
     <b>Free instant check for local businesses</b>
     <p class="muted" style="margin:4px 0 10px;font-size:14px">See your Google Maps listing, your website and social links, and whether AI assistants like ChatGPT and Claude are allowed to read your site. With your top fixes. No sign-up.</p>
     <div class="bizf">
-      <label>Business name<input id="bzName" maxlength="100" placeholder="e.g. Ben's Ice Cream" style="text-transform:none"></label>
+      <label>Business name<input id="bzName" maxlength="100" placeholder="e.g. Ben's Ice Cream, or just 'fish bar'" style="text-transform:none"></label>
       <label>Business postcode <small class="muted" style="font-weight:600">(helps us find the right one)</small><span class="locin"><input id="bzPc" maxlength="10" value="${esc(postcode)}" placeholder="e.g. GU27 2AB"><button type="button" class="locbtn" id="bzHere" title="I'm at the business now: use my location" aria-label="I'm at the business now: use my location">📍</button></span></label>
       <label style="grid-column:1/-1"><span>Website <small class="muted">(optional, we'll look for it)</small></span><input id="bzWeb" maxlength="200" placeholder="e.g. bensicecream.co.uk" style="text-transform:none"></label>
     </div>
     <div class="row" style="gap:8px;margin-top:8px"><button class="btn pink" type="button" id="bzGo">Check my business</button></div>
     <div id="bzMsg" style="color:#c0392b;font-size:13px;min-height:16px;margin-top:6px"></div>
+    <div id="bzPick"></div>
   </div>`;
 }
 function bizResult(d) {
@@ -2236,10 +2237,12 @@ function wireBiz() {
   const msg = t => { document.getElementById("bzMsg").textContent = t; };
   const v = id => document.getElementById(id).value.trim();
   const here = document.getElementById("bzHere");
+  let ll = null;   // the visitor's location, when they tap the pin: used to find listings near them
   if (here) here.onclick = () => {
     if (!navigator.geolocation) return msg("Location isn't available here. Type the postcode instead.");
     here.textContent = "⏳"; here.disabled = true;
     navigator.geolocation.getCurrentPosition(async p => {
+      ll = { lat: +p.coords.latitude.toFixed(5), lng: +p.coords.longitude.toFixed(5) };
       try {
         const r = await fetch(`https://api.postcodes.io/postcodes?lon=${p.coords.longitude.toFixed(5)}&lat=${p.coords.latitude.toFixed(5)}&limit=1&radius=500`).then(x => x.json());
         const pc = r && r.result && r.result[0] && r.result[0].postcode;
@@ -2248,16 +2251,36 @@ function wireBiz() {
       here.textContent = "📍"; here.disabled = false;
     }, () => { here.textContent = "📍"; here.disabled = false; msg("Location is off. Type the postcode instead."); }, { timeout: 10000, maximumAge: 300000 });
   };
-  document.getElementById("bzGo").onclick = async () => {
+  const btn = document.getElementById("bzGo"), pick = document.getElementById("bzPick");
+  // Step 1: which Google listing is yours? Typing a rough name ("fish bar") is fine: we show what's nearby and you pick.
+  btn.onclick = async () => {
     const body = { business: v("bzName"), postcode: v("bzPc"), website: v("bzWeb") };
     if (body.business.length < 2) return msg("Tell us the business name.");
-    msg(""); const btn = document.getElementById("bzGo"); btn.disabled = true; btn.textContent = "Checking Google and your website…";
+    msg(""); btn.disabled = true; btn.textContent = "Finding your business on Google…";
+    let list = [];
+    try {
+      const r = await fetch(`${API}/api/factory/business-find`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(Object.assign({}, body, ll || {})) });
+      const d = await r.json().catch(() => ({}));
+      list = (r.ok && d.candidates) || [];
+    } catch (_) {}
+    if (!list.length) return scan(body);
+    btn.disabled = false; btn.textContent = "Check my business";
+    pick.innerHTML = `<p style="margin:6px 0;font-weight:800">Which one is yours?</p>
+      ${list.map((c, i) => `<button type="button" class="pickbiz" data-i="${i}" style="display:block;width:100%;text-align:left;margin:6px 0;padding:10px 12px;border:2px solid var(--ink);border-radius:12px;background:#fff;cursor:pointer;font:inherit"><b>${esc(c.name)}</b><br><small class="muted">${esc(c.address)}</small></button>`).join("")}
+      <button type="button" class="showhidden" id="bzNone">None of these: check "${esc(body.business)}" anyway</button>`;
+    pick.querySelectorAll(".pickbiz").forEach(b => b.onclick = () => { const c = list[+b.dataset.i]; scan(Object.assign({}, body, { business: c.name, place_id: c.id })); });
+    document.getElementById("bzNone").onclick = () => scan(body);
+  };
+  // Step 2: the check itself, on the listing they picked (exact) or by name
+  const scan = async body => {
+    pick.innerHTML = ""; btn.disabled = true; btn.textContent = "Checking Google and your website…";
     try {
       const r = await fetch(`${API}/api/factory/business-scan`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
       const d = await r.json().catch(() => ({}));
       if (!r.ok) { btn.disabled = false; btn.textContent = "Check my business"; return msg(d.error || "Couldn't run the check. Please try again."); }
       track("biz:scan");
-      box.innerHTML = `<b>${esc(body.business)}</b> <small class="muted">${esc(body.postcode)}</small>${bizResult(d)}${bizHelp(body, d)}
+      const gl = d.google && d.google.found ? d.google : null;
+      box.innerHTML = `<b>${esc(gl ? gl.name : body.business)}</b> <small class="muted">${esc(gl && gl.address ? gl.address : body.postcode)}</small>${gl && gl.maps_url ? ` <a href="${esc(gl.maps_url)}" target="_blank" rel="noopener" style="font-size:13px">View on Google Maps ↗</a>` : ""}${bizResult(d)}${bizHelp(body, d)}
         <div class="row" style="margin-top:8px"><button class="showhidden" type="button" id="bzAgain">Check another business</button></div>`;
       document.getElementById("bzAgain").onclick = () => { box.outerHTML = bizPanel(); wireBiz(); };
       document.getElementById("bzAsk").onclick = async () => {
