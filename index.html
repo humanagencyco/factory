@@ -2251,6 +2251,23 @@ function bizKind(scan, name) {
   const g = scan && scan.google, key = `${(g && g.kind) || ""} ${name || ""}`;
   return BIZ_KIND.find(k => k.re.test((g && g.kind) || "")) || BIZ_KIND.find(k => k.re.test(key)) || null;
 }
+// Detailed website report: offered when the business already scores well and has a working site
+function bizReportOffer(d) {
+  const pct = d && d.out_of ? d.score / d.out_of : 0;
+  if (pct < 0.7 || !d.website || !d.website.loads) return "";
+  return `<div id="bzReport" style="margin:12px 0;padding:12px;border:2px dashed var(--ink);border-radius:14px">
+    <b>📋 Want the detailed website report?</b>
+    <p class="muted" style="margin:4px 0 8px;font-size:13px">Free. We go through your site the way a customer and Google would: address and phone matching Google, booking or ordering, reviews, speed, and what search engines and AI tools can read. Takes about 10 seconds.</p>
+    <button class="btn" type="button" id="bzRep">Get my detailed report</button></div>`;
+}
+function bizReportHtml(r) {
+  const pct = r.out_of ? Math.round(100 * r.score / r.out_of) : 0;
+  return `<b>📋 Detailed website report: ${pct}%</b> <small class="muted">${esc(r.url.replace(/^https?:\/\//, "").replace(/\/$/, ""))}</small>
+    ${r.fixes.length ? `<p style="margin:8px 0 4px;font-weight:800">Your top ${r.fixes.length === 1 ? "fix" : r.fixes.length + " fixes"}</p><ol style="margin:0 0 8px;padding-left:20px">${r.fixes.map(f => `<li style="margin:4px 0">${esc(f)}</li>`).join("")}</ol>` : `<p>Nothing big to fix. Nice work.</p>`}
+    ${r.sections.map(s => `<details style="margin:6px 0"><summary style="cursor:pointer;font-weight:800">${esc(s.title)} <small class="muted">${s.items.filter(i => i.ok).length} of ${s.items.length}</small></summary>
+      <ul style="list-style:none;padding:0;margin:6px 0">${s.items.map(i => `<li style="margin:4px 0">${i.ok ? "✅" : "⚠️"} <b>${esc(i.label)}</b><br><small class="muted">${esc(i.detail)}</small></li>`).join("")}</ul></details>`).join("")}
+    <p class="muted" style="font-size:12px;margin:6px 0 0">Checked the home page and contact page on ${esc(new Date(r.checked).toLocaleDateString("en-GB"))}. Plain rules, no guesswork: if something's there but we missed it, tell us.</p>`;
+}
 function bizHelp(body, scan) {
   const pct = scan && scan.out_of ? Math.round(100 * scan.score / scan.out_of) : 0;
   const found = pct >= 80;
@@ -2317,9 +2334,22 @@ function wireBiz() {
       if (!r.ok) { btn.disabled = false; btn.textContent = "Check my business"; return msg(d.error || "Couldn't run the check. Please try again."); }
       track("biz:scan");
       const gl = d.google && d.google.found ? d.google : null;
-      box.innerHTML = `<b>${esc(gl ? gl.name : body.business)}</b> <small class="muted">${esc(gl && gl.address ? gl.address : body.postcode)}</small>${gl && gl.maps_url ? ` <a href="${esc(gl.maps_url)}" target="_blank" rel="noopener" style="font-size:13px">View on Google Maps ↗</a>` : ""}${bizResult(d)}${bizHelp(body, d)}
+      box.innerHTML = `<b>${esc(gl ? gl.name : body.business)}</b> <small class="muted">${esc(gl && gl.address ? gl.address : body.postcode)}</small>${gl && gl.maps_url ? ` <a href="${esc(gl.maps_url)}" target="_blank" rel="noopener" style="font-size:13px">View on Google Maps ↗</a>` : ""}${bizResult(d)}${bizReportOffer(d)}${bizHelp(body, d)}
         <div class="row" style="margin-top:8px"><button class="showhidden" type="button" id="bzAgain">Check another business</button></div>`;
       document.getElementById("bzAgain").onclick = () => { box.outerHTML = bizPanel(); wireBiz(); };
+      const rep = document.getElementById("bzRep");
+      if (rep) rep.onclick = async () => {
+        rep.disabled = true; rep.textContent = "Reading your site…";
+        const g = d.google || {};
+        try {
+          const r = await fetch(`${API}/api/factory/business-report`, { method: "POST", headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ url: d.website.url, kind: g.kind || "", address: g.address || "", phone: g.phone_number || "", business: g.name || body.business }) });
+          const rr = await r.json().catch(() => ({}));
+          if (!r.ok) { rep.disabled = false; rep.textContent = "Get my detailed report"; return document.getElementById("bzReport").insertAdjacentHTML("beforeend", `<p style="color:#c0392b;font-size:13px">${esc(rr.error || "Couldn't read the site just now.")}</p>`); }
+          d.report = rr; track("biz:report");
+          document.getElementById("bzReport").innerHTML = bizReportHtml(rr);
+        } catch (_) { rep.disabled = false; rep.textContent = "Get my detailed report"; }
+      };
       document.getElementById("bzAsk").onclick = async () => {
         const m2 = t => { document.getElementById("bzMsg2").textContent = t; };
         const contact = v("bzContact");
