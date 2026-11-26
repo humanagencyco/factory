@@ -7,7 +7,11 @@ function co_secret($k) {
   if ($s === null) {
     $s = [];
     foreach ([dirname(__DIR__, 3) . '/ha-secrets.php', dirname(__DIR__, 2) . '/ha-secrets.php'] as $f) {
-      if (is_file($f)) { $v = include $f; if (is_array($v)) { $s = $v; break; } }
+      // Read as text, not include: the server's PHP cache can keep serving an old copy after you edit it
+      if (is_file($f) && preg_match_all('/[\'"]([A-Z_]+)[\'"]\s*=>\s*[\'"]([^\'"]*)[\'"]/', (string)file_get_contents($f), $mm, PREG_SET_ORDER)) {
+        foreach ($mm as $m) if (trim($m[2]) !== '') $s[$m[1]] = trim($m[2]);
+        if ($s) break;
+      }
     }
   }
   $e = getenv($k);

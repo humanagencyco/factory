@@ -16,5 +16,7 @@ echo json_encode([
   'config_mentions_anthropic' => (bool)preg_match('/anthropic/i', $raw),
   'config_has_sk_ant' => (bool)preg_match('/sk-ant-/', $raw),
   'ha_secrets_file' => is_file(dirname(__DIR__, 3) . '/ha-secrets.php') || is_file(dirname(__DIR__, 2) . '/ha-secrets.php'),
+  'keys_file_saved' => (function () { foreach ([dirname(__DIR__, 3), dirname(__DIR__, 2)] as $d) if (is_file("$d/ha-secrets.php")) return gmdate('H:i:s', filemtime("$d/ha-secrets.php")) . ' UTC'; return ''; })(),
+  'keys_file_has_sk_ant' => (function () { foreach ([dirname(__DIR__, 3), dirname(__DIR__, 2)] as $d) if (is_file("$d/ha-secrets.php")) return (bool)preg_match('/sk-ant-/', (string)file_get_contents("$d/ha-secrets.php")); return false; })(),
   'updated' => $raw !== '' ? gmdate('H:i', filemtime($cfg)) . ' UTC' : '',
 ]);
