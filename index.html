@@ -2163,10 +2163,10 @@ const PRICES = `<ul class="prices">
 function bizPanel() {
   return `<div class="box" id="bizBox">
     <b>Free instant check for local businesses</b>
-    <p class="muted" style="margin:4px 0 10px;font-size:14px">See your Google Maps listing, your website and social links, and whether AI assistants like ChatGPT and Claude are allowed to read your site. With your top fixes. No sign-up.</p>
+    <p class="muted" style="margin:4px 0 10px;font-size:14px">See your Google Maps listing, your website and social links, and whether AI assistants like ChatGPT and Claude are allowed to read your site. With your top fixes. No sign-up. A rough name is fine, like "fish bar": we'll show the matches nearby so you can pick yours.</p>
     <div class="bizf">
-      <label>Business name<input id="bzName" maxlength="100" placeholder="e.g. Ben's Ice Cream, or just 'fish bar'" style="text-transform:none"></label>
-      <label>Business postcode <small class="muted" style="font-weight:600">(helps us find the right one)</small><span class="locin"><input id="bzPc" maxlength="10" value="${esc(postcode)}" placeholder="e.g. GU27 2AB"><button type="button" class="locbtn" id="bzHere" title="I'm at the business now: use my location" aria-label="I'm at the business now: use my location">📍</button></span></label>
+      <label>Business name<input id="bzName" maxlength="100" placeholder="e.g. Ben's Ice Cream" style="text-transform:none"></label>
+      <label>Business postcode<span class="locin"><input id="bzPc" maxlength="10" value="${esc(postcode)}" placeholder="e.g. GU27 2AB"><button type="button" class="locbtn" id="bzHere" title="I'm at the business now: use my location" aria-label="I'm at the business now: use my location">📍</button></span></label>
       <label style="grid-column:1/-1"><span>Website <small class="muted">(optional, we'll look for it)</small></span><input id="bzWeb" maxlength="200" placeholder="e.g. bensicecream.co.uk" style="text-transform:none"></label>
     </div>
     <div class="row" style="gap:8px;margin-top:8px"><button class="btn pink" type="button" id="bzGo">Check my business</button></div>
