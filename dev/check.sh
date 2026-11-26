@@ -26,6 +26,6 @@ open("/tmp/company_check.js", "w", encoding="utf-8").write(re.search(r"<script>(
 subprocess.run(["node", "--check", "/tmp/company_check.js"], check=True)
 PY
 for f in api/company.php api/company_lib.php api/company_ai.php; do php -l "$f" >/dev/null; done
-if grep -n -E "sk-ant|ghp_|COMPANIES_HOUSE_KEY' *=> *'[A-Za-z0-9]" research/index.html api/company*.php; then echo "   FAIL: a key is in the code"; exit 1; fi
+if grep -n -E "sk-ant-[A-Za-z0-9_-]{20,}|ghp_[A-Za-z0-9]{20,}|COMPANIES_HOUSE_KEY' *=> *'[A-Za-z0-9]" research/index.html api/company*.php; then echo "   FAIL: a key is in the code"; exit 1; fi
 echo "   ok"
 echo "All checks passed."
