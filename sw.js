@@ -1,6 +1,6 @@
 // Factory service worker: the page opens offline with the last version you saw.
 // Live data (APIs on other sites) always goes to the network.
-const CACHE = "factory-v2";
+const CACHE = "factory-v3";
 const SHELL = ["./", "./index.html", "./manifest.webmanifest", "./icon-192.png", "./icon-512.png"];
 self.addEventListener("install", e => { e.waitUntil(caches.open(CACHE).then(c => c.addAll(SHELL)).then(() => self.skipWaiting())); });
 self.addEventListener("activate", e => {
@@ -9,7 +9,9 @@ self.addEventListener("activate", e => {
 self.addEventListener("fetch", e => {
   const req = e.request;
   if (req.method !== "GET" || new URL(req.url).origin !== location.origin) return;
-  e.respondWith(fetch(req).then(res => {
+  // Pages always ask the server for the newest copy (the browser's own cache can hold an old one)
+  const fresh = req.mode === "navigate" || req.destination === "document" ? fetch(req, { cache: "no-cache" }) : fetch(req);
+  e.respondWith(fresh.then(res => {
     if (res.ok) { const copy = res.clone(); caches.open(CACHE).then(c => c.put(req, copy)); }
     return res;
   }).catch(() => caches.match(req).then(r => r || caches.match("./"))));
