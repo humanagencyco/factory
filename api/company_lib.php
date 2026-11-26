@@ -29,6 +29,9 @@ function co_private_config($k) {
       elseif (is_string($x) && $x !== '') $flat[strtolower($path)] = $x;
     };
     if (is_array($c)) $walk($c, '');
+    foreach ([dirname(__DIR__, 2) . '/.private/.env', dirname(__DIR__, 3) . '/.env'] as $envf) {
+      if (is_file($envf)) foreach (file($envf, FILE_IGNORE_NEW_LINES) as $line) if (preg_match('/^\s*([A-Za-z0-9_.]+)\s*=\s*"?([^"#]+?)"?\s*$/', $line, $m)) $flat[strtolower($m[1])] = $m[2];
+    }
   }
   $want = [
     'ANTHROPIC_API_KEY' => fn($p) => str_contains($p, 'anthropic') || str_contains($p, 'claude'),
@@ -36,7 +39,8 @@ function co_private_config($k) {
   ][$k] ?? null;
   if (!$want) return '';
   foreach ($flat as $p => $v) if ($want($p) && preg_match('/key|token|secret/', $p) && !preg_match('/model|url|version/', $p)) return $v;
-  foreach ($flat as $p => $v) if ($want($p) && preg_match('/^sk-ant-/', $v)) return $v;
+  // Anthropic keys look the same wherever they're kept, so take one under any name
+  if ($k === 'ANTHROPIC_API_KEY') foreach ($flat as $v) if (preg_match('/^sk-ant-[A-Za-z0-9_-]{20,}$/', trim($v))) return trim($v);
   return '';
 }
 
