@@ -379,7 +379,7 @@ body.back .stepsmore { display:none; }
 .ftip button { font-size:14px; padding:0; margin:0; }
 .family-foot { max-width:1100px; margin:0 auto 26px; padding:0 20px; }
 .family-foot h2 { font-size:20px; font-weight:900; margin:0 0 10px; }
-.ffgrid { display:grid; grid-template-columns:repeat(3,1fr); gap:12px; }
+.ffgrid { display:grid; grid-template-columns:repeat(auto-fit,minmax(200px,1fr)); gap:12px; }
 .ffgrid a { display:block; background:#fff; border:2px solid var(--ink); border-radius:16px; padding:12px 14px; color:var(--ink); text-decoration:none; box-shadow:4px 4px 0 var(--ink); }
 .ffgrid a:hover { transform:translate(-1px,-1px); box-shadow:5px 5px 0 var(--ink); }
 .ffgrid b { display:block; font-size:16px; margin-bottom:3px; }
@@ -480,7 +480,7 @@ body.back .stepsmore { display:none; }
 <link rel="apple-touch-icon" href="icon-192.png">
 </head>
 <body>
-<nav class="family" aria-label="Human Agency products"><a href="https://humanagency.co/" data-promo="home"><b>Human Agency</b></a><span>·</span><a href="https://miru.humanagency.co/" data-promo="miru">Miru</a><a href="/factory/intel/" data-promo="intel">Intel</a><a href="https://ai.humanagency.co/" data-promo="ai">AI Learning</a><a class="on" href="./" aria-current="page">Factory</a></nav>
+<nav class="family" aria-label="Human Agency products"><a href="https://humanagency.co/" data-promo="home"><b>Human Agency</b></a><span>·</span><a href="https://miru.humanagency.co/" data-promo="miru">Miru</a><a href="/factory/intel/" data-promo="intel">Intel</a><a href="/factory/research/" data-promo="research">Research</a><a href="https://ai.humanagency.co/" data-promo="ai">AI Learning</a><a class="on" href="./" aria-current="page">Factory</a></nav>
 
 <header class="hero">
   <div class="blob b1"></div><div class="blob b2"></div><div class="blob b3"></div>
@@ -519,6 +519,7 @@ body.back .stepsmore { display:none; }
   <h2 id="wnTitle">What's new</h2>
   <div class="howcol wn">
     <ul>
+      <li><span class="wnd">26 Nov</span><span><b><a href="/factory/research/">Research</a></b> is new. Type any company and see what they do, the roles they're hiring for right now, recent news and good questions to ask. Handy before a call or an interview.</span></li>
       <li><span class="wnd">24 Nov</span><span><b>Today</b> adds one extra line when something's due soon: a renewal, a school deadline or a bank holiday. Near you is tidier too, with one train tile and Cafés &amp; pubs together.</span></li>
       <li><span class="wnd">24 Nov</span><span><b><button type="button" class="wnlink" data-open-mod="bins">Bin day</button></b> is a tile in Near you. Set your address once and see your next collections.</span></li>
       <li><span class="wnd">24 Nov</span><span><b>📍 Use my location</b> next to the postcode box. Shows what's near you now, while bins and alerts stay on Home.</span></li>
@@ -576,6 +577,7 @@ body.back .stepsmore { display:none; }
   <h2>More from Human Agency</h2>
   <div class="ffgrid">
     <a href="https://miru.humanagency.co/" target="_blank" rel="noopener" data-promo="miru"><b>📲 Miru</b><span>Your area and your day on WhatsApp: a 7.30am brief, school messages, bills.</span></a>
+    <a href="/factory/research/" target="_blank" rel="noopener" data-promo="research"><b>🔍 Research</b><span>Know a company before you talk to them: what they do, who they're hiring, recent news.</span></a>
     <a href="/factory/intel/" target="_blank" rel="noopener" data-promo="intel"><b>🔎 Intel</b><span>Look up any company or brand before you meet, buy or apply.</span></a>
     <a href="https://ai.humanagency.co/" target="_blank" rel="noopener" data-promo="ai"><b>🎓 AI Learning</b><span>AI in plain English: guides, a jargon buster, and how to get started.</span></a>
   </div>
