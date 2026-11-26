@@ -684,7 +684,7 @@ function binSaved() {
   const box = $("binCard"); if (!box) return;
   box.innerHTML = `<p class="bin-note">Your address: <b>${esc(s.label)}</b></p><div id="binDates"></div>
     <p class="bin-note"><a href="#" onclick="forgetBin();return false;">Change or forget my address</a></p>`;
-  binDates(s.uprn, s.label);
+  binDates(s.uprn, s.label, s.local);
 }
 
 // Clear any old bin result (address list, dates) so it never shows for a different postcode
@@ -1150,16 +1150,18 @@ async function binFind() {
   binReset();
   box.innerHTML = `<p class="bin-note">Looking up ${esc(homePc())}…</p>`;
   try {
-    const d = await getJSON(`${API}/api/bins/lookup?postcode=${encodeURIComponent(homePc())}`);
+    let d = await getJSON(`${API}/api/bins/lookup?postcode=${encodeURIComponent(homePc())}`);
+    const local = d.status !== "addresses" && localBinCouncil(d.council);
+    if (local) { try { d = Object.assign(await getJSON(`/factory/api/bins.php?council=${local}&postcode=${encodeURIComponent(homePc())}`), { local }); } catch (e) {} }
     if (d.status === "addresses") {
       box.innerHTML = `<div class="bin-pick"><p class="bin-note">Your council is <b>${esc(d.council)}</b>. Which address is yours?</p>
         <select id="binAddr" class="bin-select" aria-label="Your address"><option value="">Choose your address…</option>${d.addresses.map(a => `<option value="${esc(a.id)}">${esc(a.label)}</option>`).join("")}</select>
         <div id="binDates"></div></div>`;
       $("binAddr").onchange = e => {
         const label = e.target.selectedOptions[0] ? e.target.selectedOptions[0].text : "";
-        if (e.target.value) saveBin({ postcode: homePc(), uprn: e.target.value, label: label });
+        if (e.target.value) saveBin({ postcode: homePc(), uprn: e.target.value, label: label, local: d.local || "" });
         if (e.target.value && typeof loadToday === "function") loadToday();
-        binDates(e.target.value, label);
+        binDates(e.target.value, label, d.local);
       };
     } else {
       box.innerHTML = `<p class="bin-note"><b>${esc(d.council || "Your council")}</b> is your council for ${esc(homePc())}.</p>
@@ -1170,12 +1172,18 @@ async function binFind() {
     box.innerHTML = `<p class="bin-note">Bin days are not available right now.</p>`;
   }
 }
-async function binDates(uprn, label) {
+// Councils Miru doesn't cover yet, read from the council's own site through our bridge
+function localBinCouncil(name) { return /richmond upon thames/i.test(name || "") ? "richmond" : ""; }
+function binDatesUrl(pc, uprn, local) {
+  return local ? `/factory/api/bins.php?council=${encodeURIComponent(local)}&uprn=${encodeURIComponent(uprn)}`
+    : `${API}/api/bins/dates?postcode=${encodeURIComponent(pc)}&uprn=${encodeURIComponent(uprn)}`;
+}
+async function binDates(uprn, label, local) {
   const out = $("binDates"); if (!out) return;
   if (!uprn) { out.innerHTML = ""; return; }
   out.innerHTML = `<p class="bin-note">Checking the council…</p>`;
   try {
-    const r = await fetch(`${API}/api/bins/dates?postcode=${encodeURIComponent(homePc())}&uprn=${encodeURIComponent(uprn)}`);
+    const r = await fetch(binDatesUrl(homePc(), uprn, local));
     const d = await r.json().catch(() => ({}));
     if (!r.ok) {
       out.innerHTML = `<p class="bin-note">Collection days for this council aren't available here yet. Please check the council's site for your dates.</p>` +
@@ -1787,7 +1795,7 @@ async function todayTrain(pc) {
 }
 async function todayBins(pc) {
   const s = savedBin(); if (!s || s.postcode !== pc) return null;
-  const d = await getJSON(`${API}/api/bins/dates?postcode=${encodeURIComponent(pc)}&uprn=${encodeURIComponent(s.uprn)}`);
+  const d = await getJSON(binDatesUrl(pc, s.uprn, s.local));
   const a = new Date(); const late = a.getHours() >= 18; a.setHours(0, 0, 0, 0); if (late) a.setDate(a.getDate() + 1);
   const up = (d.collections || []).map(c => ({ bin: c.bin, d: new Date(c.date + "T00:00:00") })).filter(c => !isNaN(c.d) && c.d >= a).sort((x, y) => x.d - y.d);
   if (!up.length) return { none: true };
