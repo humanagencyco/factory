@@ -11,7 +11,33 @@ function co_secret($k) {
     }
   }
   $e = getenv($k);
-  return $e !== false && $e !== '' ? $e : ($s[$k] ?? '');
+  if ($e !== false && $e !== '') return $e;
+  if (!empty($s[$k])) return $s[$k];
+  return co_private_config($k);
+}
+
+// Keys already kept for the site in public_html/.private/config.json (that folder is closed to the web).
+// Read on the server only; the value never goes to the browser.
+function co_private_config($k) {
+  static $flat = null;
+  if ($flat === null) {
+    $flat = [];
+    $f = dirname(__DIR__, 2) . '/.private/config.json';
+    $c = is_file($f) ? json_decode((string)file_get_contents($f), true) : null;
+    $walk = function ($x, $path) use (&$walk, &$flat) {
+      if (is_array($x)) { foreach ($x as $kk => $v) $walk($v, $path === '' ? (string)$kk : "$path.$kk"); }
+      elseif (is_string($x) && $x !== '') $flat[strtolower($path)] = $x;
+    };
+    if (is_array($c)) $walk($c, '');
+  }
+  $want = [
+    'ANTHROPIC_API_KEY' => fn($p) => str_contains($p, 'anthropic') || str_contains($p, 'claude'),
+    'COMPANIES_HOUSE_KEY' => fn($p) => str_contains(str_replace(['_', '-', '.', ' '], '', $p), 'companieshouse'),
+  ][$k] ?? null;
+  if (!$want) return '';
+  foreach ($flat as $p => $v) if ($want($p) && preg_match('/key|token|secret/', $p) && !preg_match('/model|url|version/', $p)) return $v;
+  foreach ($flat as $p => $v) if ($want($p) && preg_match('/^sk-ant-/', $v)) return $v;
+  return '';
 }
 
 function co_clean_name($n) {
