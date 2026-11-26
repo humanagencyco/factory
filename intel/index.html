@@ -529,7 +529,7 @@ async function loadAiReady(name, domainIn) {
       </ul>
       ${d.description ? `<p class="note">How the site describes itself: "${esc(d.description)}"</p>` : ""}
       ${todoHtml(d)}
-      <p class="links"><a href="https://uk.trustpilot.com/review/${encodeURIComponent(d.domain)}" target="_blank" rel="noopener">Reviews on Trustpilot ↗</a> <a href="https://www.google.com/search?q=${encodeURIComponent(name + " reviews")}" target="_blank" rel="noopener">Reviews on Google ↗</a></p>
+      <p class="links"><a href="/factory/site/?site=${encodeURIComponent(d.domain)}">Full website check</a> <a href="https://uk.trustpilot.com/review/${encodeURIComponent(d.domain)}" target="_blank" rel="noopener">Reviews on Trustpilot ↗</a> <a href="https://www.google.com/search?q=${encodeURIComponent(name + " reviews")}" target="_blank" rel="noopener">Reviews on Google ↗</a></p>
       <details class="note" style="margin:8px 0"${guessed ? " open" : ""}><summary style="cursor:pointer">${guessed ? `We guessed the website is <b>${esc(d.domain)}</b>. Not right? Change it` : `Not the brand's website? Change it`}</summary>${ask("")}</details>
       <p class="sources">${d.from_archive ? `${esc(d.domain)} turned our check away, so this uses the Internet Archive's latest public copy of its robots.txt and home page.` : `Checked live: ${esc(d.domain)}'s robots.txt, llms.txt and home page.`} Trustpilot scores aren't copied here because Trustpilot doesn't allow it, so the link opens their page.</p>`;
     wire();

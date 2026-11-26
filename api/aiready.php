@@ -17,7 +17,7 @@ if ($ip === $d || !filter_var($ip, FILTER_VALIDATE_IP, FILTER_FLAG_NO_PRIV_RANGE
 // Cache for a day
 $dir = sys_get_temp_dir() . '/ha-aiready';
 if (!is_dir($dir)) @mkdir($dir, 0700, true);
-$key = $dir . '/' . sha1($d) . '.json';
+$key = $dir . '/' . sha1('v3' . $d) . '.json';
 if (empty($_GET['fresh']) && is_file($key) && time() - filemtime($key) < 86400) { header('X-Cache: hit'); header('Cache-Control: public, max-age=3600'); readfile($key); exit; }
 
 function grab($url, $max = 600000) {
@@ -91,7 +91,9 @@ foreach ($bots as $ua => $label) $ai[] = ['bot' => $ua, 'name' => $label, 'block
 $hasLlms = $lc >= 200 && $lc < 300 && stripos($llms, '<html') === false && strlen(trim($llms)) > 20;
 
 // Home page: secure, title, description and structured data
+$t0 = microtime(true);
 [$hc, $html] = grab("https://$base/");
+$ms = (int)round((microtime(true) - $t0) * 1000);
 if (!($hc >= 200 && $hc < 400) && $base === $d) [$hc, $html] = grab("https://www.$d/");
 if (!($hc >= 200 && $hc < 400) || strlen($html) < 2000) {
   foreach (["https://www.$d/", "https://$d/"] as $u) { [$ac, $ab] = grabArchived($u); if ($ac >= 200 && $ac < 300 && strlen($ab) > 2000) { $hc = $ac; $html = $ab; $fromArchive = true; break; } }
@@ -108,7 +110,22 @@ $types = array_values(array_unique($types));
 preg_match('#<title[^>]*>(.*?)</title>#is', $html, $t);
 preg_match('#<meta[^>]+name=["\']description["\'][^>]+content=["\']([^"\']*)#i', $html, $desc);
 
+// Basics a person or a search engine notices first
+$sitemap = (bool)preg_match('/^\s*sitemap:\s*\S+/im', $robots ?? '');
+if (!$sitemap && !$fromArchive) { [$sc, $sb] = grab("https://$base/sitemap.xml", 4000); $sitemap = $sc >= 200 && $sc < 300 && stripos($sb, '<urlset') !== false || stripos($sb ?? '', '<sitemapindex') !== false; }
+$basics = [
+  'mobile' => (bool)preg_match('#<meta[^>]+name=["\']viewport["\']#i', $html),
+  'h1' => (bool)preg_match('#<h1[\s>]#i', $html),
+  'social_preview' => (bool)preg_match('#<meta[^>]+property=["\']og:(title|image)["\']#i', $html),
+  'phone_link' => (bool)preg_match('#href=["\']tel:#i', $html),
+  'sitemap' => $sitemap,
+  'local_business' => (bool)array_intersect($types, ['LocalBusiness', 'Restaurant', 'Store', 'ProfessionalService', 'HomeAndConstructionBusiness', 'FoodEstablishment', 'HealthAndBeautyBusiness', 'AutomotiveBusiness', 'LegalService', 'MedicalBusiness']),
+  'load_ms' => $fromArchive ? null : $ms,
+  'page_kb' => $fromArchive ? null : (int)round(strlen($html) / 1024),
+];
+
 $out = [
+  'basics' => $basics,
   'domain' => $d,
   'opens' => $hc >= 200 && $hc < 400,
   'robots_found' => $rc >= 200 && $rc < 300,

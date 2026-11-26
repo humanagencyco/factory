@@ -1,0 +1,128 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Check a website | Human Agency</title>
+<meta name="description" content="Free check of any website: can AI assistants read it, does it work on phones, and what to fix first.">
+<style>
+:root{--ink:#1d1630;--muted:#6c6485;--paper:#fff8f1;--pink:#ff5d8f;--sun:#ffb830;--mint:#2fd1a4;--sky:#5aa9ff;--violet:#8b5cf6;--bad:#ffb3b3}
+*{box-sizing:border-box}body{margin:0;background:var(--paper);color:var(--ink);font:16px/1.55 -apple-system,BlinkMacSystemFont,"Segoe UI",Inter,Roboto,sans-serif}
+a{color:var(--violet);font-weight:800}
+.wrap{max-width:900px;margin:0 auto;padding:0 20px 60px}
+.top{padding:18px 0;display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap}
+.top a{color:var(--ink);text-decoration:none;font-weight:900}
+h1{font-size:clamp(34px,6vw,52px);line-height:1.04;margin:24px 0 10px;font-weight:900;letter-spacing:-.02em}
+.lede{color:var(--muted);font-size:18px;max-width:620px;margin:0}
+.search{margin:24px 0 8px;display:flex;gap:8px;background:#fff;border:2px solid var(--ink);border-radius:999px;padding:6px;box-shadow:6px 6px 0 var(--ink);max-width:620px}
+.search input{flex:1;border:0;outline:none;background:transparent;padding:12px 16px;font:inherit;font-weight:700;min-width:0}
+.btn{border:0;cursor:pointer;background:var(--ink);color:#fff;font:inherit;font-weight:900;border-radius:999px;padding:12px 20px}
+.btn:focus-visible,.search input:focus-visible,a:focus-visible{outline:3px solid var(--sky);outline-offset:3px}
+.note{color:var(--muted);font-size:14px;margin:10px 0 0}
+.examples{font-size:14px;color:var(--muted);margin:10px 0 0}.examples a{color:var(--ink)}
+.card{margin:28px 0 10px;background:#fff;border:2px solid var(--ink);border-radius:22px;box-shadow:6px 6px 0 var(--ink);padding:24px}
+.card h2{margin:0 0 4px;font-size:28px;font-weight:900;overflow-wrap:anywhere}
+.score{display:flex;align-items:baseline;gap:10px;margin:6px 0 14px}
+.score b{font-size:44px;font-weight:900;line-height:1}
+.score span{color:var(--muted)}
+.groups{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:12px}
+.group{border:2px solid var(--ink);border-radius:16px;padding:12px 14px;background:var(--paper)}
+.group h3{margin:0 0 6px;font-size:16px;font-weight:900}
+.row{display:flex;gap:8px;align-items:flex-start;font-size:14px;margin:6px 0}
+.row i{font-style:normal;flex:0 0 auto}
+.row small{display:block;color:var(--muted)}
+h3.fix{font-size:18px;font-weight:900;margin:22px 0 8px}
+ol.fix{padding-left:22px;margin:0}ol.fix li{margin:8px 0}
+.links{display:flex;gap:8px;flex-wrap:wrap;margin-top:16px}
+.links a{border:2px solid var(--ink);border-radius:999px;padding:6px 12px;text-decoration:none;background:#fff;color:var(--ink);font-size:14px}
+.sources{font-size:13px;color:var(--muted);margin-top:18px}
+@media (max-width:600px){.card{padding:16px;box-shadow:4px 4px 0 var(--ink)}.search{box-shadow:4px 4px 0 var(--ink)}.btn{padding:12px 14px}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="top"><a href="/factory/">← Agent Factory</a><a href="/factory/intel/">Intel</a></div>
+  <h1>Check a website</h1>
+  <p class="lede">Can ChatGPT, Claude and Gemini read it? Does it work on a phone? What should be fixed first? Free, takes a few seconds.</p>
+  <form class="search" id="f"><input id="q" placeholder="Website, e.g. yourcafe.co.uk" autocomplete="off" aria-label="Website"><button class="btn" type="submit">Check</button></form>
+  <p class="examples">Try: <a href="?site=bbc.co.uk">bbc.co.uk</a> · <a href="?site=gov.uk">gov.uk</a> · <a href="?site=monzo.com">monzo.com</a></p>
+  <div id="out"></div>
+</div>
+<script>
+const $ = id => document.getElementById(id);
+const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+const clean = v => String(v || "").trim().toLowerCase().replace(/^https?:\/\//, "").replace(/[/?#].*$/, "").replace(/^www\./, "");
+
+function checks(d) {
+  const b = d.basics || {}, bots = d.ai_bots || [];
+  const searchBots = bots.filter(x => /ChatGPT search|Perplexity|Gemini/.test(x.name));
+  const blockedSearch = searchBots.filter(x => x.blocked).map(x => x.name);
+  const blockedAll = bots.filter(x => x.blocked).map(x => x.name);
+  const speed = b.load_ms == null ? null : b.load_ms;
+  return [
+    { g: "AI assistants", ok: !blockedSearch.length, t: "AI search can read the site", why: blockedSearch.length ? `Blocked: ${blockedSearch.join(", ")}` : "ChatGPT search, Perplexity and Gemini are allowed",
+      fix: `<b>Let AI search in.</b> Your robots.txt blocks ${esc(blockedSearch.join(", "))}. These read pages to answer people's questions, so blocking them means they talk about you without seeing your site. You can still block crawlers that only collect training data.` },
+    { g: "AI assistants", ok: blockedAll.length <= 1, t: "Training crawlers", why: blockedAll.length ? `${blockedAll.length} of ${bots.length} blocked: ${blockedAll.join(", ")}` : "None blocked", soft: true },
+    { g: "AI assistants", ok: d.has_org_schema || b.local_business, t: "Says who you are in a form AI reads", why: d.has_org_schema || b.local_business ? "Business details are marked up" : "No business details marked up",
+      fix: `<b>Say who you are, clearly.</b> Add your business details as structured data (schema.org): name, logo, address, phone, opening hours. Most website builders have a setting or plug-in for this.` },
+    { g: "AI assistants", ok: d.llms_txt, t: "llms.txt", why: d.llms_txt ? "Found" : "Not there. Optional, few sites have one yet", soft: true },
+    { g: "People and phones", ok: b.mobile, t: "Works on a phone", why: b.mobile ? "Set up for small screens" : "No mobile setting found",
+      fix: `<b>Make it work on phones.</b> The home page isn't set up for small screens, and most visitors arrive on a phone. Switch to a mobile-friendly theme or template.` },
+    { g: "People and phones", ok: speed != null && speed < 2500, t: "Loads quickly", why: speed == null ? "Couldn't time it" : `Home page in ${(speed / 1000).toFixed(1)}s${b.page_kb ? `, ${b.page_kb} KB` : ""}`,
+      fix: `<b>Speed it up.</b> The home page took ${speed != null ? (speed / 1000).toFixed(1) + " seconds" : "a while"} to arrive. Shrink big images and remove plug-ins you don't use. Google's PageSpeed test (link below) shows exactly what's slow.` },
+    { g: "People and phones", ok: !!b.phone_link, t: "Tap to call", why: b.phone_link ? "Phone number is a tap-to-call link" : "No tap-to-call link on the home page",
+      fix: `<b>Make the phone number tappable.</b> Link it as tel: so people on phones can call in one tap.`, soft: true },
+    { g: "Search and sharing", ok: !!d.title, t: "Page title", why: d.title ? `"${d.title}"` : "Missing",
+      fix: `<b>Add a page title.</b> It's the headline Google and AI show for you. Say what you do and where, e.g. "Bright Smile Dental, Twickenham".` },
+    { g: "Search and sharing", ok: !!d.description, t: "Description", why: d.description ? `"${d.description}"` : "Missing",
+      fix: `<b>Write a one-line description.</b> One or two plain sentences on what you offer and who for. Search results and AI summaries often use it.` },
+    { g: "Search and sharing", ok: b.h1, t: "Main heading", why: b.h1 ? "Has one" : "No main heading (H1)",
+      fix: `<b>Give the home page a main heading.</b> One clear line at the top saying what you do.`, soft: true },
+    { g: "Search and sharing", ok: b.social_preview, t: "Preview when shared", why: b.social_preview ? "Has a title and picture for WhatsApp and social posts" : "Links shared on WhatsApp or LinkedIn show no picture",
+      fix: `<b>Set a share preview.</b> Add a title and picture for when people share your link on WhatsApp, LinkedIn or Facebook.`, soft: true },
+    { g: "Search and sharing", ok: b.sitemap, t: "Sitemap", why: b.sitemap ? "Found" : "Not found",
+      fix: `<b>Add a sitemap.</b> It lists your pages so search engines and AI find all of them. Most website builders make one automatically once switched on.`, soft: true },
+  ];
+}
+
+function render(d) {
+  const list = checks(d), real = list.filter(c => !(c.soft && c.t === "llms.txt"));
+  const passed = real.filter(c => c.ok).length;
+  const fixes = [...list.filter(c => !c.ok && !c.soft && c.fix), ...list.filter(c => !c.ok && c.soft && c.fix)].slice(0, 5);
+  const groups = [...new Set(list.map(c => c.g))];
+  const verdict = passed >= real.length - 1 ? "In good shape" : passed >= real.length * .6 ? "A few things to fix" : "Needs work";
+  $("out").innerHTML = `<div class="card">
+    <h2>${esc(d.domain)}</h2>
+    <div class="score"><b>${passed}/${real.length}</b><span>${verdict}</span></div>
+    <div class="groups">${groups.map(g => `<div class="group"><h3>${esc(g)}</h3>${list.filter(c => c.g === g).map(c => `<div class="row"><i>${c.ok ? "✅" : c.soft ? "⚪" : "❌"}</i><div><b>${esc(c.t)}</b><small>${esc(c.why)}</small></div></div>`).join("")}</div>`).join("")}</div>
+    ${fixes.length ? `<h3 class="fix">What to fix first</h3><ol class="fix">${fixes.map(c => `<li>${c.fix}</li>`).join("")}</ol>` : `<h3 class="fix">Nothing urgent</h3><p>Next step: ask ChatGPT and Gemini the questions your customers ask, and see whether you're named.</p>`}
+    <div class="links">
+      <a href="https://pagespeed.web.dev/analysis?url=${encodeURIComponent("https://" + d.domain)}" target="_blank" rel="noopener">Google PageSpeed test ↗</a>
+      <a href="https://${esc(d.domain)}/robots.txt" target="_blank" rel="noopener">robots.txt ↗</a>
+      <a href="https://uk.trustpilot.com/review/${encodeURIComponent(d.domain)}" target="_blank" rel="noopener">Trustpilot ↗</a>
+      <a href="/factory/intel/?q=${encodeURIComponent(d.domain.split(".")[0])}">Company report on Intel</a>
+    </div>
+    <p class="sources">${d.from_archive ? `${esc(d.domain)} turned our check away, so this uses the Internet Archive's latest copy. Speed couldn't be measured.` : `Checked live just now: the home page, robots.txt, llms.txt and sitemap.`} We only look at the home page, so other pages may differ.</p>
+  </div>`;
+}
+
+async function run(site) {
+  const s = clean(site); if (!s) return;
+  $("q").value = s;
+  history.replaceState(null, "", "?site=" + encodeURIComponent(s));
+  document.title = `${s}: website check | Human Agency`;
+  $("out").innerHTML = `<p class="note">Checking ${esc(s)}…</p>`;
+  try {
+    const r = await fetch(`/factory/api/aiready.php?v=3&domain=${encodeURIComponent(s)}`);
+    const d = await r.json().catch(() => ({}));
+    if (!r.ok) return $("out").innerHTML = `<p class="note">${esc(d.error || "Couldn't check that website.")}</p>`;
+    if (!d.opens) return $("out").innerHTML = `<p class="note">${esc(s)} didn't open for us. Check the address, or the site may be blocking automated visitors.</p>`;
+    render(d);
+  } catch (e) { $("out").innerHTML = `<p class="note">Couldn't run the check right now. Try again in a minute.</p>`; }
+}
+$("f").onsubmit = e => { e.preventDefault(); run($("q").value); };
+const start = new URLSearchParams(location.search).get("site");
+if (start) run(start);
+</script>
+</body>
+</html>

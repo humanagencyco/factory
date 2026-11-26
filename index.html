@@ -619,6 +619,7 @@ const MODULES = [
   { id:"cafes", type:"near", emo:"☕", name:"Cafés & pubs", desc:"Independent cafés and pubs near you, with hygiene ratings where we have them.", status:"ready", c:"#ffe8c2", pkg:"@humanagency/places-cafes", repo:"github.com/humanagencyco/places-cafes" },
   { id:"trains", type:"near", emo:"🚆", name:"Train times", desc:"Next departures from your nearest station.", status:"beta", c:"#d6f7ec", pkg:"@humanagency/train-times", repo:"github.com/humanagencyco/train-times" },
   { id:"bizcheck", type:"biz", emo:"🏪", name:"Is your business easy to find?", desc:"Free instant check: your Google Maps listing, reviews, website, and whether AI assistants can read your site.", status:"ready", c:"#fff0d6", pkg:"", repo:"" },
+  { id:"sitecheck", type:"biz", emo:"🔍", name:"Check a website", desc:"Any website: can AI assistants read it, does it work on phones, and what to fix first.", status:"ready", c:"#dff0ff", pkg:"", repo:"", link:"/factory/site/" },
   { id:"leads", type:"biz", hidden:true, emo:"🎯", name:"Find local businesses to help", desc:"For freelancers and consultants: find businesses near you, see who's hard to find online, and get an intro to send.", status:"beta", c:"#e2f6e9", pkg:"", repo:"", link:"/factory/prospect/" },
   { id:"aibiz", type:"biz", emo:"🤖", name:"AI for your business", desc:"What ChatGPT, Claude and Copilot could do for a small business, and help to set it up.", status:"ready", c:"#efe2ff", pkg:"", repo:"" },
   { id:"track", type:"near", emo:"🚉", name:"Your journey", desc:"Pick two stations. See the next trains there and back.", status:"ready", c:"#e2f0ff", pkg:"", repo:"", hidden:true },
@@ -1115,6 +1116,7 @@ function tryPanel(m) {
     return `<div class="box"><p style="margin:0 0 10px">${esc(blurb)}</p><a class="btn pink" href="${esc(m.link)}"${ext ? ' target="_blank" rel="noopener"' : ""} style="text-decoration:none">Open ${esc(m.name)}${ext ? " ↗" : ""}</a></div>`;
   }
   if (m.id === "lifeadmin") return lifePanel();
+  if (m.id === "sitecheck") return `<div class="box"><div class="row"><input id="scSite" placeholder="Website, e.g. yourcafe.co.uk"><button class="btn pink" id="scGo">Check</button></div><p class="sample" style="margin:8px 0 0">Opens the full check on its own page, so you can share the link.</p></div>`;
   if (m.id === "houses") return `<div class="box"><div class="row"><input id="hpPc" placeholder="Postcode" maxlength="8" value="${esc(homePc())}"><button class="btn pink" id="hpGo">Check</button></div></div><div id="hpOut"></div>`;
   if (m.id === "leads") return `<div class="box"><b>Local leads</b><p class="muted" style="margin:6px 0 10px;font-size:14px">Pick a type of business and a postcode. We find up to 15, rank who needs help most, run the free check on the top three, and write a short intro you can edit and send.</p><a class="btn pink" href="/factory/prospect/" style="text-decoration:none">Open Local leads</a></div>`;
   if (m.id === "bins") return `<div class="bin-card" id="binCard"></div><p class="sample">Your address is saved in this browser only. Turn on a WhatsApp reminder the evening before in the Today box.</p>`;
@@ -1455,6 +1457,7 @@ function wireTry(m) {
   if (m.id === "bizcheck") return wireBiz();
   if (m.id === "aibiz") return wireAi();
   if (m.id === "lifeadmin") return wireLife();
+  if (m.id === "sitecheck") { const go = () => { const v = $("scSite").value.trim(); if (v) location.href = "/factory/site/?site=" + encodeURIComponent(v); }; $("scGo").onclick = go; $("scSite").onkeydown = e => { if (e.key === "Enter") go(); }; return; }
   if (m.id === "houses") { const go = () => housePrices($("hpPc").value); $("hpGo").onclick = go; $("hpPc").onkeydown = e => { if (e.key === "Enter") go(); }; return go(); }
   if (m.id === "bins") { const b = savedBin(); return b && b.postcode === homePc() ? binSaved() : binFind(); }
   if (m.id === "company") {
@@ -1608,6 +1611,7 @@ const MADE = {
   track: "the National Rail live feed",
   pharmacy: "Google Places and OpenStreetMap",
   schools: "the Department for Education school register, with Ofsted inspection results",
+  sitecheck: "the website's own home page, robots.txt, llms.txt and sitemap, read live",
   houses: "HM Land Registry: what homes sold for, and the UK House Price Index for your area",
   company: "Companies House, plus our Intel research",
   vehicle: "DVLA vehicle records",
