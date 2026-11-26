@@ -63,7 +63,7 @@ function co_dir($sub) {
   if (!is_dir($dir)) @mkdir($dir, 0700, true);
   return $dir;
 }
-function co_cache_key($name, $domain) { return sha1('v2|' . mb_strtolower($name) . '|' . $domain); }
+function co_cache_key($name, $domain) { return sha1('v3|' . mb_strtolower($name) . '|' . $domain); }
 function co_cache_get($key, $age, $sub = 'brief') {
   $f = co_dir($sub) . "/$key.json";
   return is_file($f) && time() - filemtime($f) < $age ? file_get_contents($f) : null;
@@ -225,7 +225,15 @@ function co_site($domain) {
     [$c, $b, $f] = co_get($u);
     if ($c >= 200 && $c < 400 && strlen($b) > 500) { $html = $b; $final = $f; break; }
   }
-  if ($html === '') return ['opens' => false, 'domain' => $domain];
+  if ($html === '') {
+    $out = ['opens' => false, 'domain' => $domain, 'careers_url' => '', 'careers_html' => ''];
+    foreach (["https://careers.$domain/", "https://jobs.$domain/"] as $g) {
+      if (!co_public_host($g)) continue;
+      [$c, $b, $f] = co_get($g, ['timeout' => 6]);
+      if ($c >= 200 && $c < 300 && strlen($b) > 2000 && preg_match('/job|career|vacanc|role/i', $b)) { $out['careers_url'] = $f ?: $g; $out['careers_html'] = $b; break; }
+    }
+    return $out;
+  }
   $out = ['opens' => true, 'domain' => $domain, 'url' => $final, 'html' => $html];
   preg_match('#<title[^>]*>(.*?)</title>#is', $html, $t);
   preg_match('#<meta[^>]+(?:name|property)=["\'](?:og:)?description["\'][^>]+content=["\']([^"\']*)#i', $html, $d);
@@ -253,6 +261,15 @@ function co_site($domain) {
     }
   }
   if ($careers !== '') $careers = co_abs($careers, $final);
+  // Big companies often keep jobs on their own address (careers.haleon.com) and only link it from a script menu
+  if ($careers === '') {
+    $root = preg_replace('/^www\./', '', parse_url($final, PHP_URL_HOST) ?: $domain);
+    foreach (["https://careers.$root/", "https://jobs.$root/", "https://$root/careers", "https://www.$root/careers", "https://$root/jobs"] as $g) {
+      if (!co_public_host($g)) continue;
+      [$c, $b, $f] = co_get($g, ['timeout' => 6, 'max' => 400000]);
+      if ($c >= 200 && $c < 300 && strlen($b) > 2000 && preg_match('/job|career|vacanc|role/i', $b) && !preg_match('#/(404|not-found)#i', $f)) { $careers = $f ?: $g; break; }
+    }
+  }
   $out['careers_url'] = $careers;
   $out['careers_html'] = '';
   if ($careers && co_public_host($careers) && !preg_match('#linkedin\.com#i', $careers)) {
