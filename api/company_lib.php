@@ -59,7 +59,7 @@ function co_dir($sub) {
   if (!is_dir($dir)) @mkdir($dir, 0700, true);
   return $dir;
 }
-function co_cache_key($name, $domain) { return sha1('v1|' . mb_strtolower($name) . '|' . $domain); }
+function co_cache_key($name, $domain) { return sha1('v2|' . mb_strtolower($name) . '|' . $domain); }
 function co_cache_get($key, $age, $sub = 'brief') {
   $f = co_dir($sub) . "/$key.json";
   return is_file($f) && time() - filemtime($f) < $age ? file_get_contents($f) : null;
@@ -255,7 +255,73 @@ function co_site($domain) {
     [$c, $b, $f] = co_get($careers);
     if ($c >= 200 && $c < 400) { $out['careers_html'] = $b; $out['careers_url'] = $f ?: $careers; }
   }
+  // What they say they do: their About page, or failing that the home page's own words
+  $about = ''; $aboutUrl = '';
+  if (preg_match_all('#<a\b[^>]*href=["\']([^"\'\#]+)["\'][^>]*>(.*?)</a>#is', $html, $mm, PREG_SET_ORDER)) {
+    foreach ($mm as $a) {
+      $text = strtolower(trim(strip_tags($a[2])));
+      if (preg_match('/^(about|about us|who we are|our story|our company|company)$/', $text) || preg_match('#/(about|about-us|who-we-are|our-story)/?$#i', $a[1])) { $aboutUrl = co_abs(html_entity_decode($a[1]), $final); break; }
+    }
+  }
+  if ($aboutUrl && co_public_host($aboutUrl) && parse_url($aboutUrl, PHP_URL_HOST) === parse_url($final, PHP_URL_HOST)) {
+    [$c, $b] = co_get($aboutUrl);
+    if ($c >= 200 && $c < 400) $about = co_paragraphs($b);
+  }
+  if ($about === '') { $about = co_paragraphs($html); $aboutUrl = $about ? $final : ''; }
+  $out['about'] = $about; $out['about_url'] = $aboutUrl;
+  $words = strtolower($out['title'] . ' ' . $out['description'] . ' ' . $about);
+  $out['recruiter'] = (bool)preg_match('/\b(recruitment|recruiter|recruiting agency|staffing|talent solutions|executive search|headhunt)/', $words);
+  // Areas they hire or recruit for: links on the careers page that go one level deeper
+  $areas = [];
+  if (!empty($out['careers_html']) && $out['careers_url']) {
+    $cpath = rtrim(parse_url($out['careers_url'], PHP_URL_PATH) ?: '/', '/');
+    if (preg_match_all('#<a\b[^>]*href=["\']([^"\'\#?]+)["\'][^>]*>(.*?)</a>#is', $out['careers_html'], $mm, PREG_SET_ORDER)) {
+      foreach ($mm as $a) {
+        $p = rtrim(parse_url(co_abs(html_entity_decode($a[1]), $out['careers_url']), PHP_URL_PATH) ?: '', '/');
+        $t = trim(preg_replace('/\s+/', ' ', html_entity_decode(strip_tags($a[2]))));
+        if ($cpath !== '' && str_starts_with($p, $cpath . '/') && substr_count(substr($p, strlen($cpath)), '/') === 1 && $t !== '' && mb_strlen($t) < 50
+          && !preg_match('/\b(alerts?|search|submit|upload|log ?in|sign[ -]?(in|up)|register|apply|saved|cv)\b/i', $t . ' ' . str_replace(['-', '_', '/'], ' ', $p))) $areas[$t] = 1;
+      }
+    }
+  }
+  $out['job_areas'] = array_slice(array_keys($areas), 0, 10);
   return $out;
+}
+
+// The first few real paragraphs of a page, as plain text
+function co_paragraphs($html) {
+  $html = preg_replace('#<(script|style|nav|header|footer|form|noscript|svg)\b.*?</\1>#is', ' ', $html);
+  $out = []; $len = 0;
+  if (preg_match_all('#<p\b[^>]*>(.*?)</p>#is', $html, $m)) {
+    foreach ($m[1] as $p) {
+      $t = trim(preg_replace('/\s+/', ' ', html_entity_decode(strip_tags($p), ENT_QUOTES | ENT_HTML5)));
+      if (mb_strlen($t) < 70 || preg_match('/cookie|javascript|©|copyright|all rights reserved|privacy/i', $t) || in_array($t, $out, true)) continue;
+      $out[] = $t; $len += mb_strlen($t);
+      if (count($out) >= 3 || $len > 700) break;
+    }
+  }
+  return mb_substr(implode("\n\n", $out), 0, 900);
+}
+
+// Job adverts written into the careers page itself (schema.org JobPosting)
+function co_jobs_from_ld($html, $base) {
+  $roles = [];
+  if (!preg_match_all('#<script[^>]+application/ld\+json[^>]*>(.*?)</script>#is', (string)$html, $mm)) return $roles;
+  foreach ($mm[1] as $j) {
+    $j = json_decode(html_entity_decode(trim($j)), true); if (!$j) continue;
+    $walk = function ($x) use (&$walk, &$roles, $base) {
+      if (!is_array($x)) return;
+      if (in_array('JobPosting', (array)($x['@type'] ?? []), true) && !empty($x['title'])) {
+        $loc = $x['jobLocation'] ?? []; if (isset($loc[0])) $loc = $loc[0];
+        $addr = $loc['address'] ?? [];
+        $roles[] = ['title' => strip_tags($x['title']), 'location' => is_array($addr) ? implode(', ', array_filter([$addr['addressLocality'] ?? '', $addr['addressCountry']['name'] ?? (is_string($addr['addressCountry'] ?? null) ? $addr['addressCountry'] : '')])) : (string)$addr,
+          'team' => is_string($x['occupationalCategory'] ?? null) ? $x['occupationalCategory'] : '', 'url' => $x['url'] ?? $base, 'posted' => co_date($x['datePosted'] ?? '')];
+      }
+      foreach ($x as $v) if (is_array($v)) $walk($v);
+    };
+    $walk($j);
+  }
+  return array_slice($roles, 0, 60);
 }
 function co_abs($href, $base) {
   if (preg_match('#^https?://#i', $href)) return $href;
@@ -318,9 +384,13 @@ function co_jobs($name, $domain, $site) {
     break;
   }
   if (!$out['system'] && $found) { $ats = array_key_first($found); $out['system'] = $ats; $out['board_url'] = co_board_link($ats, $found[$ats]); }
+  if (!$out['roles'] && !empty($site['careers_html'])) {
+    $ld = co_jobs_from_ld($site['careers_html'], $site['careers_url']);
+    if ($ld) { $out['roles'] = $ld; $out['total'] = count($ld); $out['system'] = 'their website'; $out['board_url'] = $site['careers_url']; $out['found_via'] = 'job adverts written into their careers page'; }
+  }
   // Tidy, UK first, then by newest
   $roles = $out['roles'];
-  foreach ($roles as &$r) $r['uk'] = (bool)preg_match('/\b(uk|united kingdom|london|manchester|edinburgh|glasgow|bristol|birmingham|leeds|cardiff|belfast|cambridge|oxford|reading|england|scotland|wales|remote\s*[-(,]?\s*(uk|emea|europe))\b/i', $r['location'] ?? '');
+  foreach ($roles as &$r) $r['uk'] = (bool)preg_match('/\b(uk|united kingdom|london|manchester|edinburgh|glasgow|bristol|birmingham|leeds|cardiff|belfast|cambridge|oxford|reading|england|scotland|wales|gb|remote\s*[-(,]?\s*(uk|emea|europe))\b/i', $r['location'] ?? '');
   unset($r);
   usort($roles, fn($a, $b) => [$b['uk'], $b['posted'] ?? ''] <=> [$a['uk'], $a['posted'] ?? '']);
   $out['total'] = $out['total'] ?? count($roles);

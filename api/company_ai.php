@@ -36,6 +36,9 @@ $lines = [];
 $lines[] = "Company: $name" . ($domain ? " ($domain)" : '');
 if ($summary) $lines[] = "Wikipedia summary: $summary";
 if (!empty($f['site']['description'])) $lines[] = 'How their website describes them: ' . $f['site']['description'];
+if (!empty($f['site']['about'])) $lines[] = 'In their own words (their website): ' . mb_substr($f['site']['about'], 0, 900);
+if (!empty($f['site']['job_areas'])) $lines[] = 'Areas listed on their jobs page: ' . implode(', ', $f['site']['job_areas']);
+if (!empty($f['site']['recruiter'])) $lines[] = 'They are a recruitment business, so their job adverts are mostly roles they fill for clients.';
 if (!empty($r['found'])) {
   $lines[] = 'UK register: ' . $r['name'] . ', ' . $r['status'] . ', set up ' . $r['created'] . ', ' . $r['directors_total'] . ' current directors. Industry codes: '
     . implode('; ', array_map(fn($s) => $s['code'] . ($s['label'] ? ' ' . $s['label'] : ''), $r['sic'] ?? [])) . '. Last accounts made up to ' . ($r['accounts_made_up_to'] ?: 'unknown') . ($r['accounts_type'] ? ' (' . $r['accounts_type'] . ')' : '') . '.';

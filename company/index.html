@@ -182,7 +182,7 @@ function renderShell({ name, domain, w }) {
       ${domain ? `<img class="logo" alt="" src="https://www.google.com/s2/favicons?sz=128&domain=${esc(domain)}" onerror="this.style.display='none'">` : ""}
       <div><h2 id="co-name">${esc(name)}</h2><p class="meta">${[w?.short, domain].filter(Boolean).map(esc).join(" · ")}</p></div>
     </div>
-    ${w?.extract ? `<p class="desc">${esc(w.extract)}</p><p class="sources" style="margin-top:-8px">From <a href="${esc(w.url)}" target="_blank" rel="noopener">Wikipedia ↗</a></p>` : `<p class="note">No Wikipedia page found, so the rest comes from the register, their website and the news.</p>`}
+    ${w?.extract ? `<p class="desc">${esc(w.extract)}</p><p class="sources" style="margin-top:-8px">From <a href="${esc(w.url)}" target="_blank" rel="noopener">Wikipedia ↗</a></p>` : `<div id="about"><p class="loading">Reading their website to see what they do…</p></div>`}
     ${facts.length ? `<div class="grid" style="margin-top:14px">${facts.map(([k, v]) => `<div class="fact"><small>${esc(k)}</small><b>${esc(v)}</b></div>`).join("")}</div><p class="sources" style="margin-top:0">Facts from Wikidata.</p>` : ""}
     <div class="share no-print">
       ${site ? `<a class="chip" href="${esc(site)}" target="_blank" rel="noopener">Website ↗</a>` : ""}
@@ -238,6 +238,18 @@ async function loadJobs(id, qs, name, domain) {
   // Social links found on their site
   const soc = Object.entries(s.social || {}).map(([k, u]) => `<a class="chip" href="${esc(u)}" target="_blank" rel="noopener">${esc({ linkedin: "LinkedIn", x: "X", instagram: "Instagram", youtube: "YouTube" }[k] || k)} ↗</a>`).join("");
   if ($("socials")) $("socials").innerHTML = soc;
+  // No Wikipedia? Say what they do in their own words
+  const ab = $("about");
+  if (ab) {
+    const said = s.about || s.description || "";
+    ab.innerHTML = said || s.title
+      ? `${s.title ? `<p class="desc" style="margin-bottom:6px"><b>${esc(s.title.replace(/\s*[|·–-]\s*[^|·–-]*$/, "") || s.title)}</b></p>` : ""}
+         ${said ? `<p class="label" style="margin-top:10px">What they say they do</p>${said.split(/\n\n/).map(p => `<p style="margin:0 0 8px">${esc(p)}</p>`).join("")}` : ""}
+         ${(s.job_areas || []).length ? `<p class="label" style="margin-top:12px">${s.recruiter ? "Areas they recruit for" : "Areas they hire for"}</p><div class="links">${s.job_areas.map(a => `<span class="chip" style="cursor:default">${esc(a)}</span>`).join("")}</div>` : ""}
+         <p class="sources">From their own website${s.about_url ? `, <a href="${esc(s.about_url)}" target="_blank" rel="noopener">${esc(host(s.about_url) + (new URL(s.about_url).pathname.length > 1 ? new URL(s.about_url).pathname : ""))} ↗</a>` : ""}. No Wikipedia page found.</p>`
+      : `<p class="note">No Wikipedia page found, and their website didn't say much we could read.</p>`;
+  }
+  if (s.recruiter && $("h-jobs")) $("h-jobs").textContent = "Roles they're recruiting for";
   const guessed = s.guessed ? `<p class="note">We guessed their website is <b>${esc(s.domain)}</b>. Not right? Search with their real web address instead.</p>` : "";
   const roles = j.roles || [];
   if (roles.length) {
@@ -266,7 +278,7 @@ async function loadJobs(id, qs, name, domain) {
     if (id !== lookup) return;
     const o = h.overview || {}, list = h.sample_roles || [];
     $("adverts").innerHTML = list.length
-      ? `<p><b>${esc(o.total_open_roles ?? list.length)} UK job adverts mention ${esc(name)}</b>${o.signal ? `, mainly ${esc(String(o.signal).toLowerCase())}` : ""}.</p><ul class="facts">${list.slice(0, 6).map(r => `<li>${esc(r.title || "")}${r.location ? ` <span class="note">${esc(r.location)}</span>` : ""}</li>`).join("")}</ul><p class="sources">Source: Adzuna UK job adverts. These mention the name, so some may be other organisations or agencies. Check the titles.</p>`
+      ? `<p><b>${esc(o.total_open_roles ?? list.length)} UK job adverts mention ${esc(name)}</b>.</p><ul class="facts">${list.slice(0, 6).map(r => `<li>${esc(r.title || "")}${r.location ? ` <span class="note">${esc(r.location)}</span>` : ""}</li>`).join("")}</ul><p class="sources">Source: Adzuna UK job adverts. ${s.recruiter ? `${esc(name)} is a recruiter, so these are mostly roles they're filling for their clients, not jobs at ${esc(name)} itself.` : "These mention the name, so some may be other organisations or agencies. Check the titles."}</p>`
       : `<p class="note">No UK job adverts found either.</p>`;
   } catch (_) { if (id === lookup && $("adverts")) $("adverts").innerHTML = ""; }
 }
