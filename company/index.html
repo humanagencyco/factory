@@ -247,7 +247,9 @@ async function loadJobs(id, qs, name, domain) {
          ${said ? `<p class="label" style="margin-top:10px">What they say they do</p>${said.split(/\n\n/).map(p => `<p style="margin:0 0 8px">${esc(p)}</p>`).join("")}` : ""}
          ${(s.job_areas || []).length ? `<p class="label" style="margin-top:12px">${s.recruiter ? "Areas they recruit for" : "Areas they hire for"}</p><div class="links">${s.job_areas.map(a => `<span class="chip" style="cursor:default">${esc(a)}</span>`).join("")}</div>` : ""}
          <p class="sources">From their own website${s.about_url ? `, <a href="${esc(s.about_url)}" target="_blank" rel="noopener">${esc(host(s.about_url) + (new URL(s.about_url).pathname.length > 1 ? new URL(s.about_url).pathname : ""))} ↗</a>` : ""}. No Wikipedia page found.</p>`
-      : `<p class="note">No Wikipedia page found, and their website didn't say much we could read.</p>`;
+      : (s.domain
+        ? `<p class="note">No Wikipedia page found, and ${esc(s.domain)} didn't say much we could read.</p>`
+        : `<p class="note"><b>We couldn't find this company online.</b> Try their website address instead, like <i>acme.co.uk</i>, and we'll read it for you.</p>`);
   }
   if (s.recruiter && $("h-jobs")) $("h-jobs").textContent = "Roles they're recruiting for";
   const guessed = s.guessed ? `<p class="note">We guessed their website is <b>${esc(s.domain)}</b>. Not right? Search with their real web address instead.</p>` : "";
