@@ -1,0 +1,10 @@
+# Always check for the newest page and scripts, so visitors see updates straight away.
+# Images and icons can still be kept by the browser.
+<IfModule mod_headers.c>
+  <FilesMatch "\.(html|js|webmanifest|php)$">
+    Header set Cache-Control "no-cache"
+  </FilesMatch>
+</IfModule>
+
+# Keep the repository's history folder private
+RedirectMatch 404 /\.git
