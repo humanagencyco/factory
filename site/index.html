@@ -35,6 +35,19 @@ h3.fix{font-size:18px;font-weight:900;margin:22px 0 8px}
 ol.fix{padding-left:22px;margin:0}ol.fix li{margin:8px 0}
 .links{display:flex;gap:8px;flex-wrap:wrap;margin-top:16px}
 .links a{border:2px solid var(--ink);border-radius:999px;padding:6px 12px;text-decoration:none;background:#fff;color:var(--ink);font-size:14px}
+.alert{border:2px solid var(--ink);background:var(--bad);border-radius:16px;padding:12px 14px;margin:0 0 14px}
+.alert b{display:block;font-size:17px}
+.duo{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:12px;margin:8px 0}
+.serp{border:2px solid var(--ink);border-radius:16px;padding:14px;background:#fff}
+.serp .lab{font-size:12px;font-weight:900;color:var(--muted);margin:0 0 8px}
+.serp .u{font-size:13px;color:#3c4043}
+.serp .t{font-size:19px;color:#1a0dab;font-weight:500;line-height:1.3;margin:2px 0 4px}
+.serp .d{font-size:14px;color:#4d5156}
+.serp.better{background:#effcf6}
+.serp ul{margin:10px 0 0;padding-left:18px;font-size:13px;color:var(--muted)}
+pre.code{background:#1d1630;color:#f4efff;border-radius:14px;padding:14px;overflow:auto;font-size:12.5px;line-height:1.5;margin:8px 0}
+.copy{border:2px solid var(--ink);background:#fff;border-radius:999px;padding:6px 14px;font:inherit;font-weight:800;cursor:pointer}
+.help{margin-top:20px;border:2px solid var(--ink);border-radius:16px;padding:14px;background:var(--sun)}
 .sources{font-size:13px;color:var(--muted);margin-top:18px}
 @media (max-width:600px){.card{padding:16px;box-shadow:4px 4px 0 var(--ink)}.search{box-shadow:4px 4px 0 var(--ink)}.btn{padding:12px 14px}}
 </style>
@@ -53,6 +66,7 @@ const $ = id => document.getElementById(id);
 const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 const clean = v => String(v || "").trim().toLowerCase().replace(/^https?:\/\//, "").replace(/[/?#].*$/, "").replace(/^www\./, "");
 
+const SSLWHY = { expired: "The site's security certificate has expired", wrong_name: "The security certificate is for a different web address", untrusted: "The security certificate isn't from a trusted issuer", no_https: "The site doesn't offer a secure (https) connection", only_www: "Only the www. address is secure; the plain address shows a warning", other: "Browsers can't confirm the site is secure" };
 function checks(d) {
   const b = d.basics || {}, bots = d.ai_bots || [];
   const searchBots = bots.filter(x => /ChatGPT search|Perplexity|Gemini/.test(x.name));
@@ -66,6 +80,8 @@ function checks(d) {
     { g: "AI assistants", ok: d.has_org_schema || b.local_business, t: "Says who you are in a form AI reads", why: d.has_org_schema || b.local_business ? "Business details are marked up" : "No business details marked up",
       fix: `<b>Say who you are, clearly.</b> Add your business details as structured data (schema.org): name, logo, address, phone, opening hours. Most website builders have a setting or plug-in for this.` },
     { g: "AI assistants", ok: d.llms_txt, t: "llms.txt", why: d.llms_txt ? "Found" : "Not there. Optional, few sites have one yet", soft: true },
+    { g: "People and phones", ok: !d.ssl || d.ssl.ok, t: "Secure connection (padlock)", why: !d.ssl ? "Couldn't test" : d.ssl.ok ? "Browsers show the padlock" : SSLWHY[d.ssl.problem] || SSLWHY.other,
+      fix: `<b>Fix the security certificate first.</b> ${esc(SSLWHY[d.ssl && d.ssl.problem] || SSLWHY.other)}. Browsers show a full-page "Your connection is not private" warning, and most people leave. Ask your web host to switch on a free SSL certificate (most offer Let's Encrypt in one click) and to redirect every visit to https.` },
     { g: "People and phones", ok: b.mobile, t: "Works on a phone", why: b.mobile ? "Set up for small screens" : "No mobile setting found",
       fix: `<b>Make it work on phones.</b> The home page isn't set up for small screens, and most visitors arrive on a phone. Switch to a mobile-friendly theme or template.` },
     { g: "People and phones", ok: speed != null && speed < 2500, t: "Loads quickly", why: speed == null ? "Couldn't time it" : `Home page in ${(speed / 1000).toFixed(1)}s${b.page_kb ? `, ${b.page_kb} KB` : ""}`,
@@ -94,8 +110,11 @@ function render(d) {
   $("out").innerHTML = `<div class="card">
     <h2>${esc(d.domain)}</h2>
     <div class="score"><b>${passed}/${real.length}</b><span>${verdict}</span></div>
+    ${d.ssl && !d.ssl.ok ? `<div class="alert"><b>⚠️ Visitors get a "Not secure" warning</b>${esc(SSLWHY[d.ssl.problem] || SSLWHY.other)}. People have to click "Advanced" to get in, and most won't. Google and AI assistants also trust the site less. This is the first thing to fix.</div>` : ""}
     <div class="groups">${groups.map(g => `<div class="group"><h3>${esc(g)}</h3>${list.filter(c => c.g === g).map(c => `<div class="row"><i>${c.ok ? "✅" : c.soft ? "⚪" : "❌"}</i><div><b>${esc(c.t)}</b><small>${esc(c.why)}</small></div></div>`).join("")}</div>`).join("")}</div>
     ${fixes.length ? `<h3 class="fix">What to fix first</h3><ol class="fix">${fixes.map(c => `<li>${c.fix}</li>`).join("")}</ol>` : `<h3 class="fix">Nothing urgent</h3><p>Next step: ask ChatGPT and Gemini the questions your customers ask, and see whether you're named.</p>`}
+    ${preview(d)}
+    <div class="help"><b>Want these fixed for you?</b> Most of this is a day's work. <a href="https://humanagency.co/" target="_blank" rel="noopener">Human Agency</a> helps local businesses get found by Google and AI assistants.</div>
     <div class="links">
       <a href="https://pagespeed.web.dev/analysis?url=${encodeURIComponent("https://" + d.domain)}" target="_blank" rel="noopener">Google PageSpeed test ↗</a>
       <a href="https://${esc(d.domain)}/robots.txt" target="_blank" rel="noopener">robots.txt ↗</a>
@@ -106,6 +125,44 @@ function render(d) {
   </div>`;
 }
 
+// How the business shows up in a Google result now, and what it could look like. Built only from what's on the page.
+function cut(t, n) { t = String(t || "").trim(); return t.length > n ? t.slice(0, n - 1).replace(/\s+\S*$/, "") + " …" : t; }
+function preview(d) {
+  const name = d.site_name || (d.title || "").split(/[|\-–:]/)[0].trim() || d.domain;
+  const nowT = d.title || d.domain, nowD = d.description || "No description, so Google picks some text from the page.";
+  const notes = [];
+  if (!d.title) notes.push("No page title, so Google makes one up.");
+  else if (d.title.length > 60) notes.push(`Title is ${d.title.length} characters; Google cuts it at about 60.`);
+  if (d.description && d.description.length > 155) notes.push(`Description is cut off: Google shows about 155 characters, and yours stops mid-sentence.`);
+  if (!d.has_org_schema && !d.basics.local_business) notes.push("No business details for Google and AI to pick up, such as opening hours, address and phone.");
+  const ld = `<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "LocalBusiness",
+  "name": ${JSON.stringify(name)},
+  "url": ${JSON.stringify("https://" + d.domain + "/")},${d.image ? `\n  "image": ${JSON.stringify(d.image)},` : ""}${d.phone ? `\n  "telephone": ${JSON.stringify(d.phone)},` : ""}${d.description ? `\n  "description": ${JSON.stringify(cut(d.description, 200).replace(/ …$/, ""))},` : ""}
+  "address": {
+    "@type": "PostalAddress",
+    "streetAddress": "[your street]",
+    "addressLocality": "[your town]",
+    "postalCode": "[your postcode]",
+    "addressCountry": "GB"
+  },
+  "openingHours": ["Mo-Fr 09:00-18:00"]
+}
+<\/script>`;
+  window.__ld = ld;
+  return `<h3 class="fix">How you show up in Google</h3>
+    <div class="duo">
+      <div class="serp"><p class="lab">Now</p><div class="u">${esc(d.domain)}</div><div class="t">${esc(cut(nowT, 60))}</div><div class="d">${esc(cut(nowD, 155))}</div>${notes.length ? `<ul>${notes.map(n => `<li>${esc(n)}</li>`).join("")}</ul>` : ""}</div>
+      <div class="serp better"><p class="lab">Could be</p><div class="u">${esc(d.domain)}</div><div class="t">[What you do] in [your town] | ${esc(cut(name, 30))}</div><div class="d">[What you offer, who it's for and why you] in one or two sentences, under 155 characters.${d.phone ? ` Call ${esc(d.phone)}.` : ""}</div>
+        <ul><li>Say what you do and where, in the title.</li><li>A complete sentence that ends before Google cuts it.</li><li>Opening hours, address and reviews can show under the result once your business details are marked up.</li></ul></div>
+    </div>
+    ${!d.has_org_schema && !d.basics.local_business ? `<h3 class="fix">Business details, ready to paste</h3>
+    <p class="note" style="margin:0">We've filled in what your home page already says. Change the bits in [brackets] and the opening hours, then paste it into your site's header (most builders have a "custom code" box). It tells Google and AI assistants who you are.</p>
+    <pre class="code" id="ld">${esc(ld)}</pre><button class="copy" type="button" onclick="navigator.clipboard.writeText(window.__ld).then(()=>{this.textContent='Copied'})">Copy</button>` : ""}`;
+}
+
 async function run(site) {
   const s = clean(site); if (!s) return;
   $("q").value = s;
@@ -113,7 +170,7 @@ async function run(site) {
   document.title = `${s}: website check | Human Agency`;
   $("out").innerHTML = `<p class="note">Checking ${esc(s)}…</p>`;
   try {
-    const r = await fetch(`/factory/api/aiready.php?v=3&domain=${encodeURIComponent(s)}`);
+    const r = await fetch(`/factory/api/aiready.php?v=4&domain=${encodeURIComponent(s)}`);
     const d = await r.json().catch(() => ({}));
     if (!r.ok) return $("out").innerHTML = `<p class="note">${esc(d.error || "Couldn't check that website.")}</p>`;
     if (!d.opens) return $("out").innerHTML = `<p class="note">${esc(s)} didn't open for us. Check the address, or the site may be blocking automated visitors.</p>`;

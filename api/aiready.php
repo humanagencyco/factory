@@ -17,7 +17,7 @@ if ($ip === $d || !filter_var($ip, FILTER_VALIDATE_IP, FILTER_FLAG_NO_PRIV_RANGE
 // Cache for a day
 $dir = sys_get_temp_dir() . '/ha-aiready';
 if (!is_dir($dir)) @mkdir($dir, 0700, true);
-$key = $dir . '/' . sha1('v3' . $d) . '.json';
+$key = $dir . '/' . sha1('v4' . $d) . '.json';
 if (empty($_GET['fresh']) && is_file($key) && time() - filemtime($key) < 86400) { header('X-Cache: hit'); header('Cache-Control: public, max-age=3600'); readfile($key); exit; }
 
 function grab($url, $max = 600000) {
@@ -29,7 +29,7 @@ function grab($url, $max = 600000) {
     curl_setopt_array($ch, [
       CURLOPT_FOLLOWLOCATION => true, CURLOPT_MAXREDIRS => 4, CURLOPT_TIMEOUT => 12, CURLOPT_CONNECTTIMEOUT => 6,
       CURLOPT_USERAGENT => $ua, CURLOPT_ENCODING => '', CURLOPT_PROTOCOLS => CURLPROTO_HTTPS | CURLPROTO_HTTP,
-      CURLOPT_REDIR_PROTOCOLS => CURLPROTO_HTTPS | CURLPROTO_HTTP,
+      CURLOPT_REDIR_PROTOCOLS => CURLPROTO_HTTPS | CURLPROTO_HTTP, CURLOPT_SSL_VERIFYPEER => false, CURLOPT_SSL_VERIFYHOST => 0,
       CURLOPT_HTTPHEADER => ['Accept: text/html,application/xhtml+xml,text/plain;q=0.9,*/*;q=0.8', 'Accept-Language: en-GB,en;q=0.9'],
       CURLOPT_WRITEFUNCTION => function ($c, $chunk) use (&$buf, $max) { $buf .= $chunk; return strlen($buf) > $max ? 0 : strlen($chunk); },
     ]);
@@ -95,6 +95,7 @@ $t0 = microtime(true);
 [$hc, $html] = grab("https://$base/");
 $ms = (int)round((microtime(true) - $t0) * 1000);
 if (!($hc >= 200 && $hc < 400) && $base === $d) [$hc, $html] = grab("https://www.$d/");
+if (!($hc >= 200 && $hc < 400)) { [$pc2, $ph] = grab("http://$d/"); if ($pc2 >= 200 && $pc2 < 400) { $hc = $pc2; $html = $ph; } }
 if (!($hc >= 200 && $hc < 400) || strlen($html) < 2000) {
   foreach (["https://www.$d/", "https://$d/"] as $u) { [$ac, $ab] = grabArchived($u); if ($ac >= 200 && $ac < 300 && strlen($ab) > 2000) { $hc = $ac; $html = $ab; $fromArchive = true; break; } }
 }
@@ -109,6 +110,31 @@ if (preg_match_all('#<script[^>]+application/ld\+json[^>]*>(.*?)</script>#is', $
 $types = array_values(array_unique($types));
 preg_match('#<title[^>]*>(.*?)</title>#is', $html, $t);
 preg_match('#<meta[^>]+name=["\']description["\'][^>]+content=["\']([^"\']*)#i', $html, $desc);
+
+// Secure connection: does the padlock show, or do browsers warn "Not secure"?
+function sslCheck($host) {
+  if (!function_exists('curl_init')) return null;
+  $ch = curl_init("https://$host/");
+  curl_setopt_array($ch, [CURLOPT_NOBODY => true, CURLOPT_TIMEOUT => 8, CURLOPT_CONNECTTIMEOUT => 6, CURLOPT_SSL_VERIFYPEER => true, CURLOPT_SSL_VERIFYHOST => 2, CURLOPT_RETURNTRANSFER => true,
+    CURLOPT_USERAGENT => 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0 Safari/537.36']);
+  curl_exec($ch); $no = curl_errno($ch); $err = curl_error($ch); curl_close($ch);
+  if (!$no) return ['ok' => true, 'problem' => ''];
+  $p = 'other';
+  if (preg_match('/expired/i', $err)) $p = 'expired';
+  elseif (preg_match('/subject|name|match|SAN/i', $err)) $p = 'wrong_name';
+  elseif (preg_match('/self.signed|issuer|local issuer|unable to get/i', $err)) $p = 'untrusted';
+  elseif (in_array($no, [7, 28, 35])) $p = 'no_https';
+  return ['ok' => false, 'problem' => $p];
+}
+$ssl = $fromArchive ? null : sslCheck($d);
+$sslWww = $fromArchive ? null : sslCheck("www.$d");
+if ($ssl && !$ssl['ok'] && $sslWww && $sslWww['ok']) $ssl = ['ok' => false, 'problem' => 'only_www'];
+
+// Details for a ready-to-paste business card for AI (only what the page itself says)
+preg_match('#href=["\']tel:([^"\']+)#i', $html, $tel);
+preg_match('#<meta[^>]+property=["\']og:site_name["\'][^>]+content=["\']([^"\']*)#i', $html, $sn);
+preg_match('#<meta[^>]+property=["\']og:image["\'][^>]+content=["\']([^"\']*)#i', $html, $oi);
+preg_match('#<h1[^>]*>(.*?)</h1>#is', $html, $h1t);
 
 // Basics a person or a search engine notices first
 $sitemap = (bool)preg_match('/^\s*sitemap:\s*\S+/im', $robots ?? '');
@@ -126,6 +152,11 @@ $basics = [
 
 $out = [
   'basics' => $basics,
+  'ssl' => $ssl,
+  'phone' => isset($tel[1]) ? mb_substr(trim(urldecode($tel[1])), 0, 30) : '',
+  'site_name' => mb_substr(trim(html_entity_decode($sn[1] ?? '')), 0, 80),
+  'image' => mb_substr(trim($oi[1] ?? ''), 0, 300),
+  'h1_text' => mb_substr(trim(preg_replace('/\s+/', ' ', html_entity_decode(strip_tags($h1t[1] ?? '')))), 0, 120),
   'domain' => $d,
   'opens' => $hc >= 200 && $hc < 400,
   'robots_found' => $rc >= 200 && $rc < 300,
