@@ -1196,7 +1196,7 @@ async function binDates(uprn, label, local) {
     const t0 = new Date(); t0.setHours(0, 0, 0, 0);
     const items = (d.collections || []).filter(c => new Date(c.date + "T00:00:00") >= t0).map(c => `<li><b>${esc(c.bin)}</b> · ${esc(pretty(c.date))}</li>`).join("");
     out.innerHTML = items
-      ? `<ul class="facts">${items}</ul><p class="sources">Source: ${esc(d.source || "the council")}. Checked ${esc(d.checked || "today")}.</p>`
+      ? `<ul class="facts">${items}</ul>${d.note ? `<p class="bin-note">${esc(d.note)}</p>` : ""}<p class="sources">Source: ${esc(d.source || "the council")}. Checked ${esc(d.checked || "today")}.</p>`
       : `<p class="bin-note">No collection dates found for that address.</p>`;
   } catch (e) {
     out.innerHTML = `<p class="bin-note">Could not check the council right now.</p>`;
