@@ -1,0 +1,221 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Human Agency: AI that reaches the real work</title>
+<meta name="description" content="AI consulting for UK companies of 50 to 500 people. We pick one job, measure it, prove AI makes it better on your real work, then hand it to your team.">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Source+Serif+4:opsz,wght@8..60,300;8..60,400;8..60,600&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{--ink:#14213d;--text:#1b2233;--soft:#55607a;--faint:#8a93a8;--line:#e3e1db;--paper:#fbfaf7;--signal:#e4572e;--rail:#14213d}
+*{box-sizing:border-box}
+body{margin:0;background:var(--paper);color:var(--text);font:16px/1.65 Inter,system-ui,sans-serif}
+a{color:var(--ink)}
+.wrap{max-width:1040px;margin:0 auto;padding:0 28px}
+.nav{display:flex;align-items:center;justify-content:space-between;gap:16px;padding:22px 0}
+.logo{font-weight:600;color:var(--ink);text-decoration:none;font-size:17px;display:flex;align-items:center;gap:10px}
+.logo i{display:inline-block;width:10px;height:10px;border-radius:50%;border:2px solid var(--ink);box-shadow:14px 0 0 -2px var(--signal);margin-right:14px}
+.menu{display:flex;gap:26px;align-items:center;font-size:14px}
+.menu a{color:var(--soft);text-decoration:none}
+.menu a:hover{color:var(--ink)}
+.btn{display:inline-flex;align-items:center;background:var(--ink);color:#fff !important;text-decoration:none;border:0;border-radius:6px;padding:11px 16px;font:500 14px Inter,sans-serif;cursor:pointer}
+.btn.line{background:transparent;color:var(--ink) !important;border:1px solid #c9ccd6}
+.btn:hover{opacity:.92}
+.btn:focus-visible,a:focus-visible,input:focus-visible,summary:focus-visible{outline:2px solid var(--signal);outline-offset:3px}
+h1,h2{font-family:"Source Serif 4",Georgia,serif;font-weight:400;color:var(--ink);letter-spacing:-.015em}
+h1{font-size:clamp(38px,5.6vw,64px);line-height:1.05;margin:0 0 22px;max-width:820px}
+h2{font-size:clamp(28px,3.6vw,40px);line-height:1.12;margin:0 0 14px}
+.lede{font-size:18px;color:var(--soft);max-width:600px;margin:0 0 30px}
+.cta{display:flex;gap:10px;flex-wrap:wrap}
+.hero{padding:56px 0 30px}
+.route{position:relative;margin-left:8px;padding-left:44px;border-left:2px solid var(--rail)}
+.stop{position:relative;padding:30px 0 70px}
+.stop:before{content:"";position:absolute;left:-54px;top:40px;width:14px;height:14px;border-radius:50%;background:var(--paper);border:2px solid var(--rail)}
+.stop.here:before{background:var(--ink)}
+.stop.there{padding-bottom:30px}
+.stop.there:before{background:var(--signal);border-color:var(--signal)}
+.where{font-size:13px;font-weight:500;color:var(--signal);margin:0 0 6px}
+.intro{color:var(--soft);max-width:620px;margin:0 0 30px}
+.try{display:flex;gap:10px;max-width:580px;flex-wrap:wrap}
+.try input{flex:1;min-width:220px;border:1px solid #c9ccd6;border-radius:6px;padding:11px 14px;font:inherit;background:#fff}
+.small{font-size:13px;color:var(--faint);margin:12px 0 0}
+.steps{display:grid;grid-template-columns:repeat(4,1fr);gap:28px}
+.steps b{display:block;font-weight:600;color:var(--ink);margin:0 0 6px}
+.steps p{margin:0;color:var(--soft);font-size:15px}
+.steps .k{display:block;font-family:"Source Serif 4",serif;font-size:13px;color:var(--faint);margin-bottom:6px}
+.offer{display:grid;grid-template-columns:240px 1fr 1fr auto;gap:24px;align-items:baseline;padding:22px 0;border-top:1px solid var(--line)}
+.offer.last{border-bottom:1px solid var(--line)}
+.offer h3{margin:0;font-family:"Source Serif 4",serif;font-weight:600;font-size:21px;color:var(--ink)}
+.offer h3 small{display:block;font-family:Inter,sans-serif;font-weight:400;font-size:13px;color:var(--faint);margin-top:2px}
+.offer p{margin:0;color:var(--soft);font-size:15px}
+.offer p b{display:block;color:var(--text);font-weight:500;font-size:13px}
+.offer a{white-space:nowrap;font-weight:500;font-size:14px;text-decoration:none;border-bottom:1px solid var(--signal)}
+.fixed{color:var(--soft);font-size:15px;margin:20px 0 0}
+.two{display:grid;grid-template-columns:1.25fr 1fr;gap:48px;align-items:start}
+.facts div{padding:14px 0;border-top:1px solid var(--line)}
+.facts div:last-child{border-bottom:1px solid var(--line)}
+.facts b{font-family:"Source Serif 4",serif;font-weight:400;font-size:30px;color:var(--ink);display:block;line-height:1.1}
+.facts span{font-size:14px;color:var(--soft)}
+.tool{display:grid;grid-template-columns:200px 1fr auto;gap:24px;align-items:baseline;padding:18px 0;border-top:1px solid var(--line);text-decoration:none;color:var(--text)}
+.tool:last-child{border-bottom:1px solid var(--line)}
+.tool b{font-weight:600;color:var(--ink)}
+.tool span{color:var(--soft);font-size:15px}
+.tool i{font-style:normal;font-size:14px;color:var(--ink);border-bottom:1px solid var(--signal)}
+.tool:hover b{text-decoration:underline}
+details{border-top:1px solid var(--line);padding:16px 0}
+details:last-of-type{border-bottom:1px solid var(--line)}
+summary{cursor:pointer;font-weight:500;color:var(--ink);list-style:none}
+summary::-webkit-details-marker{display:none}
+summary:after{content:" +";color:var(--faint)}
+details[open] summary:after{content:" -"}
+details p{color:var(--soft);margin:10px 0 0;max-width:680px}
+.aside{margin:70px 0 0;padding:22px 0 0;border-top:1px solid var(--line);display:flex;justify-content:space-between;gap:24px;align-items:center;flex-wrap:wrap}
+.aside p{margin:0;color:var(--soft);max-width:560px}
+.aside b{color:var(--ink);font-weight:600}
+footer{padding:60px 0 50px;font-size:14px;color:var(--faint)}
+footer .row{display:flex;justify-content:space-between;gap:20px;flex-wrap:wrap}
+footer a{color:var(--soft);margin-right:18px;text-decoration:none}
+footer a:hover{color:var(--ink)}
+.svc{display:grid;grid-template-columns:repeat(3,1fr);gap:0 32px}
+.svc div{padding:18px 0;border-top:1px solid var(--line)}
+.svc b{display:block;font-family:"Source Serif 4",serif;font-weight:600;font-size:19px;color:var(--ink);margin:0 0 6px}
+.svc p{margin:0;color:var(--soft);font-size:15px}
+.svc ul{margin:8px 0 0;padding-left:18px;color:var(--soft);font-size:14px}
+.svc li{margin:2px 0}
+.exp{display:grid;grid-template-columns:repeat(2,1fr);gap:0 40px}
+.exp div{padding:16px 0;border-top:1px solid var(--line)}
+.exp b{display:block;color:var(--ink);font-weight:600;margin:0 0 4px}
+.exp span{display:block;font-size:13px;color:var(--signal);margin:0 0 4px}
+.exp p{margin:0;color:var(--soft);font-size:15px}
+.preview{background:var(--ink);color:#fff;font-size:13px;text-align:center;padding:8px 12px}
+.preview a{color:#fff}
+@media (max-width:900px){.svc{grid-template-columns:1fr 1fr}.exp{grid-template-columns:1fr}.menu a:not(.btn){display:none}.steps{grid-template-columns:1fr 1fr}.two{grid-template-columns:1fr;gap:24px}.offer{grid-template-columns:1fr;gap:8px}.tool{grid-template-columns:1fr;gap:2px}}
+@media (max-width:560px){.svc{grid-template-columns:1fr}.wrap{padding:0 18px}.route{padding-left:28px;margin-left:4px}.stop:before{left:-37px}.stop{padding:24px 0 52px}.steps{grid-template-columns:1fr;gap:18px}.hero{padding:34px 0 20px}}
+@media (prefers-reduced-motion:no-preference){html{scroll-behavior:smooth}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <nav class="nav">
+    <a class="logo" href="#"><i aria-hidden="true"></i>Human Agency</a>
+    <div class="menu"><a href="#how">How we work</a><a href="#services">Services</a><a href="#work">Work with us</a><a href="#tools">Tools</a><a href="/delivery.html">Programme delivery</a><a class="btn" href="https://calendly.com/mekala/15min" target="_blank" rel="noopener">Book a call</a></div>
+  </nav>
+
+  <header class="hero">
+    <h1>Most AI pilots never reach the real work. We get yours there.</h1>
+    <p class="lede">Human Agency is led by Vikram Mekala, who has spent more than two decades making big technology programmes land at Unilever, Mars, Shell and BP. We help UK companies of 50 to 500 people pick one job that matters, prove AI makes it better on real work, and hand it to someone on their team who owns it.</p>
+    <p class="small" style="margin:-14px 0 28px;max-width:600px">You work with Vikram directly, backed by a network of specialists he's worked with over the years.</p>
+    <div class="cta"><a class="btn" href="https://calendly.com/mekala/15min" target="_blank" rel="noopener">Book a 15-minute call</a><a class="btn line" href="#try">See where AI could help you</a></div>
+  </header>
+
+  <div class="route">
+    <section class="stop here" id="try">
+      <p class="where">Where you are</p>
+      <h2>Where could AI help your company?</h2>
+      <p class="intro">Type your company. You get its official UK record, the roles it's hiring for, recent news, and where AI could take work off people's plates. It's the first thing we'd look at together.</p>
+      <form class="try" action="https://humanagency.co/factory/research/" method="get"><input name="q" placeholder="Your company, for example Octopus Energy" aria-label="Company name" required><button class="btn" type="submit">Check my company</button></form>
+      <p class="small">Facts come from Companies House, the company's careers site and the news, each labelled. The AI ideas are a starting point, not checked fact.</p>
+    </section>
+
+    <section class="stop" id="how">
+      <h2>We sell a measured improvement. Not AI.</h2>
+      <p class="intro">Most AI projects stall because nobody agreed what "better" means. We start there, and we only move on when the numbers say so.</p>
+      <div class="steps">
+        <div><span class="k">Step 1</span><b>Find the right job</b><p>Up to three jobs your people feel, with data we can reach, tied to cost or revenue.</p></div>
+        <div><span class="k">Step 2</span><b>Measure it as it is</b><p>How much gets done, how long it takes, how often it's redone, what each case costs.</p></div>
+        <div><span class="k">Step 3</span><b>Prove it on real work</b><p>AI runs alongside the old way. We count the time spent fixing its mistakes too.</p></div>
+        <div><span class="k">Step 4</span><b>Hand it over</b><p>Someone on your team owns it, with a simple runbook. Then on to the next job.</p></div>
+      </div>
+    </section>
+
+    <section class="stop" id="services">
+      <h2>What we help with</h2>
+      <p class="intro">AI is the newest part of it. The rest is what we've done for more than two decades: understand the problem properly, then make the change land.</p>
+      <div class="svc">
+        <div><b>AI use cases and pilots</b><p>Find the few places AI pays off, then prove it on real work.</p><ul><li>Use case discovery</li><li>Pilots measured against today</li><li>AI setup and team training</li></ul></div>
+        <div><b>Research and insight</b><p>Know the problem before you spend money on it.</p><ul><li>Customer and user interviews</li><li>Synthesis of what people said</li><li>SWOT and competitor reviews</li><li>Consumer and market research</li></ul></div>
+        <div><b>Programme and project management</b><p>One experienced owner who makes it land.</p><ul><li>Contract, interim or fractional</li><li>Governance, budgets and vendors</li><li>Stakeholders across countries</li></ul></div>
+        <div><b>Old world to new</b><p>Move off what's holding you back without breaking what works.</p><ul><li>System and data migrations</li><li>Vendor transitions</li><li>M&amp;A, carve-outs and Day 0</li></ul></div>
+        <div><b>Marketing and commercial IT</b><p>The systems behind brands, pricing and media.</p><ul><li>Consumer and market insights platforms</li><li>Media analytics</li><li>Innovation platforms</li><li>Net Revenue and Revenue Growth Management</li></ul></div>
+        <div><b>Product builds</b><p>Prototypes and small products, built fast and handed over.</p><ul><li>Working prototypes</li><li>Internal tools and agents</li><li>Websites and apps</li></ul></div>
+      </div>
+    </section>
+
+    <section class="stop" id="work">
+      <h2>Three ways to work together</h2>
+      <p class="intro">Every company is different, so we talk first and agree the scope together. You work with the same senior people throughout.</p>
+      <div class="offer"><h3>Discovery Sprint<small>4 to 6 weeks</small></h3><p><b>You get</b>Up to three jobs measured today, each with a target and an owner</p><p><b>From you</b>A sponsor, and a few hours from the people who do the work</p><a href="https://calendly.com/mekala/15min" target="_blank" rel="noopener">Talk to us</a></div>
+      <div class="offer"><h3>Proof Engagement<small>8 to 12 weeks</small></h3><p><b>You get</b>AI running on one job, before and after numbers, and a runbook</p><p><b>From you</b>A named owner and your experts' real examples</p><a href="https://calendly.com/mekala/15min" target="_blank" rel="noopener">Talk to us</a></div>
+      <div class="offer last"><h3>Ongoing Support<small>Monthly</small></h3><p><b>You get</b>The next job, the checks kept running, and help when things change</p><p><b>From you</b>The owner, plus a short monthly review</p><a href="https://calendly.com/mekala/15min" target="_blank" rel="noopener">Talk to us</a></div>
+      <p class="fixed">We agree a fixed price for each piece of work before we start. No day-rate surprises, and you keep everything we build.</p>
+    </section>
+
+    <section class="stop" id="who">
+      <div class="two">
+        <div>
+          <h2>Old world experience. New world skills.</h2>
+          <p class="intro" style="margin:0">I'm Vikram Mekala, and I founded Human Agency. For more than two decades I've delivered technology programmes for Unilever, Mars, Shell and BP, most recently the Magnum Ice Cream separation from Unilever. Today I also build AI products hands on. I lead every engagement myself, and bring in specialists from a network I've built over the years, so you get senior people on your work, not a junior team.</p>
+        </div>
+        <div class="facts">
+          <div><b>20+ years</b><span>making large technology programmes land</span></div>
+          <div><b>Day 0</b><span>on the Magnum Ice Cream separation</span></div>
+          <div><b>5 live</b><span>AI products, built in-house</span></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="stop" id="done">
+      <h2>Where we've done it before</h2>
+      <p class="intro">Real programmes, in companies where things had to work on day one.</p>
+      <div class="exp">
+        <div><span>Consumer goods · Unilever, Mars</span><b>Marketing and commercial technology</b><p>Consumer and market insights, media analytics, a brand and content platform used by 90+ brands, and innovation tools for marketing teams.</p></div>
+        <div><span>Consumer goods · Unilever</span><b>Net Revenue and Revenue Growth Management</b><p>A global analytics suite for pricing, portfolio mix and promotions, with eCommerce and Amazon data built in, and growth tools for emerging markets.</p></div>
+        <div><span>Oil and gas · Shell, BP</span><b>Digital platforms and transitions</b><p>Lead business analyst on Shell's innovation platform and its Adobe Experience Manager work. At BP, a transition handing people, processes and systems to a new vendor.</p></div>
+        <div><span>M&amp;A · The Magnum Ice Cream Company</span><b>IT separation from Unilever</b><p>Day 0 and hypercare lead when production systems went live under new ownership, plus SAP data separation and access controls across four SAP landscapes.</p></div>
+        <div><span>Data and analytics</span><b>Platform migrations</b><p>Moving a worldwide analytics estate to a new platform, with a new operating model and self-serve reporting for marketing and commercial teams.</p></div>
+        <div><span>AI · Human Agency</span><b>Five live AI products, built hands on</b><p>Miru, Intel, the Idea Validator, Agent Factory and the AI Learning Hub. Proof that we build, not just advise.</p></div>
+      </div>
+    </section>
+
+    <section class="stop" id="tools">
+      <h2>Things we've built</h2>
+      <p class="intro">The tools we use with clients, free to try. Each one is a small taste of the work.</p>
+      <div>
+        <a class="tool" href="/factory/research/"><b>Company check</b><span>Official record, open roles, news and where AI could help</span><i>Open</i></a>
+        <a class="tool" href="/factory/intel/"><b>Brand check</b><span>What a brand is, where it sells, how its prices compare, its AI readiness</span><i>Open</i></a>
+        <a class="tool" href="/factory/site/"><b>Website check</b><span>Can ChatGPT and Google read your site, and what to fix first</span><i>Open</i></a>
+        <a class="tool" href="https://ai.humanagency.co/"><b>AI Learning Hub</b><span>Plain-English guides and prompts for your role</span><i>Open</i></a>
+      </div>
+    </section>
+
+    <section class="stop" id="faq">
+      <h2>Questions people ask</h2>
+      <details><summary>Do we need to buy new software?</summary><p>Usually not. We start with the tools you already pay for, and only suggest buying something when it clearly beats building.</p></details>
+      <details><summary>How does pricing work?</summary><p>We talk first, agree the scope, then fix the price before any work starts.</p></details>
+      <details><summary>What about our data?</summary><p>It stays in your systems and your accounts. AI only reads what it should, and people approve what it does.</p></details>
+      <details><summary>Do you only work with companies your size?</summary><p>Our sweet spot is 50 to 500 people. For smaller businesses there's a simpler <a href="/factory/next/">get found by Google and AI</a> service.</p></details>
+    </section>
+
+    <section class="stop there" id="next">
+      <p class="where">Where you're going</p>
+      <h2>Tell us about one job that eats your team's time.</h2>
+      <p class="intro">We'll tell you honestly whether AI can help, and what it would take. If it can't, we'll say so.</p>
+      <div class="cta"><a class="btn" href="https://calendly.com/mekala/15min" target="_blank" rel="noopener">Book a 15-minute call</a><a class="btn line" href="mailto:vikram@humanagency.co">Email us</a></div>
+    </section>
+  </div>
+
+  <div class="aside">
+    <p><b>Need a programme lead instead?</b> Contract, interim or fractional delivery for IT transformation, M&amp;A and separation, and data platforms.</p>
+    <a class="btn line" href="/delivery.html">Programme delivery</a>
+  </div>
+
+  <footer>
+    <div class="row">
+      <div>Human Agency. People hold the judgement. AI is the assist.</div>
+      <div><a href="/factory/next/">Small business</a><a href="https://miru.humanagency.co/">Miru</a><a href="/factory/">Local tools</a><a href="https://ai.humanagency.co/">Learn AI</a></div>
+    </div>
+  </footer>
+</div>
+</body>
+</html>
