@@ -1175,7 +1175,7 @@ async function binFind() {
   }
 }
 // Councils Miru doesn't cover yet, read from the council's own site through our bridge
-function localBinCouncil(name) { return /richmond upon thames/i.test(name || "") ? "richmond" : ""; }
+function localBinCouncil(name) { const n = name || ""; return /richmond upon thames/i.test(n) ? "richmond" : /^brent\b/i.test(n) ? "brent" : ""; }
 function binDatesUrl(pc, uprn, local) {
   return local ? `/factory/api/bins.php?council=${encodeURIComponent(local)}&uprn=${encodeURIComponent(uprn)}`
     : `${API}/api/bins/dates?postcode=${encodeURIComponent(pc)}&uprn=${encodeURIComponent(uprn)}`;
