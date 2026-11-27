@@ -78,10 +78,21 @@ footer{padding:60px 0 50px;font-size:14px;color:var(--faint)}
 footer .row{display:flex;justify-content:space-between;gap:20px;flex-wrap:wrap}
 footer a{color:var(--soft);margin-right:18px;text-decoration:none}
 footer a:hover{color:var(--ink)}
+.svc{display:grid;grid-template-columns:repeat(3,1fr);gap:0 32px}
+.svc div{padding:18px 0;border-top:1px solid var(--line)}
+.svc b{display:block;font-family:"Source Serif 4",serif;font-weight:600;font-size:19px;color:var(--ink);margin:0 0 6px}
+.svc p{margin:0;color:var(--soft);font-size:15px}
+.svc ul{margin:8px 0 0;padding-left:18px;color:var(--soft);font-size:14px}
+.svc li{margin:2px 0}
+.exp{display:grid;grid-template-columns:repeat(2,1fr);gap:0 40px}
+.exp div{padding:16px 0;border-top:1px solid var(--line)}
+.exp b{display:block;color:var(--ink);font-weight:600;margin:0 0 4px}
+.exp span{display:block;font-size:13px;color:var(--signal);margin:0 0 4px}
+.exp p{margin:0;color:var(--soft);font-size:15px}
 .preview{background:var(--ink);color:#fff;font-size:13px;text-align:center;padding:8px 12px}
 .preview a{color:#fff}
-@media (max-width:900px){.menu a:not(.btn){display:none}.steps{grid-template-columns:1fr 1fr}.two{grid-template-columns:1fr;gap:24px}.offer{grid-template-columns:1fr;gap:8px}.tool{grid-template-columns:1fr;gap:2px}}
-@media (max-width:560px){.wrap{padding:0 18px}.route{padding-left:28px;margin-left:4px}.stop:before{left:-37px}.stop{padding:24px 0 52px}.steps{grid-template-columns:1fr;gap:18px}.hero{padding:34px 0 20px}}
+@media (max-width:900px){.svc{grid-template-columns:1fr 1fr}.exp{grid-template-columns:1fr}.menu a:not(.btn){display:none}.steps{grid-template-columns:1fr 1fr}.two{grid-template-columns:1fr;gap:24px}.offer{grid-template-columns:1fr;gap:8px}.tool{grid-template-columns:1fr;gap:2px}}
+@media (max-width:560px){.svc{grid-template-columns:1fr}.wrap{padding:0 18px}.route{padding-left:28px;margin-left:4px}.stop:before{left:-37px}.stop{padding:24px 0 52px}.steps{grid-template-columns:1fr;gap:18px}.hero{padding:34px 0 20px}}
 @media (prefers-reduced-motion:no-preference){html{scroll-behavior:smooth}}
 </style>
 </head>
@@ -90,12 +101,12 @@ footer a:hover{color:var(--ink)}
 <div class="wrap">
   <nav class="nav">
     <a class="logo" href="#"><i aria-hidden="true"></i>Human Agency</a>
-    <div class="menu"><a href="#how">How we work</a><a href="#work">Work with us</a><a href="#tools">Tools</a><a href="https://humanagency.co/delivery.html">Programme delivery</a><a class="btn" href="https://calendly.com/mekala/15min" target="_blank" rel="noopener">Book a call</a></div>
+    <div class="menu"><a href="#how">How we work</a><a href="#services">Services</a><a href="#work">Work with us</a><a href="#tools">Tools</a><a href="https://humanagency.co/delivery.html">Programme delivery</a><a class="btn" href="https://calendly.com/mekala/15min" target="_blank" rel="noopener">Book a call</a></div>
   </nav>
 
   <header class="hero">
     <h1>From the old way of working to one that uses AI well.</h1>
-    <p class="lede">For UK companies of 50 to 500 people. We pick one job that matters, prove AI makes it better on your real work, and hand it to someone on your team who owns it.</p>
+    <p class="lede">For UK companies of 50 to 500 people, from someone who has spent 26 years running technology programmes in consumer goods and energy. We pick one job that matters, prove AI makes it better on your real work, and hand it to someone on your team who owns it.</p>
     <div class="cta"><a class="btn" href="https://calendly.com/mekala/15min" target="_blank" rel="noopener">Book a 15-minute call</a><a class="btn line" href="#try">See where AI could help you</a></div>
   </header>
 
@@ -119,6 +130,19 @@ footer a:hover{color:var(--ink)}
       </div>
     </section>
 
+    <section class="stop" id="services">
+      <h2>What we help with</h2>
+      <p class="intro">AI is the newest part of it. The rest is what we've done for 26 years: understand the problem properly, then make the change land.</p>
+      <div class="svc">
+        <div><b>AI use cases and pilots</b><p>Find the few places AI pays off, then prove it on real work.</p><ul><li>Use case discovery</li><li>Pilots measured against today</li><li>AI setup and team training</li></ul></div>
+        <div><b>Research and insight</b><p>Know the problem before you spend money on it.</p><ul><li>Customer and user interviews</li><li>Synthesis of what people said</li><li>SWOT and competitor reviews</li><li>Consumer and market research</li></ul></div>
+        <div><b>Programme and project management</b><p>One experienced owner who makes it land.</p><ul><li>Contract, interim or fractional</li><li>Governance, budgets and vendors</li><li>Stakeholders across countries</li></ul></div>
+        <div><b>Old world to new</b><p>Move off what's holding you back without breaking what works.</p><ul><li>System and data migrations</li><li>Vendor transitions</li><li>M&amp;A, carve-outs and Day 0</li></ul></div>
+        <div><b>Marketing and commercial IT</b><p>The systems behind brands, pricing and media.</p><ul><li>Consumer and market insights platforms</li><li>Media analytics</li><li>Innovation platforms</li><li>Net Revenue and Revenue Growth Management</li></ul></div>
+        <div><b>Product builds</b><p>Prototypes and small products, built fast and handed over.</p><ul><li>Working prototypes</li><li>Internal tools and agents</li><li>Websites and apps</li></ul></div>
+      </div>
+    </section>
+
     <section class="stop" id="work">
       <h2>Three ways to work with us</h2>
       <p class="intro">Every company is different, so we talk first and agree the scope together.</p>
@@ -139,6 +163,19 @@ footer a:hover{color:var(--ink)}
           <div><b>Day 0</b><span>on the Magnum Ice Cream separation</span></div>
           <div><b>5 live</b><span>AI products, built in-house</span></div>
         </div>
+      </div>
+    </section>
+
+    <section class="stop" id="done">
+      <h2>Where we've done it before</h2>
+      <p class="intro">Real programmes, in companies where things had to work on day one.</p>
+      <div class="exp">
+        <div><span>Consumer goods · Unilever, Mars</span><b>Marketing and commercial technology</b><p>Consumer and market insights, media analytics, a brand and content platform used by 90+ brands, and innovation tools for marketing teams.</p></div>
+        <div><span>Consumer goods · Unilever</span><b>Net Revenue and Revenue Growth Management</b><p>A global analytics suite for pricing, portfolio mix and promotions, with eCommerce and Amazon data built in, and growth tools for emerging markets.</p></div>
+        <div><span>Oil and gas · Shell, BP</span><b>Digital platforms and transitions</b><p>Lead business analyst on Shell's innovation platform and its Adobe Experience Manager work. At BP, a transition handing people, processes and systems to a new vendor.</p></div>
+        <div><span>M&amp;A · The Magnum Ice Cream Company</span><b>IT separation from Unilever</b><p>Day 0 and hypercare lead when production systems went live under new ownership, plus SAP data separation and access controls across four SAP landscapes.</p></div>
+        <div><span>Data and analytics</span><b>Platform migrations</b><p>Moving a worldwide analytics estate to a new platform, with a new operating model and self-serve reporting for marketing and commercial teams.</p></div>
+        <div><span>AI · Human Agency</span><b>Five live AI products, built hands on</b><p>Miru, Intel, the Idea Validator, Agent Factory and the AI Learning Hub. Proof that we build, not just advise.</p></div>
       </div>
     </section>
 
