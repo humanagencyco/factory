@@ -1,0 +1,248 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Get found by Google and AI | Human Agency</title>
+<meta name="description" content="Free check for local businesses: your Google listing, your website, and whether AI assistants can find you. Then help to fix it.">
+<meta name="robots" content="noindex">
+<style>
+:root{--ink:#1d1630;--muted:#6c6485;--paper:#fff8f1;--pink:#ff5d8f;--sun:#ffb830;--mint:#2fd1a4;--sky:#5aa9ff;--violet:#8b5cf6;--bad:#ffb3b3}
+*{box-sizing:border-box}body{margin:0;background:var(--paper);color:var(--ink);font:16px/1.55 -apple-system,BlinkMacSystemFont,"Segoe UI",Inter,Roboto,sans-serif}
+a{color:var(--violet);font-weight:800}
+.wrap{max-width:960px;margin:0 auto;padding:0 20px}
+nav{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;padding:18px 0}
+nav .home{font-weight:900;color:var(--ink);text-decoration:none}
+nav .links a{color:var(--ink);text-decoration:none;margin-left:16px;font-size:15px}
+.hero{display:grid;grid-template-columns:1.1fr 1fr;gap:32px;align-items:center;padding:28px 0 10px}
+h1{font-size:clamp(38px,6.4vw,62px);line-height:1;margin:0 0 14px;font-weight:900;letter-spacing:-.025em}
+.lede{color:var(--muted);font-size:19px;margin:0}
+.formcard{background:#fff;border:2px solid var(--ink);border-radius:22px;box-shadow:8px 8px 0 var(--ink);padding:22px}
+.formcard label{display:block;font-weight:800;font-size:14px;margin:0 0 12px}
+.formcard input{display:block;width:100%;margin-top:4px;border:2px solid var(--ink);border-radius:12px;padding:11px 12px;font:inherit}
+.formcard small{color:var(--muted);font-weight:600}
+.btn{border:0;cursor:pointer;background:var(--ink);color:#fff;font:inherit;font-weight:900;border-radius:999px;padding:13px 22px}
+.btn.wide{width:100%}
+.btn:disabled{opacity:.6;cursor:wait}
+.btn:focus-visible,input:focus-visible,a:focus-visible,button:focus-visible{outline:3px solid var(--sky);outline-offset:3px}
+.fine{font-size:13px;color:var(--muted);margin:10px 0 0;text-align:center}
+.msg{color:#b42318;font-weight:700;font-size:14px;margin:8px 0 0}
+.pick{display:block;width:100%;text-align:left;margin:6px 0;padding:10px 12px;border:2px solid var(--ink);border-radius:12px;background:#fff;cursor:pointer;font:inherit}
+.pick small{color:var(--muted)}
+section{padding:40px 0 10px}
+h2{font-size:clamp(26px,4vw,36px);line-height:1.1;margin:0 0 14px;font-weight:900;letter-spacing:-.015em}
+.three{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
+.tile{background:#fff;border:2px solid var(--ink);border-radius:18px;padding:16px}
+.tile b{display:block;font-size:17px;margin:0 0 4px}
+.tile p{margin:0;color:var(--muted);font-size:15px}
+.price{font-weight:900;font-size:20px;margin-top:10px !important;color:var(--ink) !important}
+.card{margin:30px 0 10px;background:#fff;border:2px solid var(--ink);border-radius:22px;box-shadow:6px 6px 0 var(--ink);padding:24px}
+.card h2{margin:0 0 2px;overflow-wrap:anywhere}
+.score{display:flex;align-items:baseline;gap:10px;margin:6px 0 16px}.score b{font-size:46px;font-weight:900;line-height:1}.score span{color:var(--muted)}
+.alert{border:2px solid var(--ink);background:var(--bad);border-radius:16px;padding:12px 14px;margin:0 0 14px}.alert b{display:block}
+.groups{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:12px}
+.group{border:2px solid var(--ink);border-radius:16px;padding:12px 14px;background:var(--paper)}
+.group h3{margin:0 0 6px;font-size:16px;font-weight:900}
+.row{display:flex;gap:8px;align-items:flex-start;font-size:14px;margin:6px 0}.row i{font-style:normal}.row small{display:block;color:var(--muted)}
+h3.sub{font-size:20px;font-weight:900;margin:24px 0 8px}
+ol.fix{padding-left:22px;margin:0}ol.fix li{margin:8px 0}
+.duo{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:12px}
+.serp{border:2px solid var(--ink);border-radius:16px;padding:14px;background:#fff}
+.serp .lab{font-size:12px;font-weight:900;color:var(--muted);margin:0 0 8px}
+.serp .u{font-size:13px;color:#3c4043}.serp .t{font-size:19px;color:#1a0dab;line-height:1.3;margin:2px 0 4px}.serp .d{font-size:14px;color:#4d5156}
+.serp .meta{font-size:13px;color:#4d5156;margin-top:6px}
+.serp.better{background:#effcf6}
+.serp ul{margin:10px 0 0;padding-left:18px;font-size:13px;color:var(--muted)}
+.ask{margin-top:24px;border:2px solid var(--ink);border-radius:18px;padding:18px;background:var(--sun)}
+.ask .r{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}.ask input{flex:1;min-width:200px;border:2px solid var(--ink);border-radius:12px;padding:10px 12px;font:inherit}
+.chips{display:flex;flex-wrap:wrap;gap:8px;margin:0 0 12px}
+.chip{border:2px solid var(--ink);background:#fff;border-radius:999px;padding:7px 14px;font:inherit;font-weight:800;cursor:pointer}
+.chip[aria-pressed="true"]{background:var(--ink);color:#fff}
+ul.ideas{margin:0;padding-left:20px}ul.ideas li{margin:6px 0}
+footer{margin:50px 0 0;padding:24px 0 40px;border-top:2px solid var(--ink);font-size:15px}
+footer a{color:var(--ink);margin-right:16px}
+.note{color:var(--muted);font-size:14px}
+@media (max-width:760px){.hero{grid-template-columns:1fr;gap:20px}.three{grid-template-columns:1fr}.formcard,.card{box-shadow:4px 4px 0 var(--ink)}.card{padding:16px}nav .links a{margin:0 12px 0 0}}
+</style>
+</head>
+<body>
+<div class="wrap">
+<nav><a class="home" href="/factory/next/">Human Agency</a><span class="links"><a href="#help">How we help</a><a href="#ai">AI for your business</a><a href="/factory/">Local tools</a></span></nav>
+
+<div class="hero">
+  <div>
+    <h1>Get found by Google and AI.</h1>
+    <p class="lede">More people now ask ChatGPT or Google "where's good near me?" before they visit. See what they find when they look for you, and what to fix first.</p>
+  </div>
+  <form class="formcard" id="f">
+    <label>Business name<input id="bName" maxlength="100" placeholder="e.g. Ben's Ice Cream" required></label>
+    <label>Postcode or town<input id="bPc" maxlength="40" placeholder="e.g. GU27 2AB"></label>
+    <label>Website <small>(if you have one)</small><input id="bWeb" maxlength="120" placeholder="e.g. bensicecream.co.uk"></label>
+    <button class="btn wide" id="go" type="submit">Check my business</button>
+    <div id="pick"></div>
+    <p class="msg" id="msg" aria-live="polite"></p>
+    <p class="fine">Free, takes about 20 seconds, no sign-up.</p>
+  </form>
+</div>
+
+<div id="out"></div>
+
+<section>
+  <h2>What we check</h2>
+  <div class="three">
+    <div class="tile"><b>📍 Your Google listing</b><p>Is it there, are the hours and phone right, how many reviews, and what people say.</p></div>
+    <div class="tile"><b>🌐 Your website</b><p>Does it show the padlock, work on a phone, load fast, and say what you do and where.</p></div>
+    <div class="tile"><b>🤖 AI assistants</b><p>Can ChatGPT, Gemini and Perplexity read your site, and do they know your opening hours and address.</p></div>
+  </div>
+</section>
+
+<section id="help">
+  <h2>How we help</h2>
+  <div class="three">
+    <div class="tile"><b>Get Found</b><p>One-off. We fix your Google profile, set up an easy way to ask for reviews, sort AI access and your business details on your website, then re-run the check.</p><p class="price">From £249</p></div>
+    <div class="tile"><b>AI Starter</b><p>90 minutes one-to-one. ChatGPT, Claude or Copilot set up for your business, so replies, booking questions and posts take minutes, not evenings.</p><p class="price">£149</p></div>
+    <div class="tile"><b>Stay Found</b><p>Monthly. Draft replies to every new review in your voice, a Google post each week, and a short note on what customers praise and grumble about.</p><p class="price">From £49 a month</p></div>
+  </div>
+</section>
+
+<section id="ai">
+  <h2>What AI could do for a business like yours</h2>
+  <div class="chips" id="types"></div>
+  <ul class="ideas" id="ideas"></ul>
+  <p class="note">Want a hand setting it up? That's the AI Starter session above. Or learn the basics yourself with our <a href="https://ai.humanagency.co/for-you.html" target="_blank" rel="noopener">plain-English guides ↗</a>.</p>
+</section>
+
+<footer>
+  <b>Also from Human Agency:</b><br>
+  <a href="/factory/">Local tools for your postcode</a><a href="/factory/intel/">Intel: companies and brands</a><a href="https://miru.humanagency.co/" target="_blank" rel="noopener">Miru ↗</a><a href="https://ai.humanagency.co/" target="_blank" rel="noopener">AI guides ↗</a>
+</footer>
+</div>
+
+<script>
+const API = "https://miru.humanagency.co";
+const $ = id => document.getElementById(id);
+const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+const clean = v => String(v || "").trim().toLowerCase().replace(/^https?:\/\//, "").replace(/[/?#].*$/, "").replace(/^www\./, "");
+const cut = (t, n) => { t = String(t || "").trim(); return t.length > n ? t.slice(0, n - 1).replace(/\s+\S*$/, "") + " …" : t; };
+const post = (path, body) => fetch(API + path, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) }).then(async r => [r.ok, await r.json().catch(() => ({}))]);
+
+// AI ideas by type of business
+const IDEAS = {
+  "☕ Café or restaurant": ["Write menu descriptions and the specials board in seconds", "Reply to Google reviews in your own voice", "Plan stock orders and rotas from last month's sales", "Turn your photos into Instagram posts with captions"],
+  "🛍️ Shop": ["Write product descriptions and shelf labels", "Answer common questions on WhatsApp or your website", "Spot best and worst sellers from a till export", "Plan a week of social posts in one go"],
+  "💆 Salon, spa or beauty": ["Send booking reminders and follow-ups", "Write aftercare notes for each treatment", "Reply to reviews quickly and kindly", "Write before-and-after captions for social"],
+  "🔧 Trades": ["Turn a voice note into a tidy quote or invoice", "Write up jobs with photos for customers", "Reply to enquiries fast, even when you're on a job", "Keep checklists for paperwork and certificates"],
+  "💼 Office or services": ["Draft emails and proposals", "Summarise meetings and long documents", "Write the FAQs for your website", "Tidy up and explain spreadsheets"],
+};
+$("types").innerHTML = Object.keys(IDEAS).map((k, i) => `<button class="chip" type="button" aria-pressed="${i === 0}">${k}</button>`).join("");
+const showIdeas = k => { $("ideas").innerHTML = IDEAS[k].map(x => `<li>${esc(x)}</li>`).join(""); document.querySelectorAll("#types .chip").forEach(c => c.setAttribute("aria-pressed", c.textContent === k)); };
+$("types").onclick = e => { if (e.target.matches(".chip")) showIdeas(e.target.textContent); };
+showIdeas(Object.keys(IDEAS)[0]);
+
+const SSLWHY = { expired: "The security certificate has expired", wrong_name: "The security certificate is for a different web address", untrusted: "The security certificate isn't from a trusted issuer", no_https: "The site doesn't offer a secure (https) connection", only_www: "Only the www. address is secure; the plain address shows a warning", other: "Browsers can't confirm the site is secure" };
+
+// Turn both checks into one list of yes/no lines, each with a plain fix
+function lines(g, s) {
+  const L = [];
+  if (g) {
+    L.push({ g: "Google listing", ok: true, t: "On Google Maps", why: g.address || "Listed" });
+    L.push({ g: "Google listing", ok: g.reviews >= 30 && g.rating >= 4.2, t: "Reviews", why: g.reviews ? `${g.rating}★ from ${g.reviews} reviews` : "No reviews yet",
+      fix: `<b>Get more recent reviews.</b> ${g.reviews ? `${g.reviews} reviews` : "No reviews"} so far. A QR code on the counter and a text after each visit usually doubles the rate. Reply to every review, good or bad.` });
+    L.push({ g: "Google listing", ok: g.hours, t: "Opening hours", why: g.hours ? "Listed" : "Missing", fix: `<b>Add your opening hours to Google.</b> It's the first thing people and AI assistants check.` });
+    L.push({ g: "Google listing", ok: g.phone, t: "Phone number", why: g.phone ? g.phone_number || "Listed" : "Missing", fix: `<b>Add a phone number to your Google listing.</b>` });
+    L.push({ g: "Google listing", ok: !!g.website, t: "Links to your website", why: g.website ? clean(g.website) : "No website on the listing", fix: `<b>Link your website from your Google listing.</b>` });
+  } else {
+    L.push({ g: "Google listing", ok: false, t: "On Google Maps", why: "We couldn't find it", fix: `<b>Claim your free Google Business Profile.</b> Without it you don't show up on Maps, and AI assistants have little to go on.` });
+  }
+  if (s && s.opens) {
+    const b = s.basics || {}, blocked = (s.ai_bots || []).filter(x => x.blocked && /ChatGPT search|Perplexity|Gemini/.test(x.name)).map(x => x.name);
+    L.push({ g: "Website", ok: !s.ssl || s.ssl.ok, t: "Secure (padlock)", why: !s.ssl || s.ssl.ok ? "Browsers show the padlock" : SSLWHY[s.ssl.problem] || SSLWHY.other,
+      fix: `<b>Fix the security certificate.</b> Browsers show a full-page "not private" warning and most people leave. Your web host can switch on a free certificate in a click.` });
+    L.push({ g: "Website", ok: b.mobile, t: "Works on a phone", why: b.mobile ? "Yes" : "Not set up for small screens", fix: `<b>Make the site work on phones.</b> Most visitors arrive on one.` });
+    L.push({ g: "Website", ok: b.load_ms != null && b.load_ms < 2500, t: "Loads quickly", why: b.load_ms == null ? "Couldn't time it" : `${(b.load_ms / 1000).toFixed(1)}s`, fix: `<b>Speed the site up.</b> Shrink big images and remove plug-ins you don't use.` });
+    L.push({ g: "Website", ok: !!s.title && !!s.description, t: "Says what you do and where", why: s.title ? `"${cut(s.title, 70)}"` : "No page title", fix: `<b>Rewrite your page title and description.</b> Say what you do and where, in words people search for.` });
+    L.push({ g: "AI assistants", ok: !blocked.length, t: "AI search can read your site", why: blocked.length ? `Blocked: ${blocked.join(", ")}` : "ChatGPT search, Perplexity and Gemini allowed",
+      fix: `<b>Let AI search in.</b> Your site blocks ${esc(blocked.join(", "))}, so they recommend others without seeing you.` });
+    L.push({ g: "AI assistants", ok: s.has_org_schema || b.local_business, t: "Business details AI can read", why: s.has_org_schema || b.local_business ? "Yes" : "Not marked up",
+      fix: `<b>Add your business details for AI.</b> Name, address, hours and phone in a form ChatGPT and Google read directly. We can give you the code.` });
+  } else {
+    L.push({ g: "Website", ok: false, t: "Website", why: s ? "Didn't open for us" : "None found", fix: `<b>${s ? "Check your website is up." : "Get a simple website."}</b> Even one page with what you do, where, hours and phone helps Google and AI recommend you.` });
+  }
+  return L;
+}
+
+function googleNowCould(g, s, name) {
+  const town = g && g.address ? (g.address.split(",").slice(-2, -1)[0] || "").replace(/[A-Z]{1,2}\d[A-Z\d]?\s*\d[A-Z]{2}/, "").trim() : "";
+  const kind = g && g.kind ? g.kind.replace(/_/g, " ") : "";
+  const dom = s && s.domain || (g && g.website ? clean(g.website) : "");
+  const nowT = s && s.title || name, nowD = s && s.description || "No description, so Google picks some text from the page.";
+  const stars = g && g.reviews ? `${g.rating}★ · ${g.reviews} reviews` : "";
+  return `<h3 class="sub">You today, and you next month</h3>
+    <div class="duo">
+      <div class="serp"><p class="lab">TODAY</p><div class="u">${esc(dom || "no website")}</div><div class="t">${esc(cut(nowT, 60))}</div><div class="d">${esc(cut(nowD, 155))}</div>${stars ? `<div class="meta">${esc(stars)}</div>` : ""}</div>
+      <div class="serp better"><p class="lab">NEXT MONTH</p><div class="u">${esc(dom || "yourbusiness.co.uk")}</div><div class="t">${esc(cut(`${kind ? kind[0].toUpperCase() + kind.slice(1) : "What you do"} in ${town || "your town"} | ${name}`, 60))}</div><div class="d">What you offer and who it's for, in one sentence that ends before Google cuts it.${g && g.phone_number ? ` Call ${esc(g.phone_number)}.` : ""}</div><div class="meta">${g && g.reviews ? `${g.rating}★ · more recent reviews, each with a reply` : "★ reviews showing"} · Open today · Directions</div>
+        <ul><li>Title says what and where.</li><li>Hours, address and reviews show under your result.</li><li>ChatGPT and Gemini can quote your hours, prices and what you're known for.</li></ul></div>
+    </div>`;
+}
+
+let lastScan = null, lastBody = null;
+async function check(body) {
+  $("pick").innerHTML = ""; $("msg").textContent = "";
+  const go = $("go"); go.disabled = true; go.textContent = "Checking Google and your website…";
+  $("out").innerHTML = `<div class="card"><p class="note">Checking ${esc(body.business)} on Google and reading your website…</p></div>`;
+  try {
+    const [ok, scan] = await post("/api/factory/business-scan", body);
+    if (!ok) throw new Error(scan.error || "Couldn't run the check. Please try again.");
+    const g = scan.google && scan.google.found ? scan.google : null;
+    const dom = clean(body.website || (g && g.website) || "");
+    let s = null;
+    if (dom) { try { s = await fetch(`/factory/api/aiready.php?v=4&domain=${encodeURIComponent(dom)}`).then(r => r.json()); } catch (_) {} }
+    lastScan = scan; lastBody = body;
+    render(body, g, s);
+  } catch (e) { $("out").innerHTML = ""; $("msg").textContent = e.message || "Couldn't run the check right now."; }
+  go.disabled = false; go.textContent = "Check my business";
+}
+
+function render(body, g, s) {
+  const name = g ? g.name : body.business, L = lines(g, s);
+  const passed = L.filter(x => x.ok).length, fixes = L.filter(x => !x.ok && x.fix).slice(0, 4);
+  const verdict = passed >= L.length - 1 ? "Easy to find" : passed >= L.length * .6 ? "A few things holding you back" : "Hard to find right now";
+  const groups = [...new Set(L.map(x => x.g))];
+  $("out").innerHTML = `<div class="card" id="result">
+    <h2>${esc(name)}</h2>${g && g.maps_url ? `<a href="${esc(g.maps_url)}" target="_blank" rel="noopener" style="font-size:14px">View on Google Maps ↗</a>` : ""}
+    <div class="score"><b>${passed}/${L.length}</b><span>${verdict}</span></div>
+    ${s && s.ssl && !s.ssl.ok ? `<div class="alert"><b>⚠️ Visitors get a "Not secure" warning on your website</b>${esc(SSLWHY[s.ssl.problem] || SSLWHY.other)}. People have to click "Advanced" to get in, and most won't. Fix this first.</div>` : ""}
+    <div class="groups">${groups.map(k => `<div class="group"><h3>${esc(k)}</h3>${L.filter(x => x.g === k).map(x => `<div class="row"><i>${x.ok ? "✅" : "❌"}</i><div><b>${esc(x.t)}</b><small>${esc(x.why)}</small></div></div>`).join("")}</div>`).join("")}</div>
+    ${fixes.length ? `<h3 class="sub">What to fix first</h3><ol class="fix">${fixes.map(x => `<li>${x.fix}</li>`).join("")}</ol>` : `<h3 class="sub">You're in good shape</h3><p>Next step: ask ChatGPT and Gemini the questions your customers ask, and see whether you're named.</p>`}
+    ${googleNowCould(g, s, name)}
+    <div class="ask" id="ask"><b>Want us to fix this for you?</b> Most of it is a day's work. Leave a WhatsApp number or email and we'll send you a short plan, no obligation.
+      <div class="r"><input id="who" placeholder="Your name" maxlength="80"><input id="contact" placeholder="WhatsApp number or email" maxlength="120"><button class="btn" id="askGo" type="button">Send me a plan</button></div>
+      <p class="msg" id="askMsg"></p></div>
+    ${s && s.opens ? `<p class="note">Full website report: <a href="/factory/site/?site=${encodeURIComponent(s.domain)}">${esc(s.domain)}</a></p>` : ""}
+  </div>`;
+  $("askGo").onclick = async () => {
+    const contact = $("contact").value.trim(); if (!contact) return $("askMsg").textContent = "Add a WhatsApp number or email.";
+    $("askGo").disabled = true; $("askGo").textContent = "Sending…";
+    const [ok, d] = await post("/api/factory/business-check", Object.assign({}, lastBody, { contact, name: $("who").value.trim(), scan: lastScan })).catch(() => [false, {}]);
+    if (!ok) { $("askGo").disabled = false; $("askGo").textContent = "Send me a plan"; return $("askMsg").textContent = d.error || "Couldn't send that. Please try again."; }
+    $("ask").innerHTML = `<b>Thanks, we'll be in touch within 24 hours.</b> We'll send it to ${esc(contact)}.`;
+  };
+  $("result").scrollIntoView({ behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth", block: "start" });
+}
+
+// Step 1: which Google listing is yours? Step 2: the check.
+$("f").onsubmit = async e => {
+  e.preventDefault();
+  const body = { business: $("bName").value.trim(), postcode: $("bPc").value.trim(), website: $("bWeb").value.trim() };
+  if (body.business.length < 2) return $("msg").textContent = "Tell us the business name.";
+  const go = $("go"); go.disabled = true; go.textContent = "Finding you on Google…";
+  let list = [];
+  try { const [ok, d] = await post("/api/factory/business-find", body); list = ok && d.candidates || []; } catch (_) {}
+  go.disabled = false; go.textContent = "Check my business";
+  if (list.length <= 1) return check(list[0] ? Object.assign({}, body, { business: list[0].name, place_id: list[0].id }) : body);
+  $("pick").innerHTML = `<p style="margin:12px 0 4px;font-weight:800">Which one is you?</p>${list.slice(0, 5).map((c, i) => `<button type="button" class="pick" data-i="${i}"><b>${esc(c.name)}</b><br><small>${esc(c.address || "")}</small></button>`).join("")}<button type="button" class="pick" data-i="-1"><small>None of these. Check "${esc(body.business)}" anyway</small></button>`;
+  $("pick").querySelectorAll(".pick").forEach(b => b.onclick = () => { const c = list[+b.dataset.i]; check(c ? Object.assign({}, body, { business: c.name, place_id: c.id }) : body); });
+};
+</script>
+</body>
+</html>
